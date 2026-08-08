@@ -205,7 +205,7 @@
     display: block;
     opacity: 1;
     transform: translateY(0);
-    padding-top: 20px;
+    padding: 20px 0;
   }
 
   /* ===== Card (shared) ===== */
@@ -214,7 +214,10 @@
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     border: 1px solid var(--border);
-    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .card:last-child {
+    margin-bottom: 0;
   }
   .card-header {
     padding: 14px 20px;
@@ -2941,7 +2944,7 @@
         </div>
       </div>
       <!-- Output destination -->
-      <div class="card" style="margin-top:16px;">
+      <div class="card">
         <div class="card-header">
           <h2>Output destination</h2>
         </div>
