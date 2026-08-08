@@ -31,4 +31,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('window:maximizeChange', handler);
     return () => ipcRenderer.removeListener('window:maximizeChange', handler);
   },
+  onVisibilityChange: (callback) => {
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on('window:visibilityChange', handler);
+    return () => ipcRenderer.removeListener('window:visibilityChange', handler);
+  },
 });

@@ -4049,6 +4049,17 @@
       }
     });
 
+    // Also listen for window minimize/restore (Electron frameless sends this)
+    if (window.electronAPI && window.electronAPI.onVisibilityChange) {
+      window.electronAPI.onVisibilityChange(function(data) {
+        if (data.minimized) {
+          if (animId) { cancelAnimationFrame(animId); animId = null; }
+        } else {
+          draw();
+        }
+      });
+    }
+
     draw();
   })();
 

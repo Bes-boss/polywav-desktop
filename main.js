@@ -59,7 +59,22 @@ function createWindow() {
   mainWindow.on('unmaximize', () => {
     mainWindow.webContents.send('window:maximizeChange', false);
   });
+  mainWindow.on('minimize', () => {
+    mainWindow.webContents.send('window:visibilityChange', { minimized: true });
+  });
+  mainWindow.on('restore', () => {
+    mainWindow.webContents.send('window:visibilityChange', { minimized: false });
+  });
+
+  // ── Crash diagnostics ──────────────────────────────────
+  mainWindow.webContents.on('crashed', (event, killed) => {
+    console.error('Renderer CRASHED (killed=' + killed + ')');
+  });
 }
+
+app.on('renderer-process-gone', (event, webContents, details) => {
+  console.error('Renderer GONE: reason=' + details.reason + ' exitCode=' + details.exitCode);
+});
 
 app.whenReady().then(createWindow);
 
