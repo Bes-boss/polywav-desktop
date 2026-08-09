@@ -205,7 +205,7 @@
     display: block;
     opacity: 1;
     transform: translateY(0);
-    padding: 20px 0;
+    padding-top: 20px;
   }
 
   /* ===== Card (shared) ===== */
@@ -214,10 +214,7 @@
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     border: 1px solid var(--border);
-    margin-bottom: 20px;
-  }
-  .card:last-child {
-    margin-bottom: 0;
+    overflow: hidden;
   }
   .card-header {
     padding: 14px 20px;
@@ -1387,19 +1384,8 @@
     background: rgba(40, 60, 100, 0.3);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    will-change: transform;
-    overflow: hidden;
     box-shadow: 0 2px 10px rgba(0,0,0,0.18);
     transition: box-shadow 0.3s ease;
-  }
-  .sticky-header::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: rgba(255,255,255,0.06);
   }
   .header-inner {
     -webkit-app-region: drag;
@@ -2955,7 +2941,7 @@
         </div>
       </div>
       <!-- Output destination -->
-      <div class="card">
+      <div class="card" style="margin-top:16px;">
         <div class="card-header">
           <h2>Output destination</h2>
         </div>
@@ -3356,7 +3342,7 @@
       setTimeout(function() {
         current.style.display = 'none';
       }, 400);
-  }
+    }
 
     if (newTab.style.display === 'none' || !newTab.classList.contains('active')) {
       // Prepare invisible, force reflow, then animate in
@@ -3364,7 +3350,7 @@
       newTab.classList.remove('active');
       void newTab.offsetWidth;
       newTab.classList.add('active');
-  }
+    }
 
     if (name === 'patch') setTimeout(renderRoutingMap, 60);
     if (name === 'route') setTimeout(renderRouteTab, 60);
@@ -3405,25 +3391,25 @@
       role = parts[1] + '_' + parts[2];
       num = parts[3];
       suffix = '';
-  }
+    }
     // GDE_Guide_Track: parts[2] is 'Track' not a number
     if (prefix === 'GDE') {
       role = parts[1];
       num = '';
       suffix = '';
-  }
+    }
     // TC_Timecode: no number
     if (prefix === 'TC') {
       role = parts[1];
       num = '';
       suffix = '';
-  }
+    }
     // AMB_Kitchen_N
     if (prefix === 'AMB') {
       role = parts[1];
       num = parts[2] || '';
       suffix = '';
-  }
+    }
     return { prefix: prefix, role: role, num: num, suffix: suffix };
   }
 
@@ -3557,7 +3543,7 @@
       fmtItem.innerHTML = '<span class="dd-label">Zero-pad</span><span class="dd-hint">:02d</span>';
       fmtItem.onclick = function(e2) { e2.stopPropagation(); selectChipOption(idx, 'num', curFmt ? null : '02'); };
       dd.appendChild(fmtItem);
-  }
+    }
 
     // Remove option
     var div2 = document.createElement('div');
@@ -3621,7 +3607,7 @@
       _templateSlots.splice(idx, 2);
     } else {
       _templateSlots.splice(idx, 1);
-  }
+    }
     closeChipDropdowns();
     renderTemplateChips();
     updateParseTableBody();
@@ -3647,7 +3633,7 @@
       });
       html += '<td class="normalized">' + normalized + '</td>'
         + '</tr>';
-  }
+    }
     tbody.innerHTML = html;
   }
 
@@ -3772,7 +3758,7 @@
       if (m[2]) slot.format = m[2];
       slots.push(slot);
       lastIdx = m.index + m[0].length;
-  }
+    }
     if (lastIdx < tmpl.length) slots.push({ key: 'sep', text: tmpl.substring(lastIdx) });
     return slots;
   }
@@ -3805,7 +3791,7 @@
   document.addEventListener('click', function(e) {
     if (!e.target.closest('.template-chip') && !e.target.closest('.template-chip-add')) {
       closeChipDropdowns();
-  }
+    }
   });
 
   // Save column header label on blur, re-render
@@ -3820,7 +3806,7 @@
       th.contentEditable = 'false';
       delete th.dataset.original;
       updateParseTable();
-  }
+    }
   });
 
   // ===== Inline edit handlers =====
@@ -3835,7 +3821,7 @@
         if (orig !== null) e.target.textContent = orig;
         e.target.blur();
       }
-  }
+    }
     if (e.target.hasAttribute('data-col-key') && e.target.contentEditable === 'true') {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -3846,14 +3832,14 @@
         if (orig !== null) e.target.textContent = orig;
         e.target.blur();
       }
-  }
+    }
   });
 
   document.addEventListener('focusin', function(e) {
     if (e.target.classList.contains('editable-text')) {
       e.target.setAttribute('data-original', e.target.textContent);
       e.target.classList.add('editing');
-  }
+    }
   });
 
   document.addEventListener('focusout', function(e) {
@@ -3864,7 +3850,7 @@
       if (val && val !== old) {
         showToast('Renamed: ' + (old || 'unnamed') + ' \u2192 ' + val);
       }
-  }
+    }
   });
 
   // ===== Route tab functions =====
@@ -3882,7 +3868,7 @@
       span.textContent = '\u2014';
       span.removeAttribute('contenteditable');
       select.classList.remove('assigned');
-  }
+    }
     updateSummary();
   }
 
@@ -3932,7 +3918,7 @@
       document.documentElement.classList.add('light-mode');
       document.body.classList.add('light-mode');
       if (window.syncThemeColors) window.syncThemeColors(true);
-  }
+    }
     syncThemeOptions();
   })();
   function closeSettingsOutside(e) {
@@ -3953,7 +3939,7 @@
     if (e.key === 'Escape') {
       var overlay = document.getElementById('settingsOverlay');
       if (overlay && overlay.classList.contains('open')) toggleSettings();
-  }
+    }
   });
 
   var toastTimeout;
@@ -3981,7 +3967,7 @@
     function resize() {
       W = canvas.width = window.innerWidth;
       H = canvas.height = window.innerHeight;
-  }
+    }
     resize();
     window.addEventListener('resize', resize);
 
@@ -4005,7 +3991,7 @@
         life: Math.random() * 300,
         maxLife: 300 + Math.random() * 200,
       });
-  }
+    }
 
     var time = 0;
 
@@ -4049,7 +4035,7 @@
       });
 
       animId = requestAnimationFrame(draw);
-  }
+    }
 
     // Pause/resume on visibility change (saves CPU when minimized)
     document.addEventListener('visibilitychange', function() {
@@ -4059,17 +4045,6 @@
         draw();
       }
     });
-
-    // Also listen for window minimize/restore (Electron frameless sends this)
-    if (window.electronAPI && window.electronAPI.onVisibilityChange) {
-      window.electronAPI.onVisibilityChange(function(data) {
-        if (data.minimized) {
-          if (animId) { cancelAnimationFrame(animId); animId = null; }
-        } else {
-          draw();
-        }
-      });
-  }
 
     draw();
   })();
@@ -4167,7 +4142,7 @@
 
       ROUTING_DATA = newRouting;
       GROUP_INFO = newGroupInfo;
-  }
+    }
 
     function handleFile(file) {
       if (!file) return;
@@ -4258,7 +4233,7 @@
         // Browser fallback: use file name as single channel
         loadChannelData(['Channel 1'], file.name, file.name, file.size);
       }
-  }
+    }
 
     function updateHeaderForFile(fileName, channelCount, meta) {
       var subtitle = document.querySelector('.subtitle');
@@ -4271,7 +4246,7 @@
         var bd = meta && meta.bitDepth ? meta.bitDepth + '-bit' : '';
         status.innerHTML = '&#x25CF; ' + channelCount + ' channel' + (channelCount !== 1 ? 's' : '') + (sr ? ' &middot; ' + sr : '') + (bd ? ' &middot; ' + bd : '');
       }
-  }
+    }
 
     if (btn) btn.addEventListener('click', function(e) { e.stopPropagation(); if (input) input.click(); });
     zone.addEventListener('click', function() { if (input) input.click(); });
@@ -4279,7 +4254,7 @@
       input.addEventListener('change', function() {
         if (this.files.length > 0) handleFile(this.files[0]);
       });
-  }
+    }
     zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.classList.add('drag-over'); });
     zone.addEventListener('dragleave', function(e) { e.preventDefault(); zone.classList.remove('drag-over'); });
     zone.addEventListener('drop', function(e) {
@@ -4493,7 +4468,7 @@
 
       // Update bottom-bar info
       updateRouteBar();
-  }
+    }
   }
 
   function updateRouteBar() {
@@ -4618,7 +4593,7 @@
         updateAafPreview();
         showToast('Output ' + (fieldId === 'outputAafDir' ? 'AAF' : 'MXF') + ' folder updated');
       }
-  }
+    }
   }
 
   // ── Export progress functions ─────────────────────────────
@@ -4626,7 +4601,7 @@
     if (!_fileLoaded) {
       showToast('Load a polywav file on the Home tab first');
       return;
-  }
+    }
 
     if (isElectron) {
       // Build config from current settings
@@ -4680,7 +4655,7 @@
           }
         }
       }, 100);
-  }
+    }
   }
 
   var isExporting = false;
@@ -4745,7 +4720,7 @@
       });
     } else {
       closeExportProgress();
-  }
+    }
   }
 
   var _lastExportPath = null;
@@ -4756,21 +4731,21 @@
     if (!folder) {
       showToast('No export path available');
       return;
-  }
+    }
     if (isElectron) {
       window.electronAPI.openFolder(folder).then(function() {
         showToast('Opening output folder...');
       });
     } else {
       showToast('Output saved to: ' + folder);
-  }
+    }
   }
 
   function updateAafPreview() {
     var el = document.getElementById('outputAafPreview');
     if (el) {
       el.textContent = (SETTINGS.outputAafDir || './output') + '/Episode_104.aaf';
-  }
+    }
   }
 
   function copyCLI() {
@@ -4789,7 +4764,7 @@
       document.execCommand('copy');
       window.getSelection().removeAllRanges();
       showToast('CLI command copied');
-  }
+    }
   }
 
   // Initial snapshot
@@ -4853,7 +4828,7 @@
       unroutedChips.innerHTML = chipsHtml;
     } else {
       document.getElementById('patchUnrouted').style.display = 'none';
-  }
+    }
 
     // Draw SVG paths (after layout)
     requestAnimationFrame(function() {
@@ -4932,7 +4907,7 @@
         mt*mt*mt*x1 + 3*mt*mt*t*cx1 + 3*mt*t*t*cx2 + t*t*t*x2,
         mt*mt*mt*y1 + 3*mt*mt*t*cy1 + 3*mt*t*t*cy2 + t*t*t*y2
       ]);
-  }
+    }
     return pts;
   }
 
@@ -4989,7 +4964,7 @@
     } else {
       temp.setAttribute('stroke', '#c4664a');
       temp.setAttribute('opacity', '0.5');
-  }
+    }
   }
 
   function removeTempCable() {
@@ -5248,7 +5223,7 @@
           }
         }
       });
-  }
+    }
   }
 
   // Init routing map on first patch tab visit
@@ -5393,7 +5368,7 @@
     if (typeof v === 'string') {
       if (/^[A-Za-z0-9_\-.\/ ]+$/.test(v)) return v;
       return JSON.stringify(v);
-  }
+    }
     return String(v);
   }
   function yamlDump(obj, indent) {
@@ -5434,7 +5409,7 @@
       if (s[0] === '"') { try { return JSON.parse(s); } catch(e) { return s.slice(1,-1); } }
       if (s[0] === "'") { return s.slice(1,-1).replace(/''/g, "'"); }
       return s;
-  }
+    }
     // Parse a block of lines at the given indent level.
     function parseBlock(indent) {
       var node = null;
@@ -5495,7 +5470,7 @@
         }
       }
       return node || {};
-  }
+    }
     return parseBlock(0);
   }
 
@@ -5556,7 +5531,7 @@
       if (data.output.track_naming && data.output.track_naming.template) {
         SETTINGS.namingTemplate = data.output.track_naming.template;
       }
-  }
+    }
     saveSettings();
     // Apply routing from preset tracks
     var tracks = (data && data.tracks) || [];
@@ -5602,7 +5577,7 @@
       });
       pushSnapshot();
       rerenderAll();
-  }
+    }
     syncSettingsUI();
   }
 
@@ -5638,7 +5613,7 @@
       window.electronAPI.isMaximized().then(function(maximized) {
         if (maximized) bodyEl.classList.add('window-maximized');
       });
-  }
+    }
 
     // Listen for maximize/unmaximize from main process
     if (window.electronAPI && window.electronAPI.onMaximizeChange) {
@@ -5646,7 +5621,7 @@
         if (maximized) bodyEl.classList.add('window-maximized');
         else bodyEl.classList.remove('window-maximized');
       });
-  }
+    }
   })();
 
   // ── Preset Wizard ─────────────────────────────────────────
@@ -5691,7 +5666,7 @@
     } else {
       nextBtn.textContent = 'Next';
       nextBtn.disabled = wizCurrentStep === 0 && !wizState.name.trim();
-  }
+    }
   }
 
   function wizardPrev() { if (wizCurrentStep > 0) wizGoToStep(wizCurrentStep - 1); }
@@ -5796,7 +5771,7 @@
       wizState.channelNames = ['Channel 1'];
       var chList = document.getElementById('wizChannelList');
       chList.innerHTML = '<span class="wiz-channel-tag">Channel 1</span>';
-  }
+    }
   }
 </script>
 </div>
