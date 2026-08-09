@@ -765,7 +765,7 @@
     gap: 4px;
     margin-left: auto;
   }
-  .patch-map-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+  .patch-map-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
   /* ===== PATCH TAB ===== */
   .patch-grid {
@@ -976,90 +976,6 @@
   }
   .light-mode .theme-toggle svg {
     transform: rotate(180deg);
-  }
-
-  /* Export progress overlay */
-  .export-progress-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    background: rgba(0,0,0,0.6);
-    align-items: center;
-    justify-content: center;
-  }
-  .export-progress-overlay.open {
-    display: flex;
-  }
-  .export-progress-panel {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 32px 40px;
-    max-width: 440px;
-    width: 90%;
-    text-align: center;
-  }
-  .export-progress-panel h2 {
-    font-size: 18px;
-    margin: 0 0 8px 0;
-    color: var(--ink);
-  }
-  .export-progress-bar-wrap {
-    width: 100%;
-    height: 6px;
-    background: var(--bg-highlight);
-    border-radius: 3px;
-    overflow: hidden;
-    margin: 16px 0 8px 0;
-  }
-  .export-progress-bar {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--tomato), #e09070);
-    border-radius: 3px;
-    transition: width 0.3s ease;
-  }
-  .export-progress-step {
-    font-size: 13px;
-    color: #888;
-    margin-bottom: 4px;
-  }
-  .export-progress-pct {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--ink);
-    margin: 8px 0;
-  }
-  .export-progress-cancel {
-    margin-top: 16px;
-    font-size: 12px;
-    color: #888;
-    background: none;
-    border: none;
-    cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-  .export-progress-cancel:hover {
-    color: var(--tomato);
-  }
-  .export-progress-done {
-    display: none;
-    margin-top: 20px;
-  }
-  .export-progress-done.open {
-    display: block;
-  }
-  .export-progress-done .check-icon {
-    font-size: 40px;
-    margin-bottom: 8px;
-  }
-  .export-progress-done .done-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    margin-top: 16px;
   }
 
   /* Overlay */
@@ -1386,14 +1302,6 @@
     transition: box-shadow 0.3s ease;
   }
   .header-inner {
-    -webkit-app-region: drag;
-  }
-  .header-inner button,
-  .header-inner input,
-  .header-inner select {
-    -webkit-app-region: no-drag;
-  }
-  .header-inner {
     max-width: 1400px;
     margin: 0 auto;
     padding: 12px clamp(14px, 3vw, 32px) 4px;
@@ -1542,6 +1450,33 @@
     margin: 0 auto 30px;
     line-height: 1.6;
   }
+  .hero-badges {
+    display: flex; gap: 8px;
+    justify-content: center; flex-wrap: wrap;
+    margin-bottom: 40px;
+  }
+  .hero-badge {
+    font-size: 11px; font-weight: 600;
+    padding: 6px 16px;
+    border-radius: 20px;
+    background: rgba(var(--ink-rgb),0.07);
+    border: 1px solid rgba(var(--ink-rgb),0.14);
+    color: rgba(var(--ink-rgb),0.75);
+    letter-spacing: 0.4px;
+    backdrop-filter: blur(6px);
+    transition: all 0.2s;
+  }
+  .hero-badge:hover {
+    border-color: var(--tomato);
+    color: #fff;
+    background: rgba(196,102,74,0.22);
+  }
+  .hero-badge .badge-num {
+    color: var(--tomato);
+    font-weight: 700;
+    margin-right: 4px;
+  }
+
   /* Drop zone — the star. Unmissable. */
   .drop-zone-parallax {
     position: relative;
@@ -1740,10 +1675,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 20px 0;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
   }
   .patch-map-head h2 {
     font-size: 16px;
@@ -1769,13 +1703,13 @@
   .patch-map-wrap {
     display: grid;
     grid-template-columns: 250px minmax(80px, 1fr) 260px;
-    gap: 16px;
+    gap: 8px;
     position: relative;
   }
   .patch-lane:first-child { grid-column: 1; }
   .patch-lane:last-child { grid-column: 3; }
   .patch-lane {
-    padding: 18px 20px;
+    padding: 10px 14px;
     border-radius: 12px;
     background: var(--bg-highlight);
     min-width: 0;
@@ -1791,14 +1725,14 @@
   .patch-src {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
+    gap: 8px;
+    padding: 6px 8px;
     border-radius: 8px;
     font-size: 12px;
     font-family: var(--font-mono);
     background: var(--bg-card);
     border: 1px solid var(--border);
-    margin-bottom: 8px;
+    margin-bottom: 5px;
     transition: all 0.15s;
   }
   .patch-src .src-dot {
@@ -2272,329 +2206,6 @@
   .light-mode .drop-zone-arrow {
     color: rgba(var(--ink-rgb),0.5);
   }
-
-  /* ===== Drop zone loading animation ===== */
-  .drop-zone.loading {
-    pointer-events: none;
-    border-color: var(--tomato);
-    background: linear-gradient(180deg, rgba(196,102,74,0.12), rgba(196,102,74,0.04));
-  }
-  .drop-zone.loading .drop-zone-title,
-  .drop-zone.loading .drop-zone-hint,
-  .drop-zone.loading .drop-zone-btn,
-  .drop-zone.loading .drop-formats {
-    opacity: 0;
-    transform: translateY(6px);
-    transition: opacity 0.25s, transform 0.25s;
-  }
-  .drop-zone.loading .drop-zone-loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    animation: fadeIn 0.3s ease-out;
-  }
-  .drop-zone-loading {
-    display: none;
-    position: absolute;
-    inset: 0;
-    justify-content: center;
-    align-items: center;
-  }
-  .drop-zone-loading .spinner {
-    width: 44px;
-    height: 44px;
-    border: 3px solid rgba(242,236,227,0.08);
-    border-top-color: var(--tomato);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  .drop-zone-loading .loading-filename {
-    font-size: 14px;
-    font-weight: 500;
-    color: rgba(242,236,227,0.7);
-    max-width: 280px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
-  }
-
-  /* ===== Window controls (floating at window top-right) ===== */
-  .window-controls {
-    position: absolute;
-    top: 0;
-    right: 0;
-    z-index: 60;
-    display: flex;
-    height: 32px;
-    -webkit-app-region: no-drag;
-  }
-  .wctrl-btn {
-    -webkit-app-region: no-drag;
-    width: 36px;
-    border: none;
-    background: transparent;
-    color: rgba(242, 236, 227, 0.5);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.1s, color 0.1s;
-  }
-  .wctrl-btn:hover {
-    background: rgba(242, 236, 227, 0.08);
-    color: rgba(242, 236, 227, 0.9);
-  }
-  .wctrl-btn.wctrl-close:hover {
-    background: #e81123;
-    color: #fff;
-  }
-  .wctrl-btn svg {
-    width: 12px;
-    height: 12px;
-  }
-  .window-maximized .wctrl-maximize .max-icon { display: none; }
-  .window-maximized .wctrl-maximize .restore-icon { display: block; }
-
-  .light-mode .wctrl-btn {
-    color: rgba(42, 39, 35, 0.4);
-  }
-  .light-mode .wctrl-btn:hover {
-    background: rgba(42, 39, 35, 0.06);
-    color: rgba(42, 39, 35, 0.85);
-  }
-  .light-mode .wctrl-btn.wctrl-close:hover {
-    background: #e81123;
-    color: #fff;
-  }
-
-  /* ===== Preset Wizard Overlay ===== */
-  .wizard-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    z-index: 200;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-  .wizard-overlay.open { display: flex; }
-  .wizard-panel {
-    background: var(--bg-card);
-    border-radius: 14px;
-    width: 100%;
-    max-width: 580px;
-    max-height: 80vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 12px 48px rgba(0,0,0,0.5);
-    animation: wizardIn 0.25s ease-out;
-  }
-  @keyframes wizardIn {
-    from { opacity: 0; transform: translateY(20px) scale(0.97); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-  }
-  .wizard-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 24px 0;
-  }
-  .wizard-header h2 {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--ink);
-  }
-  .wizard-close {
-    width: 32px; height: 32px;
-    border: none; background: transparent;
-    color: rgba(var(--ink-rgb),0.4);
-    font-size: 20px; cursor: pointer;
-    border-radius: 6px;
-    transition: background 0.15s;
-  }
-  .wizard-close:hover { background: rgba(var(--ink-rgb),0.08); color: var(--ink); }
-  .wizard-steps {
-    display: flex;
-    gap: 4px;
-    padding: 16px 24px 0;
-  }
-  .wizard-step {
-    flex: 1;
-    padding: 8px 0;
-    text-align: center;
-    font-size: 11px;
-    font-weight: 600;
-    color: rgba(var(--ink-rgb),0.25);
-    border-bottom: 2px solid rgba(var(--ink-rgb),0.08);
-    transition: color 0.2s, border-color 0.2s;
-  }
-  .wizard-step.active {
-    color: var(--tomato);
-    border-color: var(--tomato);
-  }
-  .wizard-step.done {
-    color: var(--sage);
-    border-color: var(--sage);
-  }
-  .wizard-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 24px;
-  }
-  .wizard-body .wiz-section { display: none; }
-  .wizard-body .wiz-section.active { display: block; }
-  .wizard-section-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--ink);
-    margin-bottom: 4px;
-  }
-  .wizard-section-desc {
-    font-size: 12px;
-    color: rgba(var(--ink-rgb),0.5);
-    margin-bottom: 20px;
-  }
-  .wizard-field { margin-bottom: 16px; }
-  .wizard-field label {
-    display: block;
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(var(--ink-rgb),0.7);
-    margin-bottom: 6px;
-  }
-  .wizard-field input[type="text"],
-  .wizard-field input[type="file"] {
-    width: 100%;
-    padding: 10px 14px;
-    font-size: 14px;
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--bg-input);
-    color: var(--ink);
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .wizard-field input:focus { border-color: var(--tomato); }
-  .wizard-field .hint {
-    font-size: 11px;
-    color: rgba(var(--ink-rgb),0.4);
-    margin-top: 4px;
-  }
-  .wizard-source-zone {
-    border: 2px dashed rgba(var(--ink-rgb),0.2);
-    border-radius: 12px;
-    padding: 32px 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
-  }
-  .wizard-source-zone:hover {
-    border-color: var(--tomato);
-    background: rgba(196,102,74,0.06);
-  }
-  .wizard-source-zone .wiz-zone-icon {
-    font-size: 28px;
-    margin-bottom: 8px;
-    opacity: 0.5;
-  }
-  .wizard-source-zone .wiz-zone-text {
-    font-size: 13px;
-    color: rgba(var(--ink-rgb),0.6);
-  }
-  .wizard-source-zone .wiz-zone-btn {
-    display: inline-block;
-    margin-top: 12px;
-    padding: 8px 20px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #fff;
-    background: var(--tomato);
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-  .wizard-channel-list {
-    margin-top: 16px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .wizard-channel-list .wiz-channel-tag {
-    padding: 4px 10px;
-    font-size: 11px;
-    background: rgba(var(--ink-rgb),0.08);
-    border-radius: 4px;
-    color: rgba(var(--ink-rgb),0.7);
-  }
-  .wizard-group-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 12px;
-  }
-  .wizard-group-card {
-    background: rgba(var(--ink-rgb),0.04);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
-  }
-  .wizard-group-card .wiz-group-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--ink);
-    margin-bottom: 6px;
-  }
-  .wizard-group-card .wiz-group-channels {
-    font-size: 11px;
-    color: rgba(var(--ink-rgb),0.5);
-  }
-  .wizard-footer {
-    display: flex;
-    justify-content: space-between;
-    padding: 16px 24px;
-    border-top: 1px solid var(--border);
-    gap: 8px;
-  }
-  .wizard-footer .btn-secondary {
-    padding: 9px 20px;
-    font-size: 13px;
-    font-weight: 600;
-    background: transparent;
-    color: rgba(var(--ink-rgb),0.7);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .wizard-footer .btn-secondary:hover { background: rgba(var(--ink-rgb),0.06); }
-  .wizard-footer .btn-primary {
-    padding: 9px 24px;
-    font-size: 13px;
-    font-weight: 600;
-    background: var(--tomato);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .wizard-footer .btn-primary:hover { background: #b2563b; }
-  .wizard-footer .btn-primary:disabled { opacity: 0.4; cursor: default; }
-  .light-mode .wizard-overlay { background: rgba(0,0,0,0.2); }
-  .light-mode .wizard-panel { box-shadow: 0 12px 48px rgba(0,0,0,0.12); }
-  .light-mode .wizard-source-zone { border-color: rgba(var(--ink-rgb),0.25); }
-  .light-mode .wizard-source-zone:hover { border-color: var(--tomato); background: rgba(196,102,74,0.04); }
 </style>
 </head>
 <body>
@@ -2610,11 +2221,11 @@
     <div>
       <h1><span class="dot"></span>Polywav Ingest</h1>
       <div class="subtitle">
-        <strong>Drop a WAV file to get started</strong>
+        <strong>Episode 104</strong> &middot; MKR (Masterchef Kitchens)
       </div>
     </div>
     <div class="status" style="display:flex;align-items:center;gap:12px;">
-      <strong>&#x25CF; No file loaded</strong>
+      <strong>&#x25CF;</strong> 16 channels &middot; 96000 Hz &middot; 24-bit
       <button class="header-action-btn" onclick="switchTab('export')" title="Go to Export" aria-label="Export">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export
@@ -2636,17 +2247,6 @@
     <button class="tab" data-tab="patch"><span class="tab-icon">&#x25A3;</span> Patch</button>
     <button class="tab" data-tab="export"><span class="tab-icon">&#x21E9;</span> Export</button>
   </div>
-  <div class="window-controls" id="windowControls">
-    <button class="wctrl-btn wctrl-minimize" id="wcMinimize" aria-label="Minimize" title="Minimize">
-      <svg viewBox="0 0 12 12"><rect x="2" y="5.5" width="8" height="1" fill="currentColor"/></svg>
-    </button>
-    <button class="wctrl-btn wctrl-maximize" id="wcMaximize" aria-label="Maximize" title="Maximize">
-      <svg class="max-icon" viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.1"/></svg>
-      <svg class="restore-icon" viewBox="0 0 12 12" style="display:none"><rect x="3.2" y="1" width="7.8" height="7.8" rx="1" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="1" y="3.2" width="7.8" height="7.8" rx="1" fill="currentColor" stroke="currentColor" stroke-width="1.1" opacity="0.08"/></svg>
-    </button>
-    <button class="wctrl-btn wctrl-close" id="wcClose" aria-label="Close" title="Close">
-      <svg viewBox="0 0 12 12"><path d="M3 3 L9 9 M9 3 L3 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="square"/></svg>
-    </button>
   </div>
 </div>
 <!-- ============================================================ -->
@@ -2662,6 +2262,13 @@
         One polywav. Zero setup. Everything else is handled.
       </p>
 
+      <div class="hero-badges">
+        <span class="hero-badge"><span class="badge-num">&#x25B3;</span> 16 channels</span>
+        <span class="hero-badge"><span class="badge-num">&#x25B3;</span> 48&ndash;192 kHz</span>
+        <span class="hero-badge"><span class="badge-num">&#x25B3;</span> Channel metadata</span>
+        <span class="hero-badge"><span class="badge-num">&#x25B3;</span> Avid MXF (OP-Atom)</span>
+      </div>
+
       <div class="drop-zone-parallax" id="dropZoneParallax">
         <div class="drop-zone" id="dropZone">
           <div class="drop-zone-ring"></div>
@@ -2671,10 +2278,6 @@
             <path d="M18 30 L32 44 L46 30"/>
             <path d="M14 52 h36" opacity="0.4"/>
           </svg>
-          <div class="drop-zone-loading">
-            <div class="spinner"></div>
-            <div class="loading-filename" id="loadingFilename"></div>
-          </div>
           <div class="drop-zone-title">Drop it here</div>
           <p class="drop-zone-hint">No setup. No questions. Just your file.</p>
           <button class="drop-zone-btn" id="dropZoneBtn">Browse files</button>
@@ -2714,11 +2317,14 @@
   <div class="preset-actions">
     <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin-right:4px;">Preset</label>
     <select onchange="loadPreset(this.value)">
-      <option value="">No presets saved yet</option>
+      <option value="mkr">Masterchef Kitchens (MKR)</option>
+      <option value="blk">The Block (BLK)</option>
+      <option value="mafs">Married at First Sight (MAFS)</option>
+      <option value="svr">Survivor (SVR)</option>
+      <option value="custom">Custom...</option>
     </select>
     <button class="btn-sm" onclick="showToast('Preset saved')">Save</button>
     <button class="btn-sm" onclick="showToast('Preset duplicated')">Duplicate</button>
-    <button class="btn-sm btn-primary" onclick="openWizard()" style="margin-left:8px;">New Preset</button>
     <span style="margin-left:auto;font-size:12px;color:#bbb;">Define how raw channel names get normalized</span>
   </div>
 
@@ -2766,9 +2372,9 @@
 
   <div class="test-rename">
     <label>Test rename</label>
-    <input type="text" id="test-raw" placeholder="Type a channel name..." value="ShowName_Mic_1" oninput="testRename()">
+    <input type="text" id="test-raw" placeholder="Type a channel name..." value="HST_Host_1" oninput="testRename()">
     <span style="color:#bbb;font-size:12px;">&#x2192;</span>
-    <span class="test-result" id="test-result">ShowName_Mic_1</span>
+    <span class="test-result" id="test-result">HST_Host_1</span>
   </div>
 </div>
 
@@ -2828,7 +2434,7 @@
         <button class="btn btn-undo" id="routeUndoBtn" onclick="undoAction()" title="Undo (Ctrl+Z)" disabled>&#8630; Undo</button>
         <button class="btn btn-redo" id="routeRedoBtn" onclick="redoAction()" title="Redo (Ctrl+Shift+Z)" disabled>&#8631; Redo</button>
         <button class="btn btn-secondary" onclick="showToast('Import another polywav')">+ Import</button>
-        <button class="btn btn-primary" onclick="doExport()">&#x21E9; Export for Avid</button>
+        <button class="btn btn-primary" onclick="exportCLI()">&#x21E9; Export for Avid</button>
       </div>
     </div>
 </div>
@@ -2975,31 +2581,30 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <h2>Export options</h2>
-    </div>
-    <div style="padding:16px;">
-      <div class="export-option selected">
-        <input type="radio" name="export-format" value="mxf" checked onclick="exportFormatClick(this)">
-        <div>
-          <div class="export-label">Avid MXF (OP-Atom)</div>
-          <div class="export-desc">Standard Avid Media Composer ingest format &middot; 1 MXF per track</div>
+    <div>
+      <div class="card">
+        <div class="card-header">
+          <h2>Export options</h2>
+        </div>
+        <div style="padding:16px;">
+          <div class="export-option selected">
+            <input type="radio" name="export-format" value="mxf" checked onclick="exportFormatClick(this)">
+            <div>
+              <div class="export-label">Avid MXF (OP-Atom)</div>
+              <div class="export-desc">Standard Avid Media Composer ingest format &middot; 1 MXF per track</div>
+            </div>
+          </div>
+          <div class="export-option">
+            <input type="radio" name="export-format" value="wav" onclick="exportFormatClick(this)">
+            <div>
+              <div class="export-label">AAF + WAV</div>
+              <div class="export-desc">Broadcast WAV files &middot; wider compatibility</div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="export-option">
-        <input type="radio" name="export-format" value="wav" onclick="exportFormatClick(this)">
-        <div>
-          <div class="export-label">AAF + WAV</div>
-          <div class="export-desc">Broadcast WAV files &middot; wider compatibility</div>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <div class="card" style="margin-top:16px;">
+      <div class="card" style="margin-top:16px;">
         <div class="card-header">
           <h2>Naming convention</h2>
         </div>
@@ -3010,14 +2615,16 @@
             <div class="hint" style="margin-top:4px;">Variables: <code>{show}</code> <code>{episode}</code> <code>{prefix}</code> <code>{role}</code> <code>{num}</code></div>
           </div>
           <div style="font-size:12px;color:#888;">
-            Preview: <strong style="color:var(--ink);font-family:var(--font-mono);">{show}_{episode}_{prefix}_{role}_{num}</strong>
+            Preview: <strong style="color:var(--ink);font-family:var(--font-mono);">MKR_104_HST_Host_1</strong>
           </div>
         </div>
       </div>
+    </div>
+  </div>
 
   <div class="export-footer">
     <button class="btn btn-secondary" onclick="switchTab('route')">Back to Route</button>
-    <button class="btn btn-primary" onclick="doExport()">&#x21E9; Export for Avid</button>
+    <button class="btn btn-primary" onclick="exportCLI()">&#x21E9; Export for Avid</button>
   </div>
 </div>
 
@@ -3118,7 +2725,11 @@
         </div>
         <div class="setting-control">
           <select id="presetSelect" onchange="onPresetChange(this.value)" style="min-width:200px;">
-            <option value="">No presets saved yet</option>
+            <option>Masterchef Kitchens (MKR)</option>
+            <option>The Block (BLK)</option>
+            <option>Married at First Sight (MAFS)</option>
+            <option>Survivor (SVR)</option>
+            <option>Custom...</option>
           </select>
         </div>
       </div>
@@ -3225,102 +2836,6 @@
   </div>
 </div>
 
-<!-- Preset Wizard -->
-<div class="wizard-overlay" id="presetWizard" onclick="if(event.target===this)closeWizard()">
-  <div class="wizard-panel">
-    <div class="wizard-header">
-      <h2>New Preset</h2>
-      <button class="wizard-close" onclick="closeWizard()">✕</button>
-    </div>
-    <div class="wizard-steps">
-      <div class="wizard-step active" data-step="0">Name</div>
-      <div class="wizard-step" data-step="1">Source</div>
-      <div class="wizard-step" data-step="2">Pattern</div>
-      <div class="wizard-step" data-step="3">Save</div>
-    </div>
-    <div class="wizard-body">
-      <!-- Step 0: Name -->
-      <div class="wiz-section" id="wizStep0">
-        <div class="wizard-section-title">Name your preset</div>
-        <div class="wizard-section-desc">Give this configuration a name so you can reuse it later.</div>
-        <div class="wizard-field">
-          <label for="wizName">Preset name</label>
-          <input type="text" id="wizName" placeholder="e.g. Masterchef Kitchen 2025" oninput="wizState.name=this.value;updateWizardNav()">
-          <div class="hint">Use a descriptive name for this show or project</div>
-        </div>
-        <div class="wizard-field">
-          <label for="wizPrefix">Show code (optional)</label>
-          <input type="text" id="wizPrefix" placeholder="e.g. MKR" oninput="wizState.prefix=this.value" maxlength="6">
-          <div class="hint">Short prefix used in channel names, auto-detected if you load a sample file</div>
-        </div>
-      </div>
-      <!-- Step 1: Source -->
-      <div class="wiz-section" id="wizStep1">
-        <div class="wizard-section-title">Load a sample file</div>
-        <div class="wizard-section-desc">Drag a WAV file here or browse to let the app analyze the channel naming pattern. Skip to configure manually.</div>
-        <div class="wizard-source-zone" id="wizDropZone" ondragover="event.preventDefault();this.classList.add('wiz-drag-over')" ondragleave="this.classList.remove('wiz-drag-over')" ondrop="wizHandleDrop(event)">
-          <div class="wiz-zone-icon">📂</div>
-          <div class="wiz-zone-text">Drop a WAV file here or click to browse</div>
-          <div class="wiz-zone-btn" onclick="document.getElementById('wizFileInput').click()">Browse files</div>
-          <input type="file" id="wizFileInput" accept=".wav" style="display:none" onchange="wizHandleFileInput(this.files)">
-        </div>
-        <div id="wizFileInfo" style="display:none;margin-top:16px;">
-          <div style="font-size:13px;font-weight:600;color:var(--ink);" id="wizFileName"></div>
-          <div style="font-size:12px;color:rgba(var(--ink-rgb),0.5);" id="wizFileMeta"></div>
-          <div class="wizard-channel-list" id="wizChannelList"></div>
-        </div>
-      </div>
-      <!-- Step 2: Pattern & Groups -->
-      <div class="wiz-section" id="wizStep2">
-        <div class="wizard-section-title">Review naming pattern</div>
-        <div class="wizard-section-desc">These are the channels and groups detected from the sample file. Edit the template to match your naming convention.</div>
-        <div class="wizard-field">
-          <label for="wizTemplate">Naming template</label>
-          <input type="text" id="wizTemplate" placeholder="{prefix}_{role}_{num}" oninput="wizState.template=this.value" value="{prefix}_{role}_{num}">
-          <div class="hint">Use {prefix} {role} {num} {suffix} — drag columns on the Normalize tab to reorder</div>
-        </div>
-        <div id="wizGroupsContainer">
-          <label style="font-size:12px;font-weight:600;color:rgba(var(--ink-rgb),0.7);">Detected groups</label>
-          <div class="wizard-group-grid" id="wizGroupGrid"></div>
-        </div>
-      </div>
-      <!-- Step 3: Save -->
-      <div class="wiz-section" id="wizStep3">
-        <div class="wizard-section-title">Review & save</div>
-        <div class="wizard-section-desc">This is what will be saved as your preset. You can edit it later from the Settings panel.</div>
-        <div id="wizSummary" style="background:rgba(var(--ink-rgb),0.04);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;"></div>
-        <div style="font-size:12px;color:rgba(var(--ink-rgb),0.5);">After saving, the preset will be available in the Settings panel for future use.</div>
-      </div>
-    </div>
-    <div class="wizard-footer">
-      <button class="btn-secondary" id="wizBackBtn" onclick="wizardPrev()">Back</button>
-      <button class="btn-primary" id="wizNextBtn" onclick="wizardNext()">Next</button>
-    </div>
-  </div>
-</div>
-
-<!-- Export progress overlay -->
-<div class="export-progress-overlay" id="exportProgressOverlay">
-  <div class="export-progress-panel">
-    <h2>Exporting for Avid</h2>
-    <div class="export-progress-pct" id="exportProgressPct">0%</div>
-    <div class="export-progress-bar-wrap">
-      <div class="export-progress-bar" id="exportProgressBar"></div>
-    </div>
-    <div class="export-progress-step" id="exportProgressStep">Starting...</div>
-    <button class="export-progress-cancel" id="exportProgressCancel" onclick="cancelExport()">Cancel</button>
-    <div class="export-progress-done" id="exportProgressDone">
-      <div class="check-icon">&#x2705;</div>
-      <div style="font-size:14px;color:var(--sage);font-weight:600;margin-bottom:4px;">Export complete</div>
-      <div id="exportProgressPath" style="font-size:12px;color:#888;word-break:break-all;margin-bottom:4px;"></div>
-      <div class="done-actions">
-        <button class="btn btn-primary" onclick="openExportFolder()">&#x1F4C2; Open output folder</button>
-        <button class="btn btn-secondary" onclick="closeExportProgress()">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script>
   // ===== Tab switching =====
   function switchTab(name) {
@@ -3374,8 +2889,20 @@
 
   // ===== Raw channel data for Normalize tab =====
   var _fileLoaded = false;
-  var _loadedFilePath = '';
-  var rawChannels = [];
+  var rawChannels = [
+    { num: '01', raw: 'HST_Host_1_WL',     bext: 'wireless lav' },
+    { num: '02', raw: 'HST_Host_2_WL',     bext: 'wireless lav' },
+    { num: '03', raw: 'BM_Boom_1',         bext: 'boom' },
+    { num: '04', raw: 'BM_Boom_2',         bext: 'boom' },
+    { num: '05', raw: 'LAV_Contestant_1',   bext: 'wireless lav' },
+    { num: '06', raw: 'LAV_Contestant_2',   bext: 'wireless lav' },
+    { num: '07', raw: 'LAV_Contestant_3',   bext: 'wireless lav' },
+    { num: '08', raw: 'LAV_Contestant_4',   bext: 'wireless lav' },
+    { num: '09', raw: 'AMB_Kitchen_1',      bext: 'ambient' },
+    { num: '10', raw: 'AMB_Kitchen_2',      bext: 'ambient' },
+    { num: '11', raw: 'TC_Timecode',        bext: 'timecode' },
+    { num: '12', raw: 'GDE_Guide_Track',    bext: 'guide' }
+  ];
 
   // Mock regex parse: apply the hardcoded group semantics
   function parseName(raw) {
@@ -3762,10 +3289,22 @@
   }
 
   function loadPreset(val) {
-      var pattern = document.getElementById('regex-pattern').value;
-      var template = document.getElementById('output-template').value;
-      document.getElementById('regex-pattern').value = pattern;
-      document.getElementById('output-template').value = template;
+    var pattern, template;
+    if (val === 'mkr') {
+      pattern = '^(?<prefix>[A-Z]+)_(?<role>[A-Za-z]+)_?(?<num>\\d+)?$';
+      template = '{prefix}_{role}_{num}';
+    } else if (val === 'blk') {
+      pattern = '^(?<prefix>[A-Z]+)_(?<role>[A-Za-z]+)(?:_?(?<num>\\d+))?$';
+      template = 'BLK_{prefix}_{role}_{num}';
+    } else if (val === 'svr') {
+      pattern = '^(?<prefix>[A-Z]+)_(?<role>[A-Za-z]+)_?(?<num>\\d+)?$';
+      template = 'SVR_{prefix}_{role}_{num}';
+    } else {
+      pattern = document.getElementById('regex-pattern').value;
+      template = document.getElementById('output-template').value;
+    }
+    document.getElementById('regex-pattern').value = pattern;
+    document.getElementById('output-template').value = template;
     _templateSlots = parseTemplateString(template);
     renderTemplateChips();
     updateParseTableBody();
@@ -3993,7 +3532,6 @@
 
     var time = 0;
 
-    var animId = null;
     function draw() {
       ctx.clearRect(0, 0, W, H);
       time += 1;
@@ -4032,18 +3570,8 @@
         ctx.fill();
       });
 
-      animId = requestAnimationFrame(draw);
+      requestAnimationFrame(draw);
     }
-
-    // Pause/resume on visibility change (saves CPU when minimized)
-    document.addEventListener('visibilitychange', function() {
-      if (document.hidden) {
-        if (animId) { cancelAnimationFrame(animId); animId = null; }
-      } else {
-        draw();
-      }
-    });
-
     draw();
   })();
 
@@ -4065,8 +3593,14 @@
   })();
 
   // ===== Fixed header: compensate for height so content doesn't hide behind it =====
-  // Handled by CSS padding-top on .app-wrap (106px matches the sticky-header height)
-  // No JS needed — CSS avoids font-load timing issues.
+  (function() {
+    var header = document.getElementById('stickyHeader');
+    var wrap = document.querySelector('.app-wrap');
+    if (!header || !wrap) return;
+    function pad() { wrap.style.paddingTop = header.offsetHeight + 'px'; }
+    pad();
+    window.addEventListener('resize', pad);
+  })();
 
   // ===== Home tab: Drop zone interactions =====
   (function() {
@@ -4075,175 +3609,25 @@
     var btn = document.getElementById('dropZoneBtn');
     if (!zone) return;
 
-    function buildRoutingFromChannels() {
-      // Group templates for auto-assign — keywords in names and fallback prefixes
-      var GROUP_TEMPLATES = {
-        HST: { label: 'Hosts', name: 'Presenters', color: '#c4664a', suffix: 'Host', keywords: ['host'] },
-        BM:  { label: 'Booms', name: 'Boom operators', color: '#c8a96e', suffix: 'Boom', keywords: ['boom'] },
-        LAV: { label: 'Isos', name: 'Lavalières', color: '#7a9e8c', suffix: 'Lav', keywords: ['lav', 'contestant', 'iso', 'wireless'] },
-        AMB: { label: 'Ambience', name: 'Ambience', color: '#7f8fa0', suffix: 'Amb', keywords: ['amb', 'ambience', 'kitchen', 'dining', 'atmos'] },
-        MIX: { label: 'Mix', name: 'Stereo mix', color: '#b08fcf', suffix: 'Mix', keywords: ['mix l', 'mix r', 'mix left', 'mix right'] },
-        TC:  { label: 'Timecode', name: 'Timecode', color: '#aaa', suffix: 'TC', keywords: ['timecode', 'tc_'] },
-        GDE: { label: 'Guide', name: 'Guide track', color: '#aaa', suffix: 'Guide', keywords: ['guide', 'gde_'] },
-      };
-
-      function guessGroup(name) {
-        var lower = name.toLowerCase();
-        // Try keyword matching first
-        for (var gk in GROUP_TEMPLATES) {
-          var kw = GROUP_TEMPLATES[gk].keywords || [];
-          for (var k = 0; k < kw.length; k++) {
-            if (lower.indexOf(kw[k]) !== -1) return gk;
-          }
-        }
-        // Try underscore parse (HST_Host_1 style)
-        var parts = name.split('_');
-        if (parts.length >= 2 && parts[0].length <= 4) {
-          var prefix = parts[0].toUpperCase();
-          if (GROUP_TEMPLATES[prefix]) return prefix;
-        }
-        // Single word? Use first 3 chars
-        if (parts.length === 1 && name.trim().length >= 3) {
-          return name.trim().substring(0, 3).toUpperCase();
-        }
-        return 'ISO';
-      }
-
-      // Group channels
-      var groupMap = {};
-      var groupOrder = [];
-      rawChannels.forEach(function(ch) {
-        var gk = guessGroup(ch.raw);
-        if (!groupMap[gk]) { groupMap[gk] = []; groupOrder.push(gk); }
-        groupMap[gk].push(ch);
-      });
-
-      var newRouting = [];
-      var newGroupInfo = {};
-      groupOrder.forEach(function(gk) {
-        var chs = groupMap[gk];
-        var tmpl = GROUP_TEMPLATES[gk] || { label: gk, name: gk, color: '#7a9e8c', suffix: gk, keywords: [] };
-        var tracks = [];
-        chs.forEach(function(ch, i) {
-          var trackLabel = tmpl.suffix + ' ' + (i + 1);
-          tracks.push(trackLabel);
-          newRouting.push({
-            ch: ch.num,
-            name: ch.raw,
-            group: gk,
-            track: trackLabel,
-            color: tmpl.color,
-          });
-        });
-        newGroupInfo[gk] = { label: tmpl.label, name: tmpl.name, color: tmpl.color, tracks: tracks };
-      });
-
-      ROUTING_DATA = newRouting;
-      GROUP_INFO = newGroupInfo;
-    }
-
     function handleFile(file) {
       if (!file) return;
-
-      // Show loading animation on drop zone
-      var dz = document.getElementById('dropZone');
-      var lf = document.getElementById('loadingFilename');
-      if (dz) dz.classList.add('loading');
-      if (lf) lf.textContent = file.name;
-
-      var loadChannelData = function(names, path, fileName, fileSize, meta) {
-        _fileLoaded = true;
-        _loadedFilePath = path || file.name;
-
-        // Build rawChannels from probed names
-        rawChannels = [];
-        for (var i = 0; i < names.length; i++) {
-          rawChannels.push({
-            num: String(i + 1).padStart(2, '0'),
-            raw: names[i],
-            bext: names[i],
-          });
-        }
-
-        // Generate routing data from channels
-        buildRoutingFromChannels();
-
-        // Reset undo history
-        HISTORY_STACK = [];
-        HISTORY_INDEX = -1;
-        pushSnapshot();
-
-        // Update UI
-        updateEmptyStates();
-        renderExportTab();
-        updateRouteBar();
-        renderNormHeaders();
-        renderTemplateChips();
-        renderRouteTab();
-        renderRoutingMap();
-
-        // Update header to show loaded file info
-        updateHeaderForFile(fileName, names.length, meta);
-
-        // Remove loading state and navigate to Route tab
-        if (dz) dz.classList.remove('loading');
-        setTimeout(function() { switchTab('normalize'); }, 120);
-
-        // Add to recent files
-        var size = (fileSize / 1024 / 1024).toFixed(1) + ' MB';
-        var now = new Date();
-        var time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        var list = document.getElementById('recentList');
-        if (list) {
-          var empty = list.querySelector('.recent-empty');
-          if (empty) empty.remove();
-          var item = document.createElement('div');
-          item.className = 'recent-item';
-          item.innerHTML = '<span class="file-icon">&#x266B;</span><span class="file-name">' + fileName + '</span><span class="file-meta">' + size + ' &middot; ' + time + '</span>';
-          list.insertBefore(item, list.firstChild);
-          while (list.children.length > 5) list.removeChild(list.lastChild);
-        }
-        showToast('Loaded: ' + fileName + ' (' + names.length + ' channels)');
-      };
-
-      // In Electron, probe the file for real metadata
-      if (window.electronAPI && window.electronAPI.probeFile) {
-        window.electronAPI.probeFile(file.path || file.name).then(function(result) {
-          if (result.success) {
-            loadChannelData(
-              result.channelNames,
-              result.filePath,
-              result.fileName,
-              result.fileSize,
-              result
-            );
-          } else {
-            // Probe failed — fallback to generic channels from file size estimate
-            showToast('Could not read WAV metadata: ' + (result.error || 'unknown error'));
-            // Still mark file as loaded with generic single channel
-            loadChannelData(['Channel 1'], file.path, file.name, file.size);
-          }
-        }).catch(function(err) {
-          showToast('File probe error: ' + err.message);
-          loadChannelData(['Channel 1'], file.path, file.name, file.size);
-        });
-      } else {
-        // Browser fallback: use file name as single channel
-        loadChannelData(['Channel 1'], file.name, file.name, file.size);
+      _fileLoaded = true;
+      updateEmptyStates();
+      var name = file.name;
+      var size = (file.size / 1024 / 1024).toFixed(1) + ' MB';
+      var now = new Date();
+      var time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      var list = document.getElementById('recentList');
+      if (list) {
+        var empty = list.querySelector('.recent-empty');
+        if (empty) empty.remove();
+        var item = document.createElement('div');
+        item.className = 'recent-item';
+        item.innerHTML = '<span class="file-icon">&#x266B;</span><span class="file-name">' + name + '</span><span class="file-meta">' + size + ' &middot; ' + time + '</span>';
+        list.insertBefore(item, list.firstChild);
+        while (list.children.length > 5) list.removeChild(list.lastChild);
       }
-    }
-
-    function updateHeaderForFile(fileName, channelCount, meta) {
-      var subtitle = document.querySelector('.subtitle');
-      if (subtitle) {
-        subtitle.innerHTML = '<strong>' + fileName + '</strong> &middot; ' + channelCount + ' channel' + (channelCount !== 1 ? 's' : '');
-      }
-      var status = document.querySelector('.status strong');
-      if (status) {
-        var sr = meta && meta.samplerate ? (meta.samplerate >= 1000 ? (meta.samplerate / 1000).toFixed(1) + ' kHz' : meta.samplerate + ' Hz') : '';
-        var bd = meta && meta.bitDepth ? meta.bitDepth + '-bit' : '';
-        status.innerHTML = '&#x25CF; ' + channelCount + ' channel' + (channelCount !== 1 ? 's' : '') + (sr ? ' &middot; ' + sr : '') + (bd ? ' &middot; ' + bd : '');
-      }
+      showToast('Loaded: ' + name);
     }
 
     if (btn) btn.addEventListener('click', function(e) { e.stopPropagation(); if (input) input.click(); });
@@ -4262,11 +3646,6 @@
     });
   })();
 
-  // ===== Global drag-drop intercept (Electron frameless window) =====
-  // Prevent default browser behavior so file drops reach our drop zone
-  document.addEventListener('dragover', function(e) { e.preventDefault(); });
-  document.addEventListener('drop', function(e) { e.preventDefault(); });
-
   // ===== Home tab: Recent files =====
   function clearRecent() {
     var list = document.getElementById('recentList');
@@ -4274,9 +3653,27 @@
   }
 
   // ===== Patch tab: Routing map renderer =====
-  var ROUTING_DATA = [];
+  var ROUTING_DATA = [
+    { ch: '01', name: 'HST_Host_1',    group: 'HST', track: 'Host 1', color: '#c4664a' },
+    { ch: '02', name: 'HST_Host_2',    group: 'HST', track: 'Host 2', color: '#c4664a' },
+    { ch: '03', name: 'BM_Boom_1',     group: 'BM',  track: 'Boom 1', color: '#c8a96e' },
+    { ch: '04', name: 'BM_Boom_2',     group: 'BM',  track: 'Boom 2', color: '#c8a96e' },
+    { ch: '05', name: 'LAV_Contestant_1', group: 'ISO', track: 'Lav 1', color: '#7a9e8c' },
+    { ch: '06', name: 'LAV_Contestant_2', group: 'ISO', track: 'Lav 2', color: '#7a9e8c' },
+    { ch: '07', name: 'LAV_Contestant_3', group: 'ISO', track: 'Lav 3', color: '#7a9e8c' },
+    { ch: '08', name: 'LAV_Contestant_4', group: 'ISO', track: 'Lav 4', color: '#7a9e8c' },
+    { ch: '09', name: 'AMB_Kitchen_1',  group: 'AMB', track: 'Amb 1',  color: '#7f8fa0' },
+    { ch: '10', name: 'AMB_Kitchen_2',  group: 'AMB', track: 'Amb 2',  color: '#7f8fa0' },
+    { ch: '11', name: 'TC_Timecode',    group: null,  track: null,     color: '#ccc' },
+    { ch: '12', name: 'GDE_Guide_Track', group: null,  track: null,    color: '#ccc' },
+  ];
 
-  var GROUP_INFO = {};
+  var GROUP_INFO = {
+    HST: { label: 'Hosts',    name: 'Presenters',          color: '#c4664a', tracks: ['Host 1', 'Host 2'] },
+    BM:  { label: 'Booms',    name: 'Boom operators',       color: '#c8a96e', tracks: ['Boom 1', 'Boom 2'] },
+    ISO: { label: 'Isos',     name: 'Lavalières',           color: '#7a9e8c', tracks: ['Lav 1', 'Lav 2', 'Lav 3', 'Lav 4'] },
+    AMB: { label: 'Ambience', name: 'Kitchen ambience',     color: '#7f8fa0', tracks: ['Amb 1', 'Amb 2'] },
+  };
 
   // ===== Undo / Redo system =====
   var HISTORY_STACK = [];
@@ -4442,16 +3839,12 @@
       });
     });
 
-    // Render summary panel — iterate hardcoded groups + any extras from GROUP_INFO
+    // Render summary panel
     if (summary) {
       var sumHtml = '';
-      var baseOrder = ['HST', 'BM', 'ISO', 'AMB'];
-      var allGroups = baseOrder.concat(
-        Object.keys(GROUP_INFO).filter(function(gk) { return baseOrder.indexOf(gk) === -1; })
-      );
-      allGroups.forEach(function(gk) {
+      var ordered = ['HST', 'BM', 'ISO', 'AMB'];
+      ordered.forEach(function(gk) {
         var info = GROUP_INFO[gk];
-        if (!info) return;
         var assigned = ROUTING_DATA.filter(function(d) { return d.group === gk; });
         sumHtml += '<li class="summary-group-header">' + info.label + '</li>';
         info.tracks.forEach(function(t) {
@@ -4561,181 +3954,18 @@
     if (el) el.textContent = cmd;
   }
 
-  // ── Electron API bridge ────────────────────────────────────
-  // Detect if running inside Electron
-  var isElectron = typeof window !== 'undefined' && window.electronAPI;
-
-  // Wrap browseDir to use native dialog in Electron, fallback to prompt in browser
   function browseDir(fieldId) {
     var current = fieldId === 'outputAafDir' ? SETTINGS.outputAafDir : SETTINGS.outputMxfDir;
-    if (isElectron) {
-      window.electronAPI.openDirectoryDialog().then(function(chosen) {
-        if (!chosen) return;
-        if (fieldId === 'outputAafDir') SETTINGS.outputAafDir = chosen;
-        else SETTINGS.outputMxfDir = chosen;
-        saveSettings();
-        syncSettingsUI();
-        buildCLICommand();
-        updateAafPreview();
-        showToast('Output ' + (fieldId === 'outputAafDir' ? 'AAF' : 'MXF') + ' folder updated');
-      });
-    } else {
-      var label = fieldId === 'outputAafDir' ? 'output folder' : 'MXF folder';
-      var chosen = prompt('Enter the full path for the ' + label + ':', current);
-      if (chosen !== null && chosen.trim()) {
-        if (fieldId === 'outputAafDir') SETTINGS.outputAafDir = chosen.trim();
-        else SETTINGS.outputMxfDir = chosen.trim();
-        saveSettings();
-        syncSettingsUI();
-        buildCLICommand();
-        updateAafPreview();
-        showToast('Output ' + (fieldId === 'outputAafDir' ? 'AAF' : 'MXF') + ' folder updated');
-      }
-    }
-  }
-
-  // ── Export progress functions ─────────────────────────────
-  function doExport() {
-    if (!_fileLoaded) {
-      showToast('Load a polywav file on the Home tab first');
-      return;
-    }
-
-    if (isElectron) {
-      // Build config from current settings
-      var config = {
-        inputFile: _loadedFilePath || '',
-        outputDir: SETTINGS.outputAafDir || './output',
-        mode: SETTINGS.mode || 'group_clip',
-        essence: SETTINGS.essence || 'mxf',
-        sampleRate: SETTINGS.sampleRate || 48000,
-        bitDepth: SETTINGS.bitDepth || 24,
-        preset: SETTINGS.activePreset || 'mkr',
-        clipName: SETTINGS.projectName || 'Polywav',
-        template: document.getElementById('output-template').value || '{prefix}_{role}_{num}',
-      };
-
-      showExportProgress();
-      isExporting = true;
-
-      // Clean up any previous progress listener
-      if (_exportCleanup) _exportCleanup();
-
-      _exportCleanup = window.electronAPI.onExportProgress(function(data) {
-        updateExportProgress(data.pct, data.step);
-      });
-
-      window.electronAPI.startExport(config).then(function(result) {
-        isExporting = false;
-        if (_exportCleanup) { _exportCleanup(); _exportCleanup = null; }
-        if (result.success) {
-          completeExport(result.outputPath, result.outputDir || config.outputDir);
-        } else {
-          showToast('Export failed: ' + (result.error || 'Unknown error'));
-          closeExportProgress();
-        }
-      });
-    } else {
-      // Browser fallback: just build CLI command
+    var label = fieldId === 'outputAafDir' ? 'output folder' : 'MXF folder';
+    var chosen = prompt('Enter the full path for the ' + label + ':', current);
+    if (chosen !== null && chosen.trim()) {
+      if (fieldId === 'outputAafDir') SETTINGS.outputAafDir = chosen.trim();
+      else SETTINGS.outputMxfDir = chosen.trim();
+      saveSettings();
+      syncSettingsUI();
       buildCLICommand();
-      switchTab('export');
-      setTimeout(function() {
-        var cmd = document.getElementById('exportCLI');
-        if (cmd && cmd.textContent && cmd.textContent.indexOf('polywav') > 0) {
-          try {
-            navigator.clipboard.writeText(cmd.textContent).then(function() {
-              showToast('CLI command copied to clipboard');
-            }).catch(function() {
-              showToast('Switch to Export tab to copy the CLI command');
-            });
-          } catch(e) {
-            showToast('Switch to Export tab to copy the CLI command');
-          }
-        }
-      }, 100);
-    }
-  }
-
-  var isExporting = false;
-  var _exportCleanup = null;
-
-  function showExportProgress() {
-    var overlay = document.getElementById('exportProgressOverlay');
-    var done = document.getElementById('exportProgressDone');
-    var pct = document.getElementById('exportProgressPct');
-    var bar = document.getElementById('exportProgressBar');
-    var step = document.getElementById('exportProgressStep');
-    var cancel = document.getElementById('exportProgressCancel');
-    if (overlay) overlay.classList.add('open');
-    if (done) done.classList.remove('open');
-    if (pct) pct.textContent = '0%';
-    if (bar) bar.style.width = '0%';
-    if (step) step.textContent = 'Starting...';
-    if (cancel) cancel.style.display = '';
-  }
-
-  function updateExportProgress(pct, stepText) {
-    var pctEl = document.getElementById('exportProgressPct');
-    var barEl = document.getElementById('exportProgressBar');
-    var stepEl = document.getElementById('exportProgressStep');
-    if (pctEl) pctEl.textContent = Math.round(pct) + '%';
-    if (barEl) barEl.style.width = pct + '%';
-    if (stepEl && stepText) stepEl.textContent = stepText;
-  }
-
-  function completeExport(outputPath, outputDir) {
-    var overlay = document.getElementById('exportProgressOverlay');
-    var done = document.getElementById('exportProgressDone');
-    var pct = document.getElementById('exportProgressPct');
-    var bar = document.getElementById('exportProgressBar');
-    var step = document.getElementById('exportProgressStep');
-    var cancel = document.getElementById('exportProgressCancel');
-    var pathEl = document.getElementById('exportProgressPath');
-
-    if (pct) pct.textContent = '100%';
-    if (bar) bar.style.width = '100%';
-    if (step) step.textContent = 'Export complete';
-    if (cancel) cancel.style.display = 'none';
-    if (done) done.classList.add('open');
-    if (pathEl) pathEl.textContent = outputPath || '';
-
-    // Store paths for "Open folder" button
-    _lastExportPath = outputPath;
-    _lastExportDir = outputDir;
-  }
-
-  function closeExportProgress() {
-    var overlay = document.getElementById('exportProgressOverlay');
-    if (overlay) overlay.classList.remove('open');
-    isExporting = false;
-  }
-
-  function cancelExport() {
-    if (isElectron) {
-      window.electronAPI.cancelExport().then(function() {
-        showToast('Export cancelled');
-        closeExportProgress();
-      });
-    } else {
-      closeExportProgress();
-    }
-  }
-
-  var _lastExportPath = null;
-  var _lastExportDir = null;
-
-  function openExportFolder() {
-    var folder = _lastExportDir || _lastExportPath;
-    if (!folder) {
-      showToast('No export path available');
-      return;
-    }
-    if (isElectron) {
-      window.electronAPI.openFolder(folder).then(function() {
-        showToast('Opening output folder...');
-      });
-    } else {
-      showToast('Output saved to: ' + folder);
+      updateAafPreview();
+      showToast('Output ' + (fieldId === 'outputAafDir' ? 'AAF' : 'MXF') + ' folder updated');
     }
   }
 
@@ -4744,6 +3974,31 @@
     if (el) {
       el.textContent = (SETTINGS.outputAafDir || './output') + '/Episode_104.aaf';
     }
+  }
+
+  function exportCLI() {
+    if (!_fileLoaded) {
+      showToast('Load a polywav file on the Home tab first');
+      return;
+    }
+    buildCLICommand();
+    // Navigate to Export tab
+    switchTab('export');
+    setTimeout(function() {
+      var cmd = document.getElementById('exportCLI');
+      if (cmd && cmd.textContent && cmd.textContent.indexOf('polywav') > 0) {
+        // Copy to clipboard
+        try {
+          navigator.clipboard.writeText(cmd.textContent).then(function() {
+            showToast('CLI command copied to clipboard');
+          }).catch(function() {
+            showToast('Switch to Export tab to copy the CLI command');
+          });
+        } catch(e) {
+          showToast('Switch to Export tab to copy the CLI command');
+        }
+      }
+    }, 100);
   }
 
   function copyCLI() {
@@ -4791,13 +4046,9 @@
 
     // Render groups
     var groupsHtml = '';
-    var baseGroups = ['HST', 'BM', 'ISO', 'AMB'];
-    var allMapGroups = baseGroups.concat(
-      Object.keys(GROUP_INFO).filter(function(gk) { return baseGroups.indexOf(gk) === -1; })
-    );
-    allMapGroups.forEach(function(g) {
+    var orderedGroups = ['HST', 'BM', 'ISO', 'AMB'];
+    orderedGroups.forEach(function(g) {
       var info = GROUP_INFO[g];
-      if (!info) return;
       var tracksHtml = '';
       info.tracks.forEach(function(t) {
         var count = ROUTING_DATA.filter(function(d) { return d.track === t; }).length;
@@ -5248,7 +4499,7 @@
     essence: 'embedded',      // 'embedded' | 'external' | 'mxf'
     sampleRate: 'auto',       // 'auto' | '48000' | '96000' | '192000'
     bitDepth: '24',           // 'auto' | '16' | '24' | '32'
-    presetName: 'My Preset',
+    presetName: 'Masterchef Kitchens (MKR)',
     namingTemplate: '{prefix}_{role}_{num}',
     mixGain: -3,
     outputAafDir: './output',
@@ -5262,8 +4513,16 @@
 
   function loadSettings() {
     var merged = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-    // Ignore any previously saved data to start truly fresh
-    try { localStorage.removeItem(SETTINGS_KEY); } catch(e) {}
+    var saved = null;
+    try { saved = localStorage.getItem(SETTINGS_KEY); } catch (e) {}
+    if (saved) {
+      try {
+        var parsed = JSON.parse(saved);
+        for (var k in DEFAULT_SETTINGS) {
+          if (parsed[k] !== undefined) merged[k] = parsed[k];
+        }
+      } catch (e) {}
+    }
     SETTINGS = merged;
   }
   function saveSettings() {
@@ -5582,195 +4841,6 @@
   // Load settings + sync UI on boot
   loadSettings();
   syncSettingsUI();
-
-  // ── Window controls (frameless, integrated into header) ──
-  (function initWindowControls() {
-    var wcMin = document.getElementById('wcMinimize');
-    var wcMax = document.getElementById('wcMaximize');
-    var wcClose = document.getElementById('wcClose');
-    var bodyEl = document.body;
-
-    if (wcMin) wcMin.addEventListener('click', function() {
-      if (window.electronAPI && window.electronAPI.minimizeWindow) {
-        window.electronAPI.minimizeWindow();
-      }
-    });
-    if (wcMax) wcMax.addEventListener('click', function() {
-      if (window.electronAPI && window.electronAPI.maximizeWindow) {
-        window.electronAPI.maximizeWindow();
-      }
-    });
-    if (wcClose) wcClose.addEventListener('click', function() {
-      if (window.electronAPI && window.electronAPI.closeWindow) {
-        window.electronAPI.closeWindow();
-      }
-    });
-
-    // Check initial maximize state
-    if (window.electronAPI && window.electronAPI.isMaximized) {
-      window.electronAPI.isMaximized().then(function(maximized) {
-        if (maximized) bodyEl.classList.add('window-maximized');
-      });
-    }
-
-    // Listen for maximize/unmaximize from main process
-    if (window.electronAPI && window.electronAPI.onMaximizeChange) {
-      window.electronAPI.onMaximizeChange(function(maximized) {
-        if (maximized) bodyEl.classList.add('window-maximized');
-        else bodyEl.classList.remove('window-maximized');
-      });
-    }
-  })();
-
-  // ── Preset Wizard ─────────────────────────────────────────
-  var wizState = { name: '', prefix: '', template: '{prefix}_{role}_{num}', sourceFile: null, channelNames: [], groups: {} };
-
-  function openWizard() {
-    wizState = { name: '', prefix: '', template: '{prefix}_{role}_{num}', sourceFile: null, channelNames: [], groups: {} };
-    document.getElementById('wizName').value = '';
-    document.getElementById('wizPrefix').value = '';
-    document.getElementById('wizTemplate').value = '{prefix}_{role}_{num}';
-    document.getElementById('wizFileInfo').style.display = 'none';
-    document.getElementById('wizGroupGrid').innerHTML = '';
-    document.getElementById('wizSummary').innerHTML = '';
-    document.getElementById('presetWizard').classList.add('open');
-    wizGoToStep(0);
-  }
-
-  function closeWizard() {
-    document.getElementById('presetWizard').classList.remove('open');
-  }
-
-  var wizCurrentStep = 0;
-  function wizGoToStep(n) {
-    wizCurrentStep = n;
-    document.querySelectorAll('.wiz-section').forEach(function(el) { el.classList.remove('active'); });
-    document.getElementById('wizStep' + n).classList.add('active');
-    document.querySelectorAll('.wizard-step').forEach(function(el) {
-      var s = parseInt(el.getAttribute('data-step'), 10);
-      el.classList.toggle('active', s === n);
-      el.classList.toggle('done', s < n);
-    });
-    updateWizardNav();
-  }
-
-  function updateWizardNav() {
-    var backBtn = document.getElementById('wizBackBtn');
-    var nextBtn = document.getElementById('wizNextBtn');
-    backBtn.style.display = wizCurrentStep === 0 ? 'none' : 'inline-block';
-    if (wizCurrentStep === 3) {
-      nextBtn.textContent = 'Save Preset';
-      nextBtn.disabled = !wizState.name.trim();
-    } else {
-      nextBtn.textContent = 'Next';
-      nextBtn.disabled = wizCurrentStep === 0 && !wizState.name.trim();
-    }
-  }
-
-  function wizardPrev() { if (wizCurrentStep > 0) wizGoToStep(wizCurrentStep - 1); }
-
-  function wizardNext() {
-    if (wizCurrentStep === 0 && !wizState.name.trim()) return;
-    if (wizCurrentStep < 3) { wizGoToStep(wizCurrentStep + 1); return; }
-    // Save preset
-    var preset = {
-      name: wizState.name.trim(),
-      prefix: wizState.prefix.trim(),
-      template: wizState.template,
-      sourceChannels: wizState.channelNames,
-      groups: wizState.groups,
-      savedAt: new Date().toISOString(),
-    };
-    try {
-      var existing = JSON.parse(localStorage.getItem('polywav-presets') || '[]');
-      existing.push(preset);
-      localStorage.setItem('polywav-presets', JSON.stringify(existing));
-    } catch(e) {}
-    SETTINGS.presetName = preset.name;
-    SETTINGS.namingTemplate = preset.template;
-    saveSettings();
-    closeWizard();
-    showToast('Preset "' + preset.name + '" saved');
-  }
-
-  function wizHandleDrop(e) {
-    e.preventDefault();
-    document.getElementById('wizDropZone').classList.remove('wiz-drag-over');
-    if (e.dataTransfer.files.length > 0) wizProcessFile(e.dataTransfer.files[0]);
-  }
-
-  function wizHandleFileInput(files) {
-    if (files.length > 0) wizProcessFile(files[0]);
-  }
-
-  function wizProcessFile(file) {
-    if (!file.name.toLowerCase().endsWith('.wav')) { showToast('Please select a WAV file'); return; }
-    wizState.sourceFile = file;
-    document.getElementById('wizFileName').textContent = file.name;
-    document.getElementById('wizFileMeta').textContent = (file.size / 1024 / 1024).toFixed(1) + ' MB';
-    document.getElementById('wizFileInfo').style.display = 'block';
-
-    if (window.electronAPI && window.electronAPI.probeFile) {
-      window.electronAPI.probeFile(file.path || file.name).then(function(result) {
-        if (result.success) {
-          wizState.channelNames = result.channelNames || [];
-          var chList = document.getElementById('wizChannelList');
-          chList.innerHTML = '';
-          wizState.channelNames.forEach(function(n) {
-            var tag = document.createElement('span');
-            tag.className = 'wiz-channel-tag';
-            tag.textContent = n;
-            chList.appendChild(tag);
-          });
-          // Auto-detect groups using existing GROUP_TEMPLATES
-          var rawChs = wizState.channelNames.map(function(n, i) { return { num: String(i+1).padStart(2,'0'), raw: n, bext: n }; });
-          var groupMap = {}, groupOrder = [];
-          rawChs.forEach(function(ch) {
-            var lower = ch.raw.toLowerCase();
-            var gk = 'ISO';
-            for (var g in GROUP_TEMPLATES) {
-              var kw = GROUP_TEMPLATES[g].keywords || [];
-              for (var k = 0; k < kw.length; k++) { if (lower.indexOf(kw[k]) !== -1) { gk = g; break; } }
-              if (gk !== 'ISO') break;
-            }
-            if (gk === 'ISO') {
-              var parts = ch.raw.split('_');
-              if (parts.length >= 2 && parts[0].length <= 4) { gk = parts[0].toUpperCase(); }
-              else if (parts.length === 1 && ch.raw.trim().length >= 3) { gk = ch.raw.trim().substring(0,3).toUpperCase(); }
-            }
-            if (!groupMap[gk]) { groupMap[gk] = []; groupOrder.push(gk); }
-            groupMap[gk].push(ch);
-          });
-          // Auto-detect prefix from first channel if not set
-          if (!wizState.prefix && wizState.channelNames.length > 0) {
-            var firstParts = wizState.channelNames[0].split('_');
-            if (firstParts.length >= 2 && firstParts[0].length <= 6) {
-              wizState.prefix = firstParts[0];
-              document.getElementById('wizPrefix').value = wizState.prefix;
-            }
-          }
-          // Render groups
-          var grid = document.getElementById('wizGroupGrid');
-          grid.innerHTML = '';
-          groupOrder.forEach(function(gk) {
-            var tmpl = GROUP_TEMPLATES[gk] || { label: gk, name: gk, color: '#7a9e8c' };
-            var card = document.createElement('div');
-            card.className = 'wizard-group-card';
-            var names = groupMap[gk].map(function(ch) { return ch.raw; }).join(', ');
-            card.innerHTML = '<div class="wiz-group-label" style="color:' + tmpl.color + '">' + tmpl.label + '</div><div class="wiz-group-channels">' + names + '</div>';
-            grid.appendChild(card);
-          });
-          wizState.groups = groupOrder;
-        } else {
-          showToast('Could not read file: ' + (result.error || 'unknown error'));
-        }
-      });
-    } else {
-      wizState.channelNames = ['Channel 1'];
-      var chList = document.getElementById('wizChannelList');
-      chList.innerHTML = '<span class="wiz-channel-tag">Channel 1</span>';
-    }
-  }
 </script>
 </div>
 </body>
