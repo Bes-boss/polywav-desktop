@@ -205,7 +205,7 @@
     display: block;
     opacity: 1;
     transform: translateY(0);
-    padding: 20px clamp(20px, 3vw, 40px);
+    padding: 20px 0;
   }
 
   /* ===== Card (shared) ===== */
@@ -2607,6 +2607,8 @@
 <div class="app-orb app-orb-1" id="orb1"></div>
 <div class="app-orb app-orb-2" id="orb2"></div>
 <div class="app-orb app-orb-3" id="orb3"></div>
+<div class="app-wrap">
+
 <div class="sticky-header" id="stickyHeader">
   <div class="header-inner">
     <div class="app-header">
@@ -2652,8 +2654,6 @@
     </button>
   </div>
 </div>
-<div class="app-wrap">
-
 <!-- ============================================================ -->
 <div class="tab-content active" id="tab-home">
   <div class="hero-wrap" id="heroWrap">
@@ -2904,7 +2904,6 @@
   </div>
 
   <div class="export-panel">
-    <!-- LEFT: Output summary panel -->
     <div class="card">
       <div class="card-header">
         <h2>Output summary</h2>
@@ -2944,32 +2943,68 @@
           <span class="line-value" id="exportSize">~1.2 GB</span>
         </div>
       </div>
-    </div>
-
-    <!-- RIGHT: Export options + Naming convention -->
-    <div>
+      <!-- Output destination -->
       <div class="card">
         <div class="card-header">
-          <h2>Export options</h2>
+          <h2>Output destination</h2>
         </div>
         <div style="padding:16px;">
-          <div class="export-option selected">
-            <input type="radio" name="export-format" value="mxf" checked onclick="exportFormatClick(this)">
-            <div>
-              <div class="export-label">Avid MXF (OP-Atom)</div>
-              <div class="export-desc">Standard Avid Media Composer ingest format &middot; 1 MXF per track</div>
+          <div class="preset-field" style="margin-bottom:14px;">
+            <label>Output folder</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" id="outputAafDir" value="./output" onchange="onSettingChange('outputAafDir', this.value);buildCLICommand()"
+                style="flex:1;font-family:var(--font-mono);padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--ink);">
+              <button class="btn btn-secondary" onclick="browseDir('outputAafDir')" style="font-size:12px;padding:6px 12px;">&#x1F4C1; Browse</button>
             </div>
+            <div class="hint" style="margin-top:4px;">Output file path: <strong id="outputAafPreview" style="font-family:var(--font-mono);font-weight:500;">./output/Episode_104.aaf</strong></div>
           </div>
-          <div class="export-option">
-            <input type="radio" name="export-format" value="wav" onclick="exportFormatClick(this)">
-            <div>
-              <div class="export-label">AAF + WAV</div>
-              <div class="export-desc">Broadcast WAV files &middot; wider compatibility</div>
+          <div class="preset-field">
+            <label>MXF folder</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" id="outputMxfDir" value="./output/mxf" onchange="onSettingChange('outputMxfDir', this.value);buildCLICommand()"
+                style="flex:1;font-family:var(--font-mono);padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--ink);">
+              <button class="btn btn-secondary" onclick="browseDir('outputMxfDir')" style="font-size:12px;padding:6px 12px;">&#x1F4C1; Browse</button>
             </div>
+            <div class="hint" style="margin-top:4px;">One MXF per audio track, placed in this folder</div>
           </div>
         </div>
       </div>
+      <!-- CLI command preview -->
       <div class="card" style="margin-top:16px;">
+        <div class="card-header">
+          <h2>CLI command</h2>
+          <button class="btn btn-secondary" onclick="copyCLI()" style="font-size:12px;padding:4px 10px;">&#x2398; Copy</button>
+        </div>
+        <div style="padding:16px;">
+          <code id="exportCLI" style="display:block;white-space:pre-wrap;word-break:break-all;font-size:13px;line-height:1.5;background:var(--bg-input);padding:14px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);"># CLI command will appear here</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>Export options</h2>
+    </div>
+    <div style="padding:16px;">
+      <div class="export-option selected">
+        <input type="radio" name="export-format" value="mxf" checked onclick="exportFormatClick(this)">
+        <div>
+          <div class="export-label">Avid MXF (OP-Atom)</div>
+          <div class="export-desc">Standard Avid Media Composer ingest format &middot; 1 MXF per track</div>
+        </div>
+      </div>
+      <div class="export-option">
+        <input type="radio" name="export-format" value="wav" onclick="exportFormatClick(this)">
+        <div>
+          <div class="export-label">AAF + WAV</div>
+          <div class="export-desc">Broadcast WAV files &middot; wider compatibility</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
         <div class="card-header">
           <h2>Naming convention</h2>
         </div>
@@ -2984,46 +3019,6 @@
           </div>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- FULL WIDTH: Output destination -->
-  <div class="card">
-    <div class="card-header">
-      <h2>Output destination</h2>
-    </div>
-    <div style="padding:16px;">
-      <div class="preset-field" style="margin-bottom:14px;">
-        <label>Output folder</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="text" id="outputAafDir" value="./output" onchange="onSettingChange('outputAafDir', this.value);buildCLICommand()"
-            style="flex:1;font-family:var(--font-mono);padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--ink);">
-          <button class="btn btn-secondary" onclick="browseDir('outputAafDir')" style="font-size:12px;padding:6px 12px;">&#x1F4C1; Browse</button>
-        </div>
-        <div class="hint" style="margin-top:4px;">Output file path: <strong id="outputAafPreview" style="font-family:var(--font-mono);font-weight:500;">./output/Episode_104.aaf</strong></div>
-      </div>
-      <div class="preset-field">
-        <label>MXF folder</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="text" id="outputMxfDir" value="./output/mxf" onchange="onSettingChange('outputMxfDir', this.value);buildCLICommand()"
-            style="flex:1;font-family:var(--font-mono);padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--ink);">
-          <button class="btn btn-secondary" onclick="browseDir('outputMxfDir')" style="font-size:12px;padding:6px 12px;">&#x1F4C1; Browse</button>
-        </div>
-        <div class="hint" style="margin-top:4px;">One MXF per audio track, placed in this folder</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- FULL WIDTH: CLI command -->
-  <div class="card">
-    <div class="card-header">
-      <h2>CLI command</h2>
-      <button class="btn btn-secondary" onclick="copyCLI()" style="font-size:12px;padding:4px 10px;">&#x2398; Copy</button>
-    </div>
-    <div style="padding:16px;">
-      <code id="exportCLI" style="display:block;white-space:pre-wrap;word-break:break-all;font-size:13px;line-height:1.5;background:var(--bg-input);padding:14px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);"># CLI command will appear here</code>
-    </div>
-  </div>
 
   <div class="export-footer">
     <button class="btn btn-secondary" onclick="switchTab('route')">Back to Route</button>
