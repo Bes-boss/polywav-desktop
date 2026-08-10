@@ -3,322 +3,425 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 
-let mainWindow = null;
+// ============================================================
+// Polywav Desktop — Electron Core
+// v1.0. Clean frameless window. No layout changes to the HTML.
+// ============================================================
 
-// ── Python path resolution ───────────────────────────────────
-function resolvePythonPath() {
-  if (process.env.POLYWAV_PYTHON) return process.env.POLYWAV_PYTHON;
-  if (process.env.VIRTUAL_ENV) {
-    const p = path.join(process.env.VIRTUAL_ENV, 'Scripts', 'python.exe');
-    if (fs.existsSync(p)) return p;
+let mainWindow = null;
+let isMaximized = false;
+let winStatePath = null;
+
+// ---- Window State Persistence -----------------------------------------------
+const WINDOW_STATE_FILE = 'win-state.json';
+
+function getWinStatePath() {
+  if (!winStatePath) {
+    winStatePath = path.join(app.getPath('userData'), WINDOW_STATE_FILE);
   }
-  const bundled = path.join(__dirname, '..', 'venv', 'Scripts', 'python.exe');
-  if (fs.existsSync(bundled)) return bundled;
-  return 'python';
+  return winStatePath;
 }
 
-const PYTHON_PATH = resolvePythonPath();
+function loadWindowState() {
+  try {
+    var data = fs.readFileSync(getWinStatePath(), 'utf-8');
+    return JSON.parse(data);
+  } catch (e) {
+    return { width: 1280, height: 820 };
+  }
+}
 
-// ── Window creation ──────────────────────────────────────────
+function saveWindowState() {
+  if (!mainWindow) return;
+  try {
+    var bounds = mainWindow.getBounds();
+    var state = {
+      width: bounds.width,
+      height: bounds.height,
+      x: bounds.x,
+      y: bounds.y,
+      maximized: mainWindow.isMaximized(),
+    };
+    fs.writeFileSync(getWinStatePath(), JSON.stringify(state, null, 2));
+  } catch (e) {
+    // Silently fail — not critical
+  }
+}
+
+// ---- BrowserWindow ---------------------------------------------------------
 function createWindow() {
+  var state = loadWindowState();
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: state.width || 1280,
+    height: state.height || 820,
+    x: state.x,
+    y: state.y,
     minWidth: 900,
     minHeight: 600,
-    title: 'Polywav Ingest',
     frame: false,
     backgroundColor: '#1f1c19',
+    title: 'Polywav — Ingest Pipeline',
+    icon: path.join(__dirname, 'icon.png'),
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
-      backgroundThrottling: true,
+      webSecurity: false,
+      sandbox: false,
     },
   });
 
-  const htmlPath = path.join(__dirname, 'index.html').replace(/\\/g, '/');
-  mainWindow.loadURL('file:///' + htmlPath);
+  mainWindow.loadFile('index.html');
 
-  mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.insertCSS(
-      'html, body { min-height: 100vh; }' +
-      '.app-wrap { position: relative; z-index: 1; }' +
-      '.app-canvas, .app-orb { z-index: 0; }'
-    );
-  });
-
-  if (process.argv.includes('--dev')) {
-    mainWindow.webContents.openDevTools();
+  // Restore maximized state
+  if (state.maximized) {
+    mainWindow.maximize();
   }
 
+  // Show once ready to avoid flash
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
+
+  // Track maximize state for button toggling + auto-save
   mainWindow.on('maximize', () => {
-    mainWindow.webContents.send('window:maximizeChange', true);
+    isMaximized = true;
+    mainWindow.webContents.send('window:maximize-change', true);
+    saveWindowState();
   });
   mainWindow.on('unmaximize', () => {
-    mainWindow.webContents.send('window:maximizeChange', false);
-  });
-  mainWindow.on('minimize', () => {
-    mainWindow.webContents.send('window:visibilityChange', { minimized: true });
-  });
-  mainWindow.on('restore', () => {
-    mainWindow.webContents.send('window:visibilityChange', { minimized: false });
+    isMaximized = false;
+    mainWindow.webContents.send('window:maximize-change', false);
+    saveWindowState();
   });
 
-  // ── Crash diagnostics ──────────────────────────────────
-  mainWindow.webContents.on('crashed', (event, killed) => {
-    console.error('Renderer CRASHED (killed=' + killed + ')');
+  // Save state on resize/move (debounced)
+  var saveTimer = null;
+  var debounceSave = function() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveWindowState, 500);
+  };
+  mainWindow.on('resize', debounceSave);
+  mainWindow.on('move', debounceSave);
+
+  // Save state before closing
+  mainWindow.on('close', function() {
+    saveWindowState();
+  });
+
+  // Crash diagnostics
+  mainWindow.webContents.on('render-process-gone', (event, details) => {
+    console.error('Render process gone:', details.reason);
+    dialog.showErrorBox('Renderer Crash',
+      `The renderer process crashed (${details.reason}).\nPlease restart the application.`);
+  });
+  mainWindow.webContents.on('crashed', () => {
+    console.error('Renderer crashed');
+    dialog.showErrorBox('Renderer Crash',
+      'The renderer process crashed unexpectedly.\nPlease restart the application.');
   });
 }
-
-app.on('renderer-process-gone', (event, webContents, details) => {
-  console.error('Renderer GONE: reason=' + details.reason + ' exitCode=' + details.exitCode);
-});
 
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  app.quit();
 });
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
-app.on('before-quit', () => {
-  if (exportChild) { exportChild.kill(); exportChild = null; }
-});
-
-// ── Window control IPC ──────────────────────────────────────
-ipcMain.handle('window:minimize', () => {
+// ---- IPC: Window Controls ---------------------------------------------------
+ipcMain.on('window:minimize', () => {
   if (mainWindow) mainWindow.minimize();
 });
-ipcMain.handle('window:maximize', () => {
-  if (mainWindow) {
-    if (mainWindow.isMaximized()) mainWindow.unmaximize();
-    else mainWindow.maximize();
+
+ipcMain.on('window:maximize', () => {
+  if (!mainWindow) return;
+  if (isMaximized) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow.maximize();
   }
 });
-ipcMain.handle('window:close', () => {
+
+ipcMain.on('window:close', () => {
   if (mainWindow) mainWindow.close();
 });
-ipcMain.handle('window:isMaximized', () => {
-  return mainWindow ? mainWindow.isMaximized() : false;
+
+ipcMain.handle('window:getState', () => {
+  return loadWindowState();
 });
 
-// ── IPC: Browse output directory ────────────────────────────
+ipcMain.on('window:saveState', () => {
+  saveWindowState();
+});
+
+// ---- IPC: File Dialogs ------------------------------------------------------
 ipcMain.handle('dialog:openDirectory', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, { properties: ['openDirectory'] });
-  if (result.canceled || result.filePaths.length === 0) return null;
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory'],
+  });
+  if (result.canceled) return null;
   return result.filePaths[0];
 });
 
-// ── IPC: Open folder in Explorer ─────────────────────────────
-ipcMain.handle('shell:openFolder', async (event, folderPath) => {
-  if (!folderPath || !fs.existsSync(folderPath)) {
-    folderPath = path.dirname(folderPath);
-    if (!fs.existsSync(folderPath)) return false;
-  }
-  shell.openPath(folderPath);
-  return true;
+ipcMain.handle('dialog:openDirectoryWithDefault', async (event, defaultPath) => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    defaultPath: defaultPath || undefined,
+    properties: ['openDirectory'],
+  });
+  if (result.canceled) return null;
+  return result.filePaths[0];
 });
 
-// ── IPC: Probe WAV file ───────────────────────────────────────
+ipcMain.handle('dialog:openFile', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'Polywav / WAV', extensions: ['wav'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+  if (result.canceled) return null;
+  return result.filePaths[0];
+});
+
+ipcMain.handle('shell:openPath', async (event, filePath) => {
+  return shell.openPath(filePath);
+});
+
+// ---- IPC: File Probe --------------------------------------------------------
 ipcMain.handle('file:probe', async (event, filePath) => {
-  if (!filePath || !fs.existsSync(filePath)) {
-    return { success: false, error: 'File not found' };
-  }
-  try {
-    const fd = fs.openSync(filePath, 'r');
-    const read = (size, off) => {
-      const buf = Buffer.alloc(size);
-      fs.readSync(fd, buf, 0, size, off);
-      return buf;
-    };
+  return new Promise((resolve) => {
+    const child = spawn(VENV_PYTHON, ['-m', 'polywav.cli', 'probe', '-i', filePath], {
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
 
-    // Parse RIFF/WAVE header
-    const riff = read(12, 0);
-    if (riff.toString('ascii', 0, 4) !== 'RIFF' || riff.toString('ascii', 8, 12) !== 'WAVE') {
-      fs.closeSync(fd);
-      return { success: false, error: 'Not a WAV file' };
-    }
+    let stdout = '';
+    let stderr = '';
 
-    // Walk chunks to find fmt + bext
-    let channels = 0;
-    let samplerate = 0;
-    let bitDepth = 0;
-    let bextDescription = null;
-    let pos = 12;
+    child.stdout.on('data', (data) => { stdout += data.toString(); });
+    child.stderr.on('data', (data) => { stderr += data.toString(); });
 
-    while (pos + 8 <= fs.statSync(filePath).size) {
-      const ckId = read(4, pos).toString('ascii');
-      const ckSize = read(4, pos + 4).readUInt32LE(0);
-      const dataStart = pos + 8;
-
-      if (ckId === 'fmt ') {
-        const fmt = read(16, dataStart);
-        channels = fmt.readUInt16LE(2);
-        samplerate = fmt.readUInt32LE(4);
-        const bps = fmt.readUInt16LE(14);
-        bitDepth = bps || 16;
-      } else if (ckId === 'bext') {
-        const bextLen = Math.min(ckSize, 256); // Description is first 256 bytes
-        const bextRaw = read(bextLen, dataStart);
-        bextDescription = bextRaw.toString('utf-8').replace(/\x00.*$/, '').trim();
+    child.on('close', (code) => {
+      if (code !== 0) {
+        resolve({ error: 'Probe failed', stderr: stderr.trim(), stdout: stdout.trim() });
+        return;
       }
 
-      pos += 8 + ckSize + (ckSize % 2); // pad to word boundary
-      if (ckId === 'data') break; // no chunks after data
-    }
+      const result = { file: filePath, channels: 0, sampleRate: 0, frames: 0, format: '', channelNames: [], bitDepth: 24 };
+      const lines = stdout.split('\n');
 
-    fs.closeSync(fd);
+      lines.forEach((line) => {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('Channels:')) {
+          result.channels = parseInt(trimmed.split(':')[1].trim(), 10) || 0;
+        } else if (trimmed.startsWith('Rate:')) {
+          const match = trimmed.match(/(\d+)/);
+          result.sampleRate = match ? parseInt(match[1], 10) : 0;
+        } else if (trimmed.startsWith('Frames:')) {
+          const match = trimmed.match(/(\d+)/);
+          result.frames = match ? parseInt(match[1], 10) : 0;
+        } else if (trimmed.startsWith('Format:')) {
+          result.format = trimmed.split(':')[1].trim();
+        } else if (trimmed.startsWith('Description:')) {
+          const desc = trimmed.split(':').slice(1).join(':').trim();
+          if (desc) {
+            result.channelNames = desc.split(',').map((n) => n.trim());
+          }
+        }
+      });
 
-    if (channels === 0) return { success: false, error: 'No audio data found' };
+      const bdMatch = result.format.match(/PCM_(\d+)/);
+      result.bitDepth = bdMatch ? parseInt(bdMatch[1], 10) : 24;
+      resolve(result);
+    });
 
-    // Parse channel names from BEXT description (comma-separated)
-    let channelNames = [];
-    if (bextDescription) {
-      channelNames = bextDescription.split(',').map(s => s.trim()).filter(Boolean);
-    }
-    // Fallback: generate generic names if BEXT didn't have enough
-    while (channelNames.length < channels) {
-      channelNames.push(`Channel ${channelNames.length + 1}`);
-    }
+    child.on('error', (err) => {
+          resolve({ error: err.message });
+        });
+      });
+    });
 
-    return {
-      success: true,
-      format: 'WAV',
-      channels,
-      samplerate,
-      bitDepth,
-      durationSec: 0, // will calculate from data chunk if needed
-      channelNames: channelNames.slice(0, channels),
-      bextDescription,
-      filePath,
-      fileName: path.basename(filePath),
-      fileSize: fs.statSync(filePath).size,
-    };
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
+    // ---- IPC: Read WAV File Header (first 4KB, parse fmt in main process) --------
+    ipcMain.handle('file:readFileHeader', async (event, filePath) => {
+      try {
+        const fd = fs.openSync(filePath, 'r');
+        const buf = Buffer.alloc(4096);
+        const bytesRead = fs.readSync(fd, buf, 0, 4096, 0);
+        fs.closeSync(fd);
+
+        if (bytesRead < 44) return { error: 'File too small for WAV header' };
+
+        // Check RIFF/WAVE magic
+        if (buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE') {
+          return { error: 'Not a WAV file' };
+        }
+
+        // Walk chunks to find fmt and data
+        let pos = 12;
+        let fmt = null;
+        let dataSize = 0;
+        while (pos + 8 <= bytesRead) {
+          const ckID = buf.toString('ascii', pos, pos + 4);
+          const ckSize = buf.readUInt32LE(pos + 4);
+          if (ckID === 'fmt ') {
+            fmt = {
+              channels: buf.readUInt16LE(pos + 10),
+              sampleRate: buf.readUInt32LE(pos + 12),
+              bitsPerSample: buf.readUInt16LE(pos + 22),
+            };
+          } else if (ckID === 'data') {
+            dataSize = ckSize;
+          }
+          pos += 8 + ckSize + (ckSize % 2);
+          if (pos >= bytesRead) break;
+        }
+
+        if (!fmt) return { error: 'No fmt chunk found' };
+
+        const frames = (dataSize > 0 && fmt.channels > 0 && fmt.bitsPerSample > 0)
+          ? Math.floor(dataSize / (fmt.channels * fmt.bitsPerSample / 8))
+          : 0;
+
+        return {
+          channels: fmt.channels,
+          sampleRate: fmt.sampleRate,
+          bitsPerSample: fmt.bitsPerSample,
+          frames: frames,
+          format: 'WAV / PCM_' + fmt.bitsPerSample,
+        };
+      } catch (err) {
+        return { error: err.message };
+      }
+    });
+
+// ---- IPC: Canvas / Lifecycle ------------------------------------------------
+ipcMain.on('window:visibility-change', (event, visible) => {
+  // The renderer pauses/resumes its canvas animation via this signal
+  // visible=false when minimized, visible=true when restored
 });
 
-// ── Stub IPC handlers (clean rejection, not 30s timeout) ────
-['dialog:saveFile', 'fs:exists', 'fs:stat', 'app:getInfo'].forEach(channel => {
-  ipcMain.handle(channel, async () => {
-    console.warn(`IPC channel "${channel}" called but not implemented`);
-    return null;
-  });
-});
+// ---- IPC: Export Pipeline ---------------------------------------------------
+const VENV_PYTHON = 'C:\\Users\\Liam\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe';
 
-// ── IPC: Export pipeline ─────────────────────────────────────
-let exportAborted = false;
-let exportChild = null;
+let currentExportJob = null;
 
 ipcMain.handle('export:start', async (event, config) => {
-  if (exportChild) return { success: false, error: 'Export already in progress' };
-
-  exportAborted = false;
-  const win = mainWindow;
-  if (!win) return { success: false, error: 'No window' };
-
-  const send = (pct, step) => {
-    if (!win || win.isDestroyed()) return;
-    win.webContents.send('export:progress', { pct, step });
-  };
-
-  try {
-    send(5, 'Validating...');
-    if (!config.inputFile) throw new Error('No input file');
-    if (!fs.existsSync(config.inputFile)) throw new Error('File not found: ' + config.inputFile);
-
-    send(10, 'Preparing output...');
-    const outDir = config.outputDir || path.dirname(config.inputFile);
-    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-
-    const stem = path.basename(config.inputFile, path.extname(config.inputFile));
-    const outputAaf = path.join(outDir, stem + '.aaf');
-
-    const mode = config.mode || 'group';
-    let subtype = null;
-    if (config.bitDepth === 16) subtype = 'PCM_16';
-    else if (config.bitDepth === 24) subtype = 'PCM_24';
-    else if (config.bitDepth === 32) subtype = 'PCM_32';
-
-    send(15, 'Running polywav embed-aaf...');
-
-    const args = ['-m', 'polywav', 'embed-aaf',
-      '-i', config.inputFile,
-      '-o', outputAaf,
-      '--mode', mode,
-    ];
-    if (config.sampleRate) args.push('--samplerate', String(config.sampleRate));
-    if (subtype) args.push('--subtype', subtype);
-    if (config.clipName) args.push('--name', config.clipName);
-
-    send(20, 'Reading polywav file...');
-
-    exportChild = spawn(PYTHON_PATH, args, {
-      cwd: path.dirname(config.inputFile),
-      windowsHide: true,
-    });
-
-    let stderrBuf = '';
-
-    exportChild.stdout.on('data', (data) => {
-      const text = data.toString();
-      if (text.includes('Wrote')) send(90, 'Writing AAF...');
-      if (text.includes('Source channels')) send(70, 'Processing channels...');
-      if (text.includes('Output tracks')) send(85, 'Building tracks...');
-    });
-
-    exportChild.stderr.on('data', (data) => {
-      stderrBuf += data.toString();
-    });
-
-    const exitCode = await new Promise((resolve) => {
-      const timeout = setTimeout(() => {
-        if (exportChild) { exportChild.kill(); exportChild = null; }
-        resolve('TIMEOUT');
-      }, 30 * 60 * 1000);
-
-      exportChild.on('close', (code) => {
-        clearTimeout(timeout);
-        resolve(exportAborted ? 'CANCELLED' : code);
-      });
-
-      exportChild.on('error', (err) => {
-        clearTimeout(timeout);
-        send(0, 'Failed: ' + err.message);
-        resolve(-1);
-      });
-    });
-
-    const child = exportChild;
-    exportChild = null;
-
-    if (exitCode === 'CANCELLED') throw new Error('Export cancelled');
-    if (exitCode === 'TIMEOUT') throw new Error('Export timed out after 30 minutes');
-    if (exitCode !== 0) {
-      const detail = stderrBuf ? '\n' + stderrBuf.trim() : '';
-      throw new Error(`polywav exited with code ${exitCode}${detail}`);
-    }
-
-    send(100, 'Export complete');
-    return { success: true, outputPath: outputAaf, outputDir: outDir };
-
-  } catch (err) {
-    send(0, 'Failed: ' + err.message);
-    return { success: false, error: err.message };
+  if (currentExportJob) {
+    return { error: 'An export is already running' };
   }
+
+  // Build CLI arguments
+    const args = ['-m', 'polywav.cli', 'embed-aaf', '-i', config.inputPath, '-o', config.outputPath];
+    if (config.clipName) args.push('--name', config.clipName);
+    if (config.routing) args.push('--routing', config.routing);
+    if (config.mode && config.mode !== 'group') args.push('--mode', config.mode);
+    if (config.sampleRate) args.push('--samplerate', String(config.sampleRate));
+    if (config.subtype) args.push('--subtype', config.subtype);
+    if (config.essence) args.push('--essence', config.essence);
+
+  const child = spawn(VENV_PYTHON, args, {
+    windowsHide: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  let stdout = '';
+  let stderr = '';
+
+  child.stdout.on('data', (data) => {
+    const text = data.toString();
+    stdout += text;
+    // Stream each line as a progress event
+    const lines = text.split(/\r?\n/).filter((l) => l.trim());
+    lines.forEach((line) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        try { mainWindow.webContents.send('export:progress', { jobId: 'current', line }); } catch {}
+      }
+    });
+  });
+
+  child.stderr.on('data', (data) => {
+    stderr += data.toString();
+  });
+
+  child.on('close', (code) => {
+    currentExportJob = null;
+    if (code === 0) {
+      // Parse output path from the summary line
+      const match = stdout.match(/Wrote OP-Atom AAF: (.+)/);
+      const outPath = match ? match[1].trim() : config.outputPath;
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        try {
+          mainWindow.webContents.send('export:complete', {
+            jobId: 'current',
+            outputPath: outPath,
+            stdout: stdout.trim(),
+          });
+        } catch {}
+      }
+    } else {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        try {
+          mainWindow.webContents.send('export:error', {
+            jobId: 'current',
+            message: 'Export failed with exit code ' + code,
+            stderr: stderr.trim() || stdout.trim() || 'Unknown error',
+          });
+        } catch {}
+      }
+    }
+  });
+
+  child.on('error', (err) => {
+    currentExportJob = null;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      try {
+        mainWindow.webContents.send('export:error', {
+          jobId: 'current',
+          message: 'Failed to start export: ' + err.message,
+          stderr: '',
+        });
+      } catch {}
+    }
+  });
+
+  currentExportJob = { child, config };
+  return { jobId: 'current' };
 });
 
 ipcMain.handle('export:cancel', async () => {
-  exportAborted = true;
-  if (exportChild) {
-    exportChild.kill();
-    exportChild = null;
+  if (!currentExportJob) return { ok: false, error: 'No active export' };
+
+  const { child } = currentExportJob;
+  // Kill the process tree on Windows via taskkill
+  try {
+    await new Promise((resolve, reject) => {
+      spawn('taskkill', ['/T', '/F', '/PID', String(child.pid)], {
+        windowsHide: true,
+        stdio: 'ignore',
+      }).on('close', (code) => {
+        if (code === 0) resolve();
+        else reject(new Error('taskkill exit code ' + code));
+      });
+    });
+  } catch {
+    // Fallback: direct kill
+    try { child.kill('SIGTERM'); } catch { child.kill(); }
   }
-  return true;
+
+  currentExportJob = null;
+  return { ok: true };
+});
+
+// ---- DevTools protection ----------------------------------------------------
+app.on('browser-window-created', (event, win) => {
+  win.webContents.on('devtools-opened', () => {
+    // Keep DevTools closed in production builds
+    // win.webContents.closeDevTools();
+  });
 });

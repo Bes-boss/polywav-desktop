@@ -1,20 +1,6 @@
-# Dependencies
 node_modules/
-
-# Build output
 release/
-
-# Generated audio files
-*.wav
-*.aif
-*.aiff
-*.mxf
-
-# Test files (single-file sketches)
-test-load.html
-test-main.js
-test.html
-
-# OS files
+dist/
+*.log
 .DS_Store
 Thumbs.db

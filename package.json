@@ -1,31 +1,25 @@
 {
-  "name": "polywav-ingest",
-  "version": "0.2.0",
-  "description": "Polywav Ingest — Audio ingest and AAF export for Avid Media Composer",
+  "name": "polywav-desktop",
+  "version": "1.0.0",
+  "description": "Polywav Ingest Pipeline — Electron Desktop",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder",
-    "dist:dir": "electron-builder --dir"
+    "dev": "electron . --dev",
+    "build": "electron-builder"
   },
   "build": {
-    "appId": "com.polywav.ingest",
+    "appId": "com.polywav.desktop",
     "productName": "Polywav Ingest",
     "directories": {
       "output": "release"
     },
-    "files": [
-      "main.js",
-      "preload.js",
-      "index.html"
-    ],
     "win": {
-      "target": ["nsis"],
+      "target": "nsis",
       "icon": null
     },
     "nsis": {
       "oneClick": false,
-      "perMachine": false,
       "allowToChangeInstallationDirectory": true
     }
   },

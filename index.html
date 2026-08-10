@@ -178,6 +178,7 @@
     transition: all 0.15s;
     text-transform: uppercase;
     letter-spacing: 0.6px;
+    -webkit-app-region: no-drag;
   }
   .tab-bar .tab:hover {
     color: var(--ink);
@@ -509,6 +510,10 @@
   .parse-table .capture-group.cap-role   { color: #c4664a; }
   .parse-table .capture-group.cap-num    { color: #8a6ebd; }
   .parse-table .capture-group.cap-suffix { color: #d4943a; }
+  .parse-table td.cell-selected {
+    background: rgba(196,102,74,0.12) !important;
+    box-shadow: inset 0 0 0 1.5px var(--tomato);
+  }
   .parse-table .normalized {
     font-weight: 600;
     color: var(--ink);
@@ -765,7 +770,7 @@
     gap: 4px;
     margin-left: auto;
   }
-  .patch-map-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+  .patch-map-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
   /* ===== PATCH TAB ===== */
   .patch-grid {
@@ -889,9 +894,67 @@
     background: var(--bg-card);
     border-radius: var(--radius);
     border: 1px solid var(--border);
-  }
+      }
 
-  /* Toast */
+      /* Export log */
+      #exportLog {
+        scroll-behavior: smooth;
+      }
+      #exportLog .export-log-stdout {
+        color: var(--text-secondary, #bbb);
+      }
+      #exportLog .export-log-info {
+        color: var(--gold, #c8a96e);
+      }
+      #exportLog .export-log-success {
+        color: var(--sage, #6a9a6a);
+      }
+      #exportLog .export-log-warn {
+        color: var(--gold, #c8a96e);
+      }
+      #exportLog .export-log-error {
+        color: #e74c3c;
+      }
+      #exportLog .export-log-time {
+              color: #666;
+              margin-right: 8px;
+            }
+
+            /* Export progress bar */
+            .export-progress {
+              height: 3px;
+              background: rgba(var(--ink-rgb),0.08);
+              overflow: hidden;
+              position: relative;
+            }
+            .export-progress-bar {
+              height: 100%;
+              width: 30%;
+              background: var(--sage);
+              border-radius: 2px;
+              animation: exportProgressIndeterminate 1.5s ease-in-out infinite;
+            }
+            @keyframes exportProgressIndeterminate {
+              0%   { transform: translateX(-100%); }
+              50%  { transform: translateX(200%); }
+              100% { transform: translateX(400%); }
+            }
+
+            /* Status badge states */
+            #exportStatusBadge.running {
+              background: var(--gold);
+              color: #1f1c19;
+            }
+            #exportStatusBadge.success {
+              background: var(--sage);
+              color: #1f1c19;
+            }
+            #exportStatusBadge.error {
+              background: var(--tomato);
+              color: #fff;
+            }
+
+            /* Toast */
   .toast {
     position: fixed;
     bottom: 32px;
@@ -925,6 +988,7 @@
     color: var(--ink);
     box-shadow: none;
     flex-shrink: 0;
+    -webkit-app-region: no-drag;
   }
   .settings-btn:hover {
     border-color: var(--tomato);
@@ -976,90 +1040,6 @@
   }
   .light-mode .theme-toggle svg {
     transform: rotate(180deg);
-  }
-
-  /* Export progress overlay */
-  .export-progress-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    background: rgba(0,0,0,0.6);
-    align-items: center;
-    justify-content: center;
-  }
-  .export-progress-overlay.open {
-    display: flex;
-  }
-  .export-progress-panel {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 32px 40px;
-    max-width: 440px;
-    width: 90%;
-    text-align: center;
-  }
-  .export-progress-panel h2 {
-    font-size: 18px;
-    margin: 0 0 8px 0;
-    color: var(--ink);
-  }
-  .export-progress-bar-wrap {
-    width: 100%;
-    height: 6px;
-    background: var(--bg-highlight);
-    border-radius: 3px;
-    overflow: hidden;
-    margin: 16px 0 8px 0;
-  }
-  .export-progress-bar {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--tomato), #e09070);
-    border-radius: 3px;
-    transition: width 0.3s ease;
-  }
-  .export-progress-step {
-    font-size: 13px;
-    color: #888;
-    margin-bottom: 4px;
-  }
-  .export-progress-pct {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--ink);
-    margin: 8px 0;
-  }
-  .export-progress-cancel {
-    margin-top: 16px;
-    font-size: 12px;
-    color: #888;
-    background: none;
-    border: none;
-    cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-  .export-progress-cancel:hover {
-    color: var(--tomato);
-  }
-  .export-progress-done {
-    display: none;
-    margin-top: 20px;
-  }
-  .export-progress-done.open {
-    display: block;
-  }
-  .export-progress-done .check-icon {
-    font-size: 40px;
-    margin-bottom: 8px;
-  }
-  .export-progress-done .done-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    margin-top: 16px;
   }
 
   /* Overlay */
@@ -1386,18 +1366,12 @@
     transition: box-shadow 0.3s ease;
   }
   .header-inner {
-    -webkit-app-region: drag;
-  }
-  .header-inner button,
-  .header-inner input,
-  .header-inner select {
-    -webkit-app-region: no-drag;
-  }
-  .header-inner {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 12px clamp(14px, 3vw, 32px) 4px;
-  }
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 12px clamp(14px, 3vw, 32px) 4px;
+      position: relative;
+      -webkit-app-region: drag;
+    }
   .tab-bar {
     margin-top: 4px;
   }
@@ -1416,6 +1390,7 @@
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
+    -webkit-app-region: no-drag;
   }
   .header-action-btn:hover {
     background: #b2563b;
@@ -1425,6 +1400,40 @@
   .status strong {
     white-space: nowrap;
   }
+
+  /* ===== Window Controls (Electron frameless) ===== */
+  .window-controls {
+      display: flex;
+      align-items: center;
+      position: absolute;
+      right: 14px;
+      top: 12px;
+      -webkit-app-region: no-drag;
+    }
+    .win-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: rgba(var(--ink-rgb), 0.6);
+    font-size: 12px;
+    font-family: var(--font-body);
+    cursor: pointer;
+    border-radius: 0;
+    transition: background 0.12s;
+  }
+  .win-btn:hover {
+    background: rgba(var(--ink-rgb), 0.1);
+    color: var(--ink);
+  }
+  .win-btn.win-close:hover {
+    background: #e81123;
+    color: #fff;
+  }
+
   @media (max-width: 1000px) {
     .route-layout { grid-template-columns: 1fr; }
     .export-panel { grid-template-columns: 1fr; }
@@ -1542,7 +1551,78 @@
     margin: 0 auto 30px;
     line-height: 1.6;
   }
-  /* Drop zone — the star. Unmissable. */
+  /* Setup Wizard CTA — replaces feature badges */
+      .wizard-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(var(--ink-rgb),0.06);
+        border: 1px solid rgba(var(--ink-rgb),0.12);
+        border-radius: 10px;
+        padding: 10px 18px 10px 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+        font-family: var(--font-body);
+        color: var(--ink);
+        backdrop-filter: blur(4px);
+        margin-bottom: 28px;
+      }
+      .wizard-cta:hover {
+        border-color: var(--tomato);
+        background: rgba(196,102,74,0.08);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      }
+      .wizard-cta:active {
+        transform: translateY(0);
+      }
+      .wiz-cta-icon {
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: rgba(196,102,74,0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        color: var(--tomato);
+      }
+      .wiz-cta-text {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .wiz-cta-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink);
+        letter-spacing: 0.2px;
+      }
+      .wiz-cta-dot {
+        font-size: 10px;
+        color: rgba(var(--ink-rgb),0.25);
+      }
+      .wiz-cta-desc {
+        font-size: 11.5px;
+        color: rgba(var(--ink-rgb),0.5);
+        white-space: nowrap;
+      }
+      .wiz-cta-arrow {
+        flex-shrink: 0;
+        font-size: 14px;
+        color: rgba(var(--ink-rgb),0.25);
+        transition: all 0.2s;
+        margin-left: 2px;
+      }
+      .wizard-cta:hover .wiz-cta-arrow {
+        color: var(--tomato);
+        transform: translateX(3px);
+      }
+
+    /* Drop zone — the star. Unmissable. */
   .drop-zone-parallax {
     position: relative;
     width: 100%; max-width: 620px;
@@ -1726,13 +1806,107 @@
     flex-shrink: 0;
   }
   .recent-empty {
-    text-align: center;
-    padding: 20px;
-    color: rgba(var(--ink-rgb),0.35);
-    font-size: 12px;
-  }
+      text-align: center;
+      padding: 20px;
+      color: rgba(var(--ink-rgb),0.35);
+      font-size: 12px;
+    }
 
-  /* ===== PATCH TAB — ROUTING MAP ===== */
+    /* ===== HOME TAB — FILE LOADED CARD ===== */
+    .file-loaded-card {
+      margin-top: 24px;
+      background: rgba(var(--ink-rgb),0.04);
+      border: 1px solid rgba(var(--ink-rgb),0.12);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      text-align: left;
+      animation: fadeSlideUp 0.35s ease-out;
+    }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fl-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .fl-icon {
+      font-size: 28px;
+      color: var(--tomato);
+      flex-shrink: 0;
+    }
+    .fl-title-group {
+      flex: 1;
+      min-width: 0;
+    }
+    .fl-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: rgba(var(--ink-rgb),0.5);
+      margin-bottom: 2px;
+    }
+    .fl-filename {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .fl-new-btn {
+      font-size: 11px;
+      background: rgba(var(--ink-rgb),0.07);
+      border: 1px solid rgba(var(--ink-rgb),0.15);
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      color: rgba(var(--ink-rgb),0.5);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.15s;
+      font-family: var(--font-body);
+    }
+    .fl-new-btn:hover {
+      background: rgba(var(--ink-rgb),0.12);
+      color: var(--ink);
+    }
+    .fl-details {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid rgba(var(--ink-rgb),0.08);
+    }
+    .fl-detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 90px;
+    }
+    .fl-detail-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: rgba(var(--ink-rgb),0.4);
+    }
+    .fl-detail-value {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--ink);
+      font-family: var(--font-mono);
+    }
+    .fl-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* ===== PATCH TAB — ROUTING MAP ===== */
   .patch-map-card {
     padding: 24px;
   }
@@ -1740,10 +1914,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 20px 0;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
   }
   .patch-map-head h2 {
     font-size: 16px;
@@ -1769,13 +1942,13 @@
   .patch-map-wrap {
     display: grid;
     grid-template-columns: 250px minmax(80px, 1fr) 260px;
-    gap: 16px;
+    gap: 8px;
     position: relative;
   }
   .patch-lane:first-child { grid-column: 1; }
   .patch-lane:last-child { grid-column: 3; }
   .patch-lane {
-    padding: 18px 20px;
+    padding: 10px 14px;
     border-radius: 12px;
     background: var(--bg-highlight);
     min-width: 0;
@@ -1791,14 +1964,14 @@
   .patch-src {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
+    gap: 8px;
+    padding: 6px 8px;
     border-radius: 8px;
     font-size: 12px;
     font-family: var(--font-mono);
     background: var(--bg-card);
     border: 1px solid var(--border);
-    margin-bottom: 8px;
+    margin-bottom: 5px;
     transition: all 0.15s;
   }
   .patch-src .src-dot {
@@ -2144,6 +2317,7 @@
     color: var(--ink);
     border: 1.5px solid var(--border);
     background: transparent;
+    -webkit-app-region: no-drag;
   }
   .settings-btn:hover { border-color: var(--tomato); color: var(--tomato); }
   .settings-btn.open { background: var(--tomato); border-color: var(--tomato); color: #fff; }
@@ -2270,333 +2444,239 @@
     border-color: rgba(var(--ink-rgb),0.1);
   }
   .light-mode .drop-zone-arrow {
-    color: rgba(var(--ink-rgb),0.5);
-  }
+      color: rgba(var(--ink-rgb),0.5);
+    }
 
-  /* ===== Drop zone loading animation ===== */
-  .drop-zone.loading {
-    pointer-events: none;
-    border-color: var(--tomato);
-    background: linear-gradient(180deg, rgba(196,102,74,0.12), rgba(196,102,74,0.04));
-  }
-  .drop-zone.loading .drop-zone-title,
-  .drop-zone.loading .drop-zone-hint,
-  .drop-zone.loading .drop-zone-btn,
-  .drop-zone.loading .drop-formats {
-    opacity: 0;
-    transform: translateY(6px);
-    transition: opacity 0.25s, transform 0.25s;
-  }
-  .drop-zone.loading .drop-zone-loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    animation: fadeIn 0.3s ease-out;
-  }
-  .drop-zone-loading {
-    display: none;
-    position: absolute;
-    inset: 0;
-    justify-content: center;
-    align-items: center;
-  }
-  .drop-zone-loading .spinner {
-    width: 44px;
-    height: 44px;
-    border: 3px solid rgba(242,236,227,0.08);
-    border-top-color: var(--tomato);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  .drop-zone-loading .loading-filename {
-    font-size: 14px;
-    font-weight: 500;
-    color: rgba(242,236,227,0.7);
-    max-width: 280px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
-  }
+    /* ===== Setup Wizard ===== */
+    .wizard-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(20,18,16,0.55);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .wizard-overlay.open { opacity: 1; pointer-events: auto; }
+    .wizard-modal {
+      background: #2a2723;
+      border: 1px solid rgba(var(--ink-rgb),0.10);
+      box-shadow: 0 24px 70px rgba(0,0,0,0.55), 0 4px 18px rgba(0,0,0,0.35);
+      border-radius: 12px;
+      width: 560px;
+      max-width: 94vw;
+      max-height: 90vh;
+      display: flex; flex-direction: column;
+      transform: translateY(12px);
+      transition: transform 0.25s ease;
+      overflow: hidden;
+    }
+    .wizard-overlay.open .wizard-modal { transform: translateY(0); }
+    .wizard-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid rgba(var(--ink-rgb),0.08);
+    }
+    .wizard-header h2 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .wizard-header h2 span { color: var(--tomato); }
+    .wizard-close {
+      width: 32px; height: 32px;
+      border-radius: 6px;
+      background: rgba(var(--ink-rgb),0.08);
+      border: none;
+      color: rgba(var(--ink-rgb),0.7);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .wizard-close:hover { background: rgba(var(--ink-rgb),0.16); color: #fff; }
+    .light-mode .wizard-modal { background: #ffffff; }
+    .light-mode .wizard-close { color: rgba(var(--ink-rgb),0.6); }
+    .light-mode .wizard-close:hover { background: rgba(var(--ink-rgb),0.1); color: var(--ink); }
 
-  /* ===== Window controls (floating at window top-right) ===== */
-  .window-controls {
-    position: absolute;
-    top: 0;
-    right: 0;
-    z-index: 60;
-    display: flex;
-    height: 32px;
-    -webkit-app-region: no-drag;
-  }
-  .wctrl-btn {
-    -webkit-app-region: no-drag;
-    width: 36px;
-    border: none;
-    background: transparent;
-    color: rgba(242, 236, 227, 0.5);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.1s, color 0.1s;
-  }
-  .wctrl-btn:hover {
-    background: rgba(242, 236, 227, 0.08);
-    color: rgba(242, 236, 227, 0.9);
-  }
-  .wctrl-btn.wctrl-close:hover {
-    background: #e81123;
-    color: #fff;
-  }
-  .wctrl-btn svg {
-    width: 12px;
-    height: 12px;
-  }
-  .window-maximized .wctrl-maximize .max-icon { display: none; }
-  .window-maximized .wctrl-maximize .restore-icon { display: block; }
+    /* Step progress dots */
+    .wizard-steps {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 16px 24px 0;
+    }
+    .wizard-step-dot {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      opacity: 0.4;
+      transition: opacity 0.2s;
+    }
+    .wizard-step-dot.active { opacity: 1; }
+    .wizard-step-dot.done { opacity: 0.7; }
+    .wizard-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(var(--ink-rgb),0.3);
+      transition: all 0.25s;
+    }
+    .wizard-step-dot.active .wizard-dot { background: var(--tomato); box-shadow: 0 0 0 3px rgba(196,102,74,0.2); }
+    .wizard-step-dot.done .wizard-dot { background: var(--sage); }
+    .wizard-step-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(var(--ink-rgb),0.5);
+      white-space: nowrap;
+    }
+    .wizard-step-dot.active .wizard-step-label { color: var(--ink); }
+    .wizard-steps-sep {
+      width: 20px;
+      height: 1px;
+      background: rgba(var(--ink-rgb),0.12);
+      margin: 0 2px;
+    }
 
-  .light-mode .wctrl-btn {
-    color: rgba(42, 39, 35, 0.4);
-  }
-  .light-mode .wctrl-btn:hover {
-    background: rgba(42, 39, 35, 0.06);
-    color: rgba(42, 39, 35, 0.85);
-  }
-  .light-mode .wctrl-btn.wctrl-close:hover {
-    background: #e81123;
-    color: #fff;
-  }
+    /* Step body */
+    .wizard-body {
+      flex: 1;
+      padding: 20px 24px;
+      overflow-y: auto;
+      min-height: 240px;
+    }
+    .wizard-step-panel { display: none; }
+    .wizard-step-panel.active { display: block; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .wizard-step-panel h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .wizard-step-panel h3 span { color: var(--tomato); }
+    .wizard-step-panel p {
+      font-size: 13px;
+      color: rgba(var(--ink-rgb),0.6);
+      margin-bottom: 16px;
+    }
 
-  /* ===== Preset Wizard Overlay ===== */
-  .wizard-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    z-index: 200;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-  .wizard-overlay.open { display: flex; }
-  .wizard-panel {
-    background: var(--bg-card);
-    border-radius: 14px;
-    width: 100%;
-    max-width: 580px;
-    max-height: 80vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 12px 48px rgba(0,0,0,0.5);
-    animation: wizardIn 0.25s ease-out;
-  }
-  @keyframes wizardIn {
-    from { opacity: 0; transform: translateY(20px) scale(0.97); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-  }
-  .wizard-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 24px 0;
-  }
-  .wizard-header h2 {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--ink);
-  }
-  .wizard-close {
-    width: 32px; height: 32px;
-    border: none; background: transparent;
-    color: rgba(var(--ink-rgb),0.4);
-    font-size: 20px; cursor: pointer;
-    border-radius: 6px;
-    transition: background 0.15s;
-  }
-  .wizard-close:hover { background: rgba(var(--ink-rgb),0.08); color: var(--ink); }
-  .wizard-steps {
-    display: flex;
-    gap: 4px;
-    padding: 16px 24px 0;
-  }
-  .wizard-step {
-    flex: 1;
-    padding: 8px 0;
-    text-align: center;
-    font-size: 11px;
-    font-weight: 600;
-    color: rgba(var(--ink-rgb),0.25);
-    border-bottom: 2px solid rgba(var(--ink-rgb),0.08);
-    transition: color 0.2s, border-color 0.2s;
-  }
-  .wizard-step.active {
-    color: var(--tomato);
-    border-color: var(--tomato);
-  }
-  .wizard-step.done {
-    color: var(--sage);
-    border-color: var(--sage);
-  }
-  .wizard-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 24px;
-  }
-  .wizard-body .wiz-section { display: none; }
-  .wizard-body .wiz-section.active { display: block; }
-  .wizard-section-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--ink);
-    margin-bottom: 4px;
-  }
-  .wizard-section-desc {
-    font-size: 12px;
-    color: rgba(var(--ink-rgb),0.5);
-    margin-bottom: 20px;
-  }
-  .wizard-field { margin-bottom: 16px; }
-  .wizard-field label {
-    display: block;
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(var(--ink-rgb),0.7);
-    margin-bottom: 6px;
-  }
-  .wizard-field input[type="text"],
-  .wizard-field input[type="file"] {
-    width: 100%;
-    padding: 10px 14px;
-    font-size: 14px;
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--bg-input);
-    color: var(--ink);
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .wizard-field input:focus { border-color: var(--tomato); }
-  .wizard-field .hint {
-    font-size: 11px;
-    color: rgba(var(--ink-rgb),0.4);
-    margin-top: 4px;
-  }
-  .wizard-source-zone {
-    border: 2px dashed rgba(var(--ink-rgb),0.2);
-    border-radius: 12px;
-    padding: 32px 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
-  }
-  .wizard-source-zone:hover {
-    border-color: var(--tomato);
-    background: rgba(196,102,74,0.06);
-  }
-  .wizard-source-zone .wiz-zone-icon {
-    font-size: 28px;
-    margin-bottom: 8px;
-    opacity: 0.5;
-  }
-  .wizard-source-zone .wiz-zone-text {
-    font-size: 13px;
-    color: rgba(var(--ink-rgb),0.6);
-  }
-  .wizard-source-zone .wiz-zone-btn {
-    display: inline-block;
-    margin-top: 12px;
-    padding: 8px 20px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #fff;
-    background: var(--tomato);
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-  .wizard-channel-list {
-    margin-top: 16px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .wizard-channel-list .wiz-channel-tag {
-    padding: 4px 10px;
-    font-size: 11px;
-    background: rgba(var(--ink-rgb),0.08);
-    border-radius: 4px;
-    color: rgba(var(--ink-rgb),0.7);
-  }
-  .wizard-group-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 12px;
-  }
-  .wizard-group-card {
-    background: rgba(var(--ink-rgb),0.04);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
-  }
-  .wizard-group-card .wiz-group-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--ink);
-    margin-bottom: 6px;
-  }
-  .wizard-group-card .wiz-group-channels {
-    font-size: 11px;
-    color: rgba(var(--ink-rgb),0.5);
-  }
-  .wizard-footer {
-    display: flex;
-    justify-content: space-between;
-    padding: 16px 24px;
-    border-top: 1px solid var(--border);
-    gap: 8px;
-  }
-  .wizard-footer .btn-secondary {
-    padding: 9px 20px;
-    font-size: 13px;
-    font-weight: 600;
-    background: transparent;
-    color: rgba(var(--ink-rgb),0.7);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .wizard-footer .btn-secondary:hover { background: rgba(var(--ink-rgb),0.06); }
-  .wizard-footer .btn-primary {
-    padding: 9px 24px;
-    font-size: 13px;
-    font-weight: 600;
-    background: var(--tomato);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .wizard-footer .btn-primary:hover { background: #b2563b; }
-  .wizard-footer .btn-primary:disabled { opacity: 0.4; cursor: default; }
-  .light-mode .wizard-overlay { background: rgba(0,0,0,0.2); }
-  .light-mode .wizard-panel { box-shadow: 0 12px 48px rgba(0,0,0,0.12); }
-  .light-mode .wizard-source-zone { border-color: rgba(var(--ink-rgb),0.25); }
-  .light-mode .wizard-source-zone:hover { border-color: var(--tomato); background: rgba(196,102,74,0.04); }
-</style>
-</head>
+    /* Template cards */
+    .wizard-templates {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .wizard-tmpl-card {
+      padding: 14px 16px;
+      border-radius: 8px;
+      border: 1.5px solid rgba(var(--ink-rgb),0.10);
+      cursor: pointer;
+      transition: all 0.2s;
+      background: transparent;
+    }
+    .wizard-tmpl-card:hover {
+      border-color: rgba(var(--ink-rgb),0.25);
+      background: rgba(var(--ink-rgb),0.03);
+    }
+    .wizard-tmpl-card.selected {
+      border-color: var(--tomato);
+      background: rgba(196,102,74,0.08);
+      box-shadow: 0 0 0 1px var(--tomato);
+    }
+    .wizard-tmpl-card .tmpl-name {
+      font-size: 14px; font-weight: 600; margin-bottom: 2px;
+    }
+    .wizard-tmpl-card .tmpl-desc {
+      font-size: 12px; color: rgba(var(--ink-rgb),0.5);
+    }
+    .wizard-tmpl-card .tmpl-icon {
+      font-size: 22px; margin-bottom: 4px;
+    }
+    .light-mode .wizard-tmpl-card { border-color: rgba(var(--ink-rgb),0.12); }
+    .light-mode .wizard-tmpl-card:hover { border-color: rgba(var(--ink-rgb),0.25); }
+
+    /* Wizard form rows (reuses settings styling) */
+    .wizard-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(var(--ink-rgb),0.06);
+    }
+    .wizard-row:last-child { border-bottom: none; }
+    .wizard-row .row-label { font-size: 13px; font-weight: 500; }
+    .wizard-row .row-desc { font-size: 11px; color: rgba(var(--ink-rgb),0.45); margin-top: 1px; }
+    .wizard-row .row-control select,
+    .wizard-row .row-control input {
+      background: var(--bg-input);
+      color: var(--ink);
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 13px;
+      font-family: var(--font-body);
+      min-width: 160px;
+    }
+    .wizard-row .row-control select:focus,
+    .wizard-row .row-control input:focus {
+      border-color: var(--tomato);
+      box-shadow: 0 0 0 2px rgba(196,102,74,0.15);
+      outline: none;
+    }
+
+    /* Summary table */
+    .wizard-summary {
+      background: rgba(var(--ink-rgb),0.03);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+    .wizard-summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(var(--ink-rgb),0.04);
+    }
+    .wizard-summary-row:last-child { border-bottom: none; }
+    .wizard-summary-row .sum-key { color: rgba(var(--ink-rgb),0.55); }
+    .wizard-summary-row .sum-val { font-weight: 500; }
+
+    /* Footer */
+    .wizard-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px 20px;
+      border-top: 1px solid rgba(var(--ink-rgb),0.08);
+    }
+    .wizard-footer-left { font-size: 12px; color: rgba(var(--ink-rgb),0.4); }
+    .wizard-footer-right { display: flex; gap: 8px; }
+    .wizard-btn {
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font-body);
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--ink);
+    }
+    .wizard-btn:hover { background: rgba(var(--ink-rgb),0.08); }
+    .wizard-btn.primary {
+      background: var(--tomato);
+      border-color: var(--tomato);
+      color: #fff;
+    }
+    .wizard-btn.primary:hover { background: #b2563b; }
+    .wizard-btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
+
+      </style>
 <body>
 <canvas class="app-canvas" id="heroCanvas"></canvas>
 <div class="app-orb app-orb-1" id="orb1"></div>
@@ -2609,12 +2689,12 @@
     <div class="app-header">
     <div>
       <h1><span class="dot"></span>Polywav Ingest</h1>
-      <div class="subtitle">
-        <strong>Drop a WAV file to get started</strong>
-      </div>
+      <div class="subtitle" id="heroSubtitle">
+              <strong>Polywav Ingest</strong> &middot; Ready to load
+            </div>
     </div>
-    <div class="status" style="display:flex;align-items:center;gap:12px;">
-      <strong>&#x25CF; No file loaded</strong>
+    <div class="status" id="heroStatus" style="display:flex;align-items:center;gap:12px;">
+          <strong id="heroStatusDot">&#x25CF;</strong> <span id="heroMeta"></span>
       <button class="header-action-btn" onclick="switchTab('export')" title="Go to Export" aria-label="Export">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export
@@ -2626,6 +2706,12 @@
         </svg>
       </button>
     </div>
+    <!-- ===== Window Controls (Electron) ===== -->
+    <div class="window-controls">
+      <button class="win-btn" onclick="minimizeWindow()" title="Minimize">─</button>
+      <button class="win-btn" id="maxBtn" onclick="maximizeWindow()" title="Maximize">□</button>
+      <button class="win-btn win-close" onclick="closeWindow()" title="Close">✕</button>
+    </div>
   </div>
 
   <!-- ===== Tab Bar ===== -->
@@ -2636,17 +2722,6 @@
     <button class="tab" data-tab="patch"><span class="tab-icon">&#x25A3;</span> Patch</button>
     <button class="tab" data-tab="export"><span class="tab-icon">&#x21E9;</span> Export</button>
   </div>
-  <div class="window-controls" id="windowControls">
-    <button class="wctrl-btn wctrl-minimize" id="wcMinimize" aria-label="Minimize" title="Minimize">
-      <svg viewBox="0 0 12 12"><rect x="2" y="5.5" width="8" height="1" fill="currentColor"/></svg>
-    </button>
-    <button class="wctrl-btn wctrl-maximize" id="wcMaximize" aria-label="Maximize" title="Maximize">
-      <svg class="max-icon" viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.1"/></svg>
-      <svg class="restore-icon" viewBox="0 0 12 12" style="display:none"><rect x="3.2" y="1" width="7.8" height="7.8" rx="1" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="1" y="3.2" width="7.8" height="7.8" rx="1" fill="currentColor" stroke="currentColor" stroke-width="1.1" opacity="0.08"/></svg>
-    </button>
-    <button class="wctrl-btn wctrl-close" id="wcClose" aria-label="Close" title="Close">
-      <svg viewBox="0 0 12 12"><path d="M3 3 L9 9 M9 3 L3 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="square"/></svg>
-    </button>
   </div>
 </div>
 <!-- ============================================================ -->
@@ -2662,7 +2737,18 @@
         One polywav. Zero setup. Everything else is handled.
       </p>
 
-      <div class="drop-zone-parallax" id="dropZoneParallax">
+      <!-- Setup Wizard CTA (replaces feature badges) -->
+            <button class="wizard-cta" onclick="openWizard()">
+              <span class="wiz-cta-icon">&#x2726;</span>
+              <span class="wiz-cta-text">
+                <span class="wiz-cta-title">Setup Wizard</span>
+                <span class="wiz-cta-dot">&middot;</span>
+                <span class="wiz-cta-desc">Configure templates, naming defaults, routing &amp; export</span>
+              </span>
+              <span class="wiz-cta-arrow">&#x2192;</span>
+            </button>
+
+                  <div class="drop-zone-parallax" id="dropZoneParallax">
         <div class="drop-zone" id="dropZone">
           <div class="drop-zone-ring"></div>
           <div class="drop-zone-ring ring-2"></div>
@@ -2671,10 +2757,6 @@
             <path d="M18 30 L32 44 L46 30"/>
             <path d="M14 52 h36" opacity="0.4"/>
           </svg>
-          <div class="drop-zone-loading">
-            <div class="spinner"></div>
-            <div class="loading-filename" id="loadingFilename"></div>
-          </div>
           <div class="drop-zone-title">Drop it here</div>
           <p class="drop-zone-hint">No setup. No questions. Just your file.</p>
           <button class="drop-zone-btn" id="dropZoneBtn">Browse files</button>
@@ -2689,59 +2771,66 @@
     </div>
 
     <div class="recent-section">
-      <div class="recent-header">
-        <h3>Recent files</h3>
-        <button class="recent-clear" onclick="clearRecent()">Clear</button>
-      </div>
-      <div class="recent-list" id="recentList">
-        <div class="recent-empty">No files loaded yet</div>
+          <div class="recent-header">
+            <h3>Recent files</h3>
+            <button class="recent-clear" onclick="clearRecent()">Clear</button>
+          </div>
+          <div class="recent-list" id="recentList">
+            <div class="recent-empty">No files loaded yet</div>
+          </div>
+        </div>
+
+        <!-- File loaded summary card (shown after a file is loaded) -->
+        <div class="file-loaded-card" id="fileLoadedCard" style="display:none;">
+          <div class="fl-header">
+            <span class="fl-icon">&#x266B;</span>
+            <div class="fl-title-group">
+              <div class="fl-label">Loaded file</div>
+              <div class="fl-filename" id="flFileName"></div>
+            </div>
+            <button class="fl-new-btn" onclick="showDropZone()">&#x2715; Load new</button>
+          </div>
+          <div class="fl-details" id="flDetails"></div>
+          <div class="fl-actions">
+            <button class="btn btn-primary" onclick="switchTab('route')">&#x2192; Route channels</button>
+            <button class="btn btn-secondary" onclick="switchTab('normalize')">&#x270E; Normalize</button>
+            <button class="btn btn-secondary" onclick="switchTab('export')">&#x21E9; Export</button>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
 
 <!-- ============================================================ -->
 <!-- TAB: NORMALIZE -->
 <!-- ============================================================ -->
 <div class="tab-content" id="tab-normalize">
 
-  <div class="tab-empty-state" id="empty-normalize" style="display:none;">
-    <div class="empty-icon">&#x1F4C1;</div>
-    <div class="empty-title">No file loaded</div>
-    <div class="empty-hint">Drop a polywav file on the Home tab to start normalizing channel names</div>
-  </div>
+<div class="tab-empty-state" id="empty-normalize" style="display:none;">
+  <div class="empty-icon">&#x1F4C1;</div>
+  <div class="empty-title">No file loaded</div>
+  <div class="empty-hint">Drop a polywav file on the Home tab to start normalizing channel names</div>
+</div>
 
-  <div class="preset-actions">
-    <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin-right:4px;">Preset</label>
-    <select onchange="loadPreset(this.value)">
-      <option value="">No presets saved yet</option>
-    </select>
-    <button class="btn-sm" onclick="showToast('Preset saved')">Save</button>
-    <button class="btn-sm" onclick="showToast('Preset duplicated')">Duplicate</button>
-    <button class="btn-sm btn-primary" onclick="openWizard()" style="margin-left:8px;">New Preset</button>
-    <span style="margin-left:auto;font-size:12px;color:#bbb;">Define how raw channel names get normalized</span>
+<div class="preset-panel">
+  <div class="preset-field">
+    <label>Naming pattern</label>
+          <input type="text" id="regex-pattern" value="^(?&lt;prefix&gt;[A-Z]+)_(?&lt;role&gt;[A-Za-z]+)_?(?&lt;num&gt;\\d+)?$" oninput="updateParseTable()">
+          <div class="hint">Use <code>(?&lt;name&gt;...)</code> to extract parts from the channel name</div>
   </div>
-
-  <div class="preset-panel">
-    <div class="preset-field">
-      <label>Naming pattern</label>
-            <input type="text" id="regex-pattern" value="^(?&lt;prefix&gt;[A-Z]+)_(?&lt;role&gt;[A-Za-z]+)_?(?&lt;num&gt;\\d+)?$" oninput="updateParseTable()">
-            <div class="hint">Use <code>(?&lt;name&gt;...)</code> to extract parts from the channel name</div>
+  <div class="preset-field">
+    <label>Output template</label>
+    <div class="template-chips" id="template-chips">
+      <!-- populated by renderTemplateChips() -->
     </div>
-    <div class="preset-field">
-      <label>Output template</label>
-      <div class="template-chips" id="template-chips">
-        <!-- populated by renderTemplateChips() -->
-      </div>
-      <input type="hidden" id="output-template" value="{prefix}_{role}_{num}">
-      <div class="hint">Drag columns above to reorder &middot; Click a chip to change it &middot; <code>{num:02d}</code> for zero-pad</div>
-    </div>
+    <input type="hidden" id="output-template" value="{prefix}_{role}_{num}">
+    <div class="hint">Drag columns above to reorder &middot; Click a chip to change it &middot; <code>{num:02d}</code> for zero-pad</div>
   </div>
+</div>
 
   <div class="card">
     <div class="card-header">
       <h2>Normalization preview</h2>
-      <span class="badge">12 channels</span>
+      <span class="badge" id="normChannelBadge">0</span>
     </div>
     <div class="card-body parse-table-wrap">
       <table class="parse-table" id="parse-table">
@@ -2766,9 +2855,9 @@
 
   <div class="test-rename">
     <label>Test rename</label>
-    <input type="text" id="test-raw" placeholder="Type a channel name..." value="ShowName_Mic_1" oninput="testRename()">
+    <input type="text" id="test-raw" placeholder="Type a channel name..." value="HST_Host_1" oninput="testRename()">
     <span style="color:#bbb;font-size:12px;">&#x2192;</span>
-    <span class="test-result" id="test-result">ShowName_Mic_1</span>
+    <span class="test-result" id="test-result">HST_Host_1</span>
   </div>
 </div>
 
@@ -2788,10 +2877,10 @@
     <div class="card">
       <div class="card-header">
         <h2>Source channels</h2>
-        <span class="badge">16</span>
-      </div>
-      <div class="card-body" style="max-height:520px;overflow-y:auto;">
-        <table class="routing-table">
+        <span class="badge" id="routeSourceBadge">0</span>
+              </div>
+              <div class="card-body" style="max-height:520px;overflow-y:auto;">
+                <table class="routing-table">
           <thead>
             <tr>
               <th style="width:28px;"></th>
@@ -2828,7 +2917,7 @@
         <button class="btn btn-undo" id="routeUndoBtn" onclick="undoAction()" title="Undo (Ctrl+Z)" disabled>&#8630; Undo</button>
         <button class="btn btn-redo" id="routeRedoBtn" onclick="redoAction()" title="Redo (Ctrl+Shift+Z)" disabled>&#8631; Redo</button>
         <button class="btn btn-secondary" onclick="showToast('Import another polywav')">+ Import</button>
-        <button class="btn btn-primary" onclick="doExport()">&#x21E9; Export for Avid</button>
+        <button class="btn btn-primary" onclick="switchTab('export')">&#x21E9; Export for Avid</button>
       </div>
     </div>
 </div>
@@ -2848,13 +2937,17 @@
       <div class="patch-map-head">
         <h2>Routing map</h2>
         <div class="legend">
-          <span class="legend-item"><span class="legend-swatch" style="background:var(--tomato);"></span> Hosts</span>
-          <span class="legend-item"><span class="legend-swatch" style="background:var(--gold);"></span> Booms</span>
-          <span class="legend-item"><span class="legend-swatch" style="background:var(--sage);"></span> Isos</span>
-          <span class="legend-item"><span class="legend-swatch" style="background:#7f8fa0;"></span> Ambience</span>
-          <span class="legend-item"><span class="legend-swatch" style="background:#ccc;border:1px dashed #bbb;"></span> Unassigned</span>
-        </div>
-        <div class="patch-undo-bar">
+          <span class="legend-item"><span class="legend-swatch" style="background:#c4664a;"></span> Tracks 1-8</span>
+                    <span class="legend-item"><span class="legend-swatch" style="background:#c8a96e;"></span> Tracks 9-16</span>
+                    <span class="legend-item"><span class="legend-swatch" style="background:#7a9e8c;"></span> Tracks 17-24</span>
+                    <span class="legend-item"><span class="legend-swatch" style="background:#7f8fa0;"></span> Tracks 25-32</span>
+                    <span class="legend-item"><span class="legend-swatch" style="background:#b088c8;"></span> Tracks 33-40</span>
+                    <span class="legend-item"><span class="legend-swatch" style="background:#6ab0c0;"></span> Tracks 41-48</span>
+                    <span class="legend-item"><span class="legend-swatch" style="background:#d4a76a;"></span> Tracks 49-56</span>
+                    <span class="legend-item"><span class="legend-swatch" style="background:#9cb87e;"></span> Tracks 57-64</span>
+                    <span class="legend-item"><span class="legend-swatch" style="background:#ccc;border:1px dashed #bbb;"></span> Unassigned</span>
+                  </div>
+                  <div class="patch-undo-bar">
           <button class="btn btn-undo" id="patchUndoBtn" onclick="undoAction()" title="Undo (Ctrl+Z)" disabled>&#8630; Undo</button>
           <button class="btn btn-redo" id="patchRedoBtn" onclick="redoAction()" title="Redo (Ctrl+Shift+Z)" disabled>&#8631; Redo</button>
         </div>
@@ -2951,7 +3044,7 @@
                 style="flex:1;font-family:var(--font-mono);padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--ink);">
               <button class="btn btn-secondary" onclick="browseDir('outputAafDir')" style="font-size:12px;padding:6px 12px;">&#x1F4C1; Browse</button>
             </div>
-            <div class="hint" style="margin-top:4px;">Output file path: <strong id="outputAafPreview" style="font-family:var(--font-mono);font-weight:500;">./output/Episode_104.aaf</strong></div>
+            <div class="hint" style="margin-top:4px;">Output file path: <strong id="outputAafPreview" style="font-family:var(--font-mono);font-weight:500;">Load a file to preview output path</strong></div>
           </div>
           <div class="preset-field">
             <label>MXF folder</label>
@@ -2975,31 +3068,37 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <h2>Export options</h2>
-    </div>
-    <div style="padding:16px;">
-      <div class="export-option selected">
-        <input type="radio" name="export-format" value="mxf" checked onclick="exportFormatClick(this)">
-        <div>
-          <div class="export-label">Avid MXF (OP-Atom)</div>
-          <div class="export-desc">Standard Avid Media Composer ingest format &middot; 1 MXF per track</div>
+    <div>
+      <div class="card">
+        <div class="card-header">
+          <h2>Export options</h2>
         </div>
+        <div style="padding:16px;">
+                  <div class="export-option selected">
+                    <input type="radio" name="export-format" value="embedded" onclick="exportFormatClick(this)">
+                    <div>
+                      <div class="export-label">Embedded in AAF</div>
+                      <div class="export-desc">Audio embedded directly in the AAF file &middot; self-contained</div>
+                    </div>
+                  </div>
+                  <div class="export-option">
+                    <input type="radio" name="export-format" value="wav" onclick="exportFormatClick(this)">
+                    <div>
+                      <div class="export-label">AAF + WAV</div>
+                      <div class="export-desc">Broadcast WAV files &middot; AAF links externally</div>
+                    </div>
+                  </div>
+                  <div class="export-option">
+                    <input type="radio" name="export-format" value="mxf" onclick="exportFormatClick(this)">
+                    <div>
+                      <div class="export-label">Avid MXF (OP-Atom)</div>
+                      <div class="export-desc">Standard Avid Media Composer format &middot; 1 MXF per track</div>
+                    </div>
+                  </div>
+                </div>
       </div>
-      <div class="export-option">
-        <input type="radio" name="export-format" value="wav" onclick="exportFormatClick(this)">
-        <div>
-          <div class="export-label">AAF + WAV</div>
-          <div class="export-desc">Broadcast WAV files &middot; wider compatibility</div>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <div class="card" style="margin-top:16px;">
+      <div class="card" style="margin-top:16px;">
         <div class="card-header">
           <h2>Naming convention</h2>
         </div>
@@ -3010,15 +3109,30 @@
             <div class="hint" style="margin-top:4px;">Variables: <code>{show}</code> <code>{episode}</code> <code>{prefix}</code> <code>{role}</code> <code>{num}</code></div>
           </div>
           <div style="font-size:12px;color:#888;">
-            Preview: <strong style="color:var(--ink);font-family:var(--font-mono);">{show}_{episode}_{prefix}_{role}_{num}</strong>
+            Preview: <strong style="color:var(--ink);font-family:var(--font-mono);">MKR_104_HST_Host_1</strong>
           </div>
         </div>
       </div>
+    <!-- Export log -->
+              <div class="card" style="margin-top:16px;" id="exportLogCard">
+                <div class="card-header">
+                  <h2>Export log</h2>
+                  <span class="badge" id="exportStatusBadge">ready</span>
+                </div>
+                <div class="export-progress" id="exportProgress" style="display:none;">
+                  <div class="export-progress-bar"></div>
+                </div>
+                <div id="exportLog" style="padding:12px;max-height:200px;overflow-y:auto;font-family:var(--font-mono);font-size:12px;line-height:1.5;background:var(--bg-input);border-radius:0 0 var(--radius-sm) var(--radius-sm);">
+                  <div style="color:#888;font-style:italic;">Ready to export</div>
+                </div>
+              </div>
+        </div>
+      </div>
 
-  <div class="export-footer">
-    <button class="btn btn-secondary" onclick="switchTab('route')">Back to Route</button>
-    <button class="btn btn-primary" onclick="doExport()">&#x21E9; Export for Avid</button>
-  </div>
+      <div class="export-footer">
+        <button class="btn btn-secondary" onclick="switchTab('route')">Back to Route</button>
+        <button class="btn btn-primary" id="exportBtn" onclick="doExport()">&#x21E9; Export for Avid</button>
+      </div>
 </div>
 
 <!-- ===== Toast ===== -->
@@ -3118,104 +3232,64 @@
         </div>
         <div class="setting-control">
           <select id="presetSelect" onchange="onPresetChange(this.value)" style="min-width:200px;">
-            <option value="">No presets saved yet</option>
+            <option>Masterchef Kitchens (MKR)</option>
+            <option>The Block (BLK)</option>
+            <option>Married at First Sight (MAFS)</option>
+            <option>Survivor (SVR)</option>
+            <option>Custom...</option>
           </select>
         </div>
       </div>
       <div class="setting-row">
-        <div class="setting-info">
-          <div class="setting-label">Manage presets</div>
-          <div class="setting-desc">Save, duplicate, export, or import preset configurations</div>
-        </div>
-        <div class="setting-control">
-          <div class="preset-actions-row">
-            <button class="btn-setting btn-setting-primary" onclick="savePreset()">Save</button>
-                        <button class="btn-setting" onclick="duplicatePreset()">Duplicate</button>
-                        <button class="btn-setting" onclick="exportPreset()">Export</button>
-                        <button class="btn-setting" onclick="importPreset()">Import</button>
+              <div class="setting-info">
+                <div class="setting-label">Manage presets</div>
+                <div class="setting-desc">Save, duplicate, export, or import preset configurations</div>
+              </div>
+              <div class="setting-control">
+                <div class="preset-actions-row">
+                  <span style="color:#888;font-size:12px;font-style:italic;">Coming soon</span>
+                </div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Default naming template</div>
+                <div class="setting-desc">Pattern used when no preset naming rules apply</div>
+              </div>
+              <div class="setting-control">
+                <input type="text" id="namingTemplateInput" value="{prefix}_{role}_{num}" onchange="onSettingChange('namingTemplate', this.value)" style="width:180px;text-align:left;font-family:var(--font-mono);">
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-      <div class="setting-row">
-        <div class="setting-info">
-          <div class="setting-label">Default naming template</div>
-          <div class="setting-desc">Pattern used when no preset naming rules apply</div>
-        </div>
-        <div class="setting-control">
-          <input type="text" id="namingTemplateInput" value="{prefix}_{role}_{num}" onchange="onSettingChange('namingTemplate', this.value)" style="width:180px;text-align:left;font-family:var(--font-mono);">
-        </div>
-      </div>
-    </div>
 
-    <!-- Routing -->
-    <div class="settings-section">
-      <h3><span class="section-icon">&#x2194;</span>Routing</h3>
-      <div class="setting-row">
-        <div class="setting-info">
-          <div class="setting-label">Default mix gain</div>
-          <div class="setting-desc">Volume adjustment for mixed-down tracks</div>
-        </div>
-        <div class="setting-control">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <input type="number" id="mixGainInput" value="-3" min="-24" max="0" step="0.5" onchange="onSettingChange('mixGain', parseFloat(this.value))" style="width:70px;">
-            <span class="unit">dB</span>
-          </div>
-        </div>
-      </div>
-      <div class="setting-row">
-        <div class="setting-info">
-          <div class="setting-label">Show original channel names</div>
-          <div class="setting-desc">Show the original recording metadata alongside renamed channels</div>
-        </div>
-        <div class="setting-control">
-          <label class="toggle-switch">
-            <input type="checkbox" id="rawBextToggle" checked onchange="onSettingChange('showRawBext', this.checked)">
+          <!-- General -->
+          <div class="settings-section">
+            <h3><span class="section-icon">&#x2731;</span>General</h3>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Show original channel names</div>
+                <div class="setting-desc">Show the original recording metadata alongside renamed channels</div>
+              </div>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="rawBextToggle" checked onchange="onSettingChange('showRawBext', this.checked)">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Show toast notifications</div>
+                <div class="setting-desc">Display operation confirmations as popup toasts</div>
+              </div>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="toastToggle" checked onchange="onSettingChange('showToasts', this.checked)">
             <span class="toggle-slider"></span>
           </label>
-        </div>
-      </div>
-      <div class="setting-row">
-        <div class="setting-info">
-          <div class="setting-label">Auto-assign track groups</div>
-          <div class="setting-desc">Automatically group channels with matching naming patterns</div>
-        </div>
-        <div class="setting-control">
-          <label class="toggle-switch">
-            <input type="checkbox" id="autoAssignToggle" checked onchange="onSettingChange('autoAssign', this.checked)">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-      </div>
-    </div>
-
-    <!-- General -->
-    <div class="settings-section">
-      <h3><span class="section-icon">&#x2731;</span>General</h3>
-      <div class="setting-row">
-        <div class="setting-info">
-          <div class="setting-label">Show toast notifications</div>
-          <div class="setting-desc">Display operation confirmations as popup toasts</div>
-        </div>
-        <div class="setting-control">
-          <label class="toggle-switch">
-            <input type="checkbox" id="toastToggle" checked onchange="onSettingChange('showToasts', this.checked)">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-      </div>
-      <div class="setting-row">
-        <div class="setting-info">
-          <div class="setting-label">Confirm before export</div>
-          <div class="setting-desc">Show a summary dialog before writing output files</div>
-        </div>
-        <div class="setting-control">
-          <label class="toggle-switch">
-            <input type="checkbox" id="confirmToggle" checked onchange="onSettingChange('confirmExport', this.checked)">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-      </div>
-    </div>
+                  </div>
+                </div>
+              </div>
 
     <div class="settings-footer">
       <span class="version">Polywav Ingest v0.2.0 &middot; AAF OP-Atom Engine</span>
@@ -3225,103 +3299,238 @@
   </div>
 </div>
 
-<!-- Preset Wizard -->
-<div class="wizard-overlay" id="presetWizard" onclick="if(event.target===this)closeWizard()">
-  <div class="wizard-panel">
+<!-- ===== Setup Wizard Overlay ===== -->
+<div class="wizard-overlay" id="wizardOverlay" onclick="if(event.target===event.currentTarget) closeWizard()">
+  <div class="wizard-modal">
     <div class="wizard-header">
-      <h2>New Preset</h2>
-      <button class="wizard-close" onclick="closeWizard()">✕</button>
+      <h2><span>&#x2726;</span> Setup Wizard</h2>
+      <button class="wizard-close" onclick="closeWizard()" aria-label="Close wizard">&#x2715;</button>
     </div>
-    <div class="wizard-steps">
-      <div class="wizard-step active" data-step="0">Name</div>
-      <div class="wizard-step" data-step="1">Source</div>
-      <div class="wizard-step" data-step="2">Pattern</div>
-      <div class="wizard-step" data-step="3">Save</div>
-    </div>
-    <div class="wizard-body">
-      <!-- Step 0: Name -->
-      <div class="wiz-section" id="wizStep0">
-        <div class="wizard-section-title">Name your preset</div>
-        <div class="wizard-section-desc">Give this configuration a name so you can reuse it later.</div>
-        <div class="wizard-field">
-          <label for="wizName">Preset name</label>
-          <input type="text" id="wizName" placeholder="e.g. Masterchef Kitchen 2025" oninput="wizState.name=this.value;updateWizardNav()">
-          <div class="hint">Use a descriptive name for this show or project</div>
-        </div>
-        <div class="wizard-field">
-          <label for="wizPrefix">Show code (optional)</label>
-          <input type="text" id="wizPrefix" placeholder="e.g. MKR" oninput="wizState.prefix=this.value" maxlength="6">
-          <div class="hint">Short prefix used in channel names, auto-detected if you load a sample file</div>
-        </div>
-      </div>
-      <!-- Step 1: Source -->
-      <div class="wiz-section" id="wizStep1">
-        <div class="wizard-section-title">Load a sample file</div>
-        <div class="wizard-section-desc">Drag a WAV file here or browse to let the app analyze the channel naming pattern. Skip to configure manually.</div>
-        <div class="wizard-source-zone" id="wizDropZone" ondragover="event.preventDefault();this.classList.add('wiz-drag-over')" ondragleave="this.classList.remove('wiz-drag-over')" ondrop="wizHandleDrop(event)">
-          <div class="wiz-zone-icon">📂</div>
-          <div class="wiz-zone-text">Drop a WAV file here or click to browse</div>
-          <div class="wiz-zone-btn" onclick="document.getElementById('wizFileInput').click()">Browse files</div>
-          <input type="file" id="wizFileInput" accept=".wav" style="display:none" onchange="wizHandleFileInput(this.files)">
-        </div>
-        <div id="wizFileInfo" style="display:none;margin-top:16px;">
-          <div style="font-size:13px;font-weight:600;color:var(--ink);" id="wizFileName"></div>
-          <div style="font-size:12px;color:rgba(var(--ink-rgb),0.5);" id="wizFileMeta"></div>
-          <div class="wizard-channel-list" id="wizChannelList"></div>
-        </div>
-      </div>
-      <!-- Step 2: Pattern & Groups -->
-      <div class="wiz-section" id="wizStep2">
-        <div class="wizard-section-title">Review naming pattern</div>
-        <div class="wizard-section-desc">These are the channels and groups detected from the sample file. Edit the template to match your naming convention.</div>
-        <div class="wizard-field">
-          <label for="wizTemplate">Naming template</label>
-          <input type="text" id="wizTemplate" placeholder="{prefix}_{role}_{num}" oninput="wizState.template=this.value" value="{prefix}_{role}_{num}">
-          <div class="hint">Use {prefix} {role} {num} {suffix} — drag columns on the Normalize tab to reorder</div>
-        </div>
-        <div id="wizGroupsContainer">
-          <label style="font-size:12px;font-weight:600;color:rgba(var(--ink-rgb),0.7);">Detected groups</label>
-          <div class="wizard-group-grid" id="wizGroupGrid"></div>
-        </div>
-      </div>
-      <!-- Step 3: Save -->
-      <div class="wiz-section" id="wizStep3">
-        <div class="wizard-section-title">Review & save</div>
-        <div class="wizard-section-desc">This is what will be saved as your preset. You can edit it later from the Settings panel.</div>
-        <div id="wizSummary" style="background:rgba(var(--ink-rgb),0.04);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;"></div>
-        <div style="font-size:12px;color:rgba(var(--ink-rgb),0.5);">After saving, the preset will be available in the Settings panel for future use.</div>
-      </div>
-    </div>
-    <div class="wizard-footer">
-      <button class="btn-secondary" id="wizBackBtn" onclick="wizardPrev()">Back</button>
-      <button class="btn-primary" id="wizNextBtn" onclick="wizardNext()">Next</button>
-    </div>
-  </div>
-</div>
 
-<!-- Export progress overlay -->
-<div class="export-progress-overlay" id="exportProgressOverlay">
-  <div class="export-progress-panel">
-    <h2>Exporting for Avid</h2>
-    <div class="export-progress-pct" id="exportProgressPct">0%</div>
-    <div class="export-progress-bar-wrap">
-      <div class="export-progress-bar" id="exportProgressBar"></div>
+    <!-- Step dots -->
+    <div class="wizard-steps" id="wizardSteps"></div>
+
+    <!-- Body -->
+    <div class="wizard-body" id="wizardBody">
+      <!-- Step 1: Project Template -->
+      <div class="wizard-step-panel" id="wizStep0">
+        <h3><span>01</span> Project template</h3>
+        <p>Choose a template that matches your show. This sets naming, routing, and export defaults.</p>
+        <div class="wizard-templates">
+          <div class="wizard-tmpl-card" data-template="panel" onclick="selectTemplate('panel')">
+            <div class="tmpl-icon">&#x1F4FA;</div>
+            <div class="tmpl-name">Panel Show</div>
+            <div class="tmpl-desc">Talk show, debate, interview — fixed panel mics</div>
+          </div>
+          <div class="wizard-tmpl-card" data-template="cooking" onclick="selectTemplate('cooking')">
+            <div class="tmpl-icon">&#x1F373;</div>
+            <div class="tmpl-name">Cooking Show</div>
+            <div class="tmpl-desc">Multi-kitchen, reality — dynamic mic count, iso tracks</div>
+          </div>
+          <div class="wizard-tmpl-card" data-template="music" onclick="selectTemplate('music')">
+            <div class="tmpl-icon">&#x266B;</div>
+            <div class="tmpl-name">Music</div>
+            <div class="tmpl-desc">Band, orchestra, live performance — track naming by instrument</div>
+          </div>
+          <div class="wizard-tmpl-card" data-template="custom" onclick="selectTemplate('custom')">
+            <div class="tmpl-icon">&#x2699;</div>
+            <div class="tmpl-name">Custom</div>
+            <div class="tmpl-desc">Start from scratch with your own settings</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Naming Convention -->
+      <div class="wizard-step-panel" id="wizStep1">
+        <h3><span>02</span> Naming convention</h3>
+        <p>Configure how normalized channel names are built from source metadata.</p>
+        <div class="wizard-row">
+          <div>
+            <div class="row-label">Template pattern</div>
+            <div class="row-desc">Variables: {prefix} {role} {num} {side}</div>
+          </div>
+          <div class="row-control">
+            <input type="text" id="wizNamingTemplate" value="{prefix}_{role}_{num}" onchange="wizState.naming.template=this.value" style="width:200px;font-family:var(--font-mono);font-size:12px;">
+          </div>
+        </div>
+        <div class="wizard-row">
+          <div>
+            <div class="row-label">Separator</div>
+            <div class="row-desc">Character between name components</div>
+          </div>
+          <div class="row-control">
+            <select id="wizSeparator" onchange="wizState.naming.separator=this.value">
+              <option value="_">Underscore _</option>
+              <option value="-">Hyphen -</option>
+              <option value=".">Dot .</option>
+              <option value=" ">Space</option>
+            </select>
+          </div>
+        </div>
+        <div class="wizard-row">
+          <div>
+            <div class="row-label">Preview</div>
+            <div class="row-desc">Live preview of the naming pattern</div>
+          </div>
+          <div class="row-control">
+            <span id="wizNamingPreview" style="font-family:var(--font-mono);font-size:12px;color:var(--tomato);">ISO_Presenter_01</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Track Routing Defaults -->
+      <div class="wizard-step-panel" id="wizStep2">
+        <h3><span>03</span> Track routing defaults</h3>
+        <p>Set how channels are assigned to Avid tracks by default.</p>
+        <div class="wizard-row">
+          <div>
+            <div class="row-label">Auto-assign routing</div>
+            <div class="row-desc">Automatically route channels to AO tracks based on role</div>
+          </div>
+          <div class="row-control">
+            <label class="toggle-switch">
+              <input type="checkbox" id="wizAutoAssign" checked onchange="wizState.routing.autoAssign=this.checked">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="wizard-row">
+          <div>
+            <div class="row-label">Default track group</div>
+            <div class="row-desc">AO track range for auto-assignment</div>
+          </div>
+          <div class="row-control">
+            <select id="wizTrackGroup" onchange="wizState.routing.trackGroup=this.value">
+              <option value="A1-A8">A1–A8 (standard)</option>
+              <option value="A9-A16">A9–A16 (extended)</option>
+              <option value="A17-A24">A17–A24 (large)</option>
+              <option value="A25-A32">A25–A32 (full)</option>
+            </select>
+          </div>
+        </div>
+        <div class="wizard-row">
+          <div>
+            <div class="row-label">Mix gain (dB)</div>
+            <div class="row-desc">Default gain applied to all routed channels</div>
+          </div>
+          <div class="row-control">
+            <input type="number" id="wizMixGain" value="-3" step="0.5" min="-24" max="6" onchange="wizState.routing.mixGain=parseFloat(this.value)" style="width:80px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: Export Preferences -->
+      <div class="wizard-step-panel" id="wizStep3">
+        <h3><span>04</span> Export preferences</h3>
+        <p>Configure how your AAF and media files are written.</p>
+        <div class="wizard-row">
+          <div>
+            <div class="row-label">Output structure</div>
+            <div class="row-desc">How tracks are organised in the AAF</div>
+          </div>
+          <div class="row-control">
+            <select id="wizMode" onchange="wizState.export.mode=this.value">
+              <option value="group">Group Clip</option>
+              <option value="sequence">Sequence</option>
+              <option value="mixed">Mixed</option>
+            </select>
+          </div>
+        </div>
+        <div class="wizard-row">
+          <div>
+            <div class="row-label">Media format</div>
+            <div class="row-desc">How audio essence is stored</div>
+          </div>
+          <div class="row-control">
+            <select id="wizEssence" onchange="wizState.export.essence=this.value">
+              <option value="embedded">Embedded in AAF</option>
+              <option value="external">Separate WAV files</option>
+              <option value="mxf">Avid MXF (OP-Atom)</option>
+            </select>
+          </div>
+        </div>
+        <div class="wizard-row">
+          <div>
+            <div class="row-label">Sample rate</div>
+            <div class="row-desc">Output sample rate</div>
+          </div>
+          <div class="row-control">
+            <select id="wizSampleRate" onchange="wizState.export.sampleRate=this.value">
+              <option value="auto">Auto (from source)</option>
+              <option value="48000">48000 Hz</option>
+              <option value="96000">96000 Hz</option>
+              <option value="192000">192000 Hz</option>
+            </select>
+          </div>
+        </div>
+        <div class="wizard-row">
+          <div>
+            <div class="row-label">Bit depth</div>
+            <div class="row-desc">Output bit depth</div>
+          </div>
+          <div class="row-control">
+            <select id="wizBitDepth" onchange="wizState.export.bitDepth=this.value">
+              <option value="auto">Auto (from source)</option>
+              <option value="16">16-bit PCM</option>
+              <option value="24">24-bit PCM</option>
+              <option value="32">32-bit float</option>
+            </select>
+          </div>
+        </div>
+        <div class="wizard-row">
+          <div>
+            <div class="row-label">Output AAF directory</div>
+            <div class="row-desc">Where the AAF file gets written</div>
+          </div>
+          <div class="row-control">
+            <input type="text" id="wizAafDir" value="./output" onchange="wizState.export.aafDir=this.value" style="width:160px;">
+          </div>
+        </div>
+        <div class="wizard-row">
+          <div>
+            <div class="row-label">Media directory</div>
+            <div class="row-desc">Where MXF / WAV files get written</div>
+          </div>
+          <div class="row-control">
+            <input type="text" id="wizMxfDir" value="./output/mxf" onchange="wizState.export.mxfDir=this.value" style="width:160px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5: Summary + Save -->
+      <div class="wizard-step-panel" id="wizStep4">
+        <h3><span>05</span> Summary &amp; save</h3>
+        <p>Review your configuration before saving. A YAML preset will also be downloaded.</p>
+        <div class="wizard-summary" id="wizSummary"></div>
+      </div>
     </div>
-    <div class="export-progress-step" id="exportProgressStep">Starting...</div>
-    <button class="export-progress-cancel" id="exportProgressCancel" onclick="cancelExport()">Cancel</button>
-    <div class="export-progress-done" id="exportProgressDone">
-      <div class="check-icon">&#x2705;</div>
-      <div style="font-size:14px;color:var(--sage);font-weight:600;margin-bottom:4px;">Export complete</div>
-      <div id="exportProgressPath" style="font-size:12px;color:#888;word-break:break-all;margin-bottom:4px;"></div>
-      <div class="done-actions">
-        <button class="btn btn-primary" onclick="openExportFolder()">&#x1F4C2; Open output folder</button>
-        <button class="btn btn-secondary" onclick="closeExportProgress()">Close</button>
+
+    <!-- Footer -->
+    <div class="wizard-footer">
+      <div class="wizard-footer-left" id="wizFooterLeft">Step 1 of 5</div>
+      <div class="wizard-footer-right">
+        <button class="wizard-btn" id="wizBackBtn" onclick="wizardBack()">Back</button>
+        <button class="wizard-btn primary" id="wizNextBtn" onclick="wizardNext()">Next</button>
       </div>
     </div>
   </div>
 </div>
 
 <script>
+  // ===== Electron IPC Bridge =====
+  var eIPC = window.electronAPI || null;
+
+  function minimizeWindow() { if (eIPC && eIPC.minimizeWindow) eIPC.minimizeWindow(); }
+  function maximizeWindow() {
+    var btn = document.getElementById('maxBtn');
+    if (eIPC && eIPC.maximizeWindow) eIPC.maximizeWindow();
+    if (eIPC && eIPC.onMaximizeChange) eIPC.onMaximizeChange(function(maximized) {
+      btn.textContent = maximized ? '❐' : '□';
+      btn.title = maximized ? 'Restore' : 'Maximize';
+    });
+  }
+  function closeWindow() { if (eIPC && eIPC.closeWindow) eIPC.closeWindow(); }
+
   // ===== Tab switching =====
   function switchTab(name) {
     var tabs = document.querySelectorAll('.tab-bar .tab');
@@ -3351,8 +3560,9 @@
     }
 
     if (name === 'patch') setTimeout(renderRoutingMap, 60);
-    if (name === 'route') setTimeout(renderRouteTab, 60);
-    if (name === 'export') setTimeout(renderExportTab, 60);
+        if (name === 'route') setTimeout(renderRouteTab, 60);
+        if (name === 'normalize') setTimeout(updateParseTable, 60);
+        if (name === 'export') setTimeout(renderExportTab, 60);
     updateEmptyStates();
   }
 
@@ -3373,49 +3583,96 @@
   });
 
   // ===== Raw channel data for Normalize tab =====
-  var _fileLoaded = false;
-  var _loadedFilePath = '';
-  var rawChannels = [];
+    var _fileLoaded = false;
+    var _filePath = '';
+    var _clipName = '';
+    var _fileInfo = null;  // Set by handleFile after probe
+    var _exporting = false;
+    var _exportLog = [];
+    var rawChannels = [];  // Populated dynamically by handleFile
+    var ROUTING_DATA = []; // Populated dynamically by handleFile
 
-  // Mock regex parse: apply the hardcoded group semantics
-  function parseName(raw) {
-    var parts = raw.split('_');
-    var prefix = parts[0] || '';
-    var role = parts[1] || '';
-    var num = parts[2] || '';
-    var suffix = parts[3] || '';
-    // Special handling: LAV_Contestant_N uses parts[1]+'_'+parts[2] as role, parts[3] as num
-    if (prefix === 'LAV' && parts.length >= 4) {
-      role = parts[1] + '_' + parts[2];
-      num = parts[3];
-      suffix = '';
-    }
-    // GDE_Guide_Track: parts[2] is 'Track' not a number
-    if (prefix === 'GDE') {
-      role = parts[1];
-      num = '';
-      suffix = '';
-    }
-    // TC_Timecode: no number
-    if (prefix === 'TC') {
-      role = parts[1];
-      num = '';
-      suffix = '';
-    }
-    // AMB_Kitchen_N
-    if (prefix === 'AMB') {
-      role = parts[1];
-      num = parts[2] || '';
-      suffix = '';
-    }
-    return { prefix: prefix, role: role, num: num, suffix: suffix };
-  }
+      // Parse a channel name using the user's regex, then smart fallback
+        function parseName(raw) {
+          if (!raw) return { prefix: '', role: '', num: '', suffix: '' };
+          raw = raw.trim();
+
+          // Tier 1: Try the user's regex pattern from the UI (supports named groups)
+          var patternEl = document.getElementById('regex-pattern');
+          if (patternEl) {
+            var pattern = patternEl.value;
+            if (pattern) {
+              try {
+                var re = new RegExp(pattern);
+                var m = re.exec(raw);
+                if (m && m.groups) {
+                  return {
+                    prefix: m.groups.prefix || '',
+                    role: m.groups.role || '',
+                    num: m.groups.num || '',
+                    suffix: m.groups.suffix || '',
+                  };
+                }
+              } catch (e) {
+                // Bad regex — fall through to smart split
+              }
+            }
+          }
+
+          // Tier 2: Auto-detect separator and smart split
+          var sep = null;
+          var separators = ['_', ' ', '-', '.'];
+          for (var si = 0; si < separators.length; si++) {
+            if (raw.indexOf(separators[si]) >= 0) {
+              sep = separators[si];
+              break;
+            }
+          }
+
+          if (sep) {
+            var parts = raw.split(sep).filter(function(p) { return p.length > 0; });
+            if (parts.length === 0) return { prefix: '', role: '', num: '', suffix: '' };
+
+            function isNum(s) { return /^\d+$/.test(s); }
+            function isPrefix(s) { return /^[A-Z]{2,4}$/.test(s); }
+
+            var prefix = '';
+            var role = '';
+            var num = '';
+            var suffix = '';
+            var remaining = parts.slice();
+
+            // First part as prefix if it looks like one (all-caps, 2-4 chars)
+            if (remaining.length > 0 && isPrefix(remaining[0])) {
+              prefix = remaining.shift();
+            }
+
+            // Last part as number if it looks like one
+            if (remaining.length > 0 && isNum(remaining[remaining.length - 1])) {
+              num = remaining.pop();
+            }
+
+            // Everything in between is the role (rejoined with original separator)
+            role = remaining.join(sep);
+
+            return { prefix: prefix, role: role, num: num, suffix: suffix };
+          }
+
+          // Tier 3: No separator found — single word like "Host1" or just "Host"
+          var m2 = raw.match(/^([A-Z]{2,4})?(\d+)$/);
+          if (m2) {
+            return { prefix: m2[1] || '', role: '', num: m2[2], suffix: '' };
+          }
+
+          // Last resort: treat the whole thing as the role
+          return { prefix: '', role: raw, num: '', suffix: '' };
+        }
 
   function applyTemplate(caps, template) {
     var s = template;
     s = s.replace(/{prefix}/g, caps.prefix || '');
     s = s.replace(/{role}/g, caps.role || '');
-    s = s.replace(/{type}/g, typeLabel(caps.prefix) || '');
+    s = s.replace(/{type}/g, caps.type || typeLabel(caps.prefix) || '');
     s = s.replace(/{num(?::(0?\d+)d)?}/g, function(match, z) {
       var v = caps.num || '';
       if (z && v) { while (v.length < parseInt(z, 10)) v = '0' + v; }
@@ -3613,27 +3870,35 @@
   }
 
   function updateParseTableBody() {
-    var tbody = document.getElementById('parse-tbody');
-    if (!tbody) return;
-    var html = '';
-    for (var i = 0; i < rawChannels.length; i++) {
-      var ch = rawChannels[i];
-      var caps = parseName(ch.raw);
-      var normalized = applyTemplate(caps, document.getElementById('output-template').value);
-      html += '<tr>'
-        + '<td class="ch-num">' + ch.num + '</td>'
-        + '<td class="raw-name">' + ch.raw + ' <span class="bext-tag">' + ch.bext + '</span></td>';
-      NORM_COLUMNS.forEach(function(c) {
-        var val = c.key === 'type' ? typeLabel(caps.prefix) : (caps[c.key] || '');
-        html += '<td class="capture-group" contenteditable="true" data-key="' + c.key + '"'
-          + ' data-ch="' + i + '"'
-          + ' onblur="onNormCellBlur(this)">' + val + '</td>';
-      });
-      html += '<td class="normalized">' + normalized + '</td>'
-        + '</tr>';
+      var tbody = document.getElementById('parse-tbody');
+      if (!tbody) return;
+      var html = '';
+      for (var i = 0; i < rawChannels.length; i++) {
+        var ch = rawChannels[i];
+        var caps = ch.caps || (ch.caps = parseName(ch.raw));
+        var normalized = applyTemplate(caps, document.getElementById('output-template').value);
+        html += '<tr>'
+          + '<td class="ch-num">' + ch.num + '</td>'
+          + '<td class="raw-name">' + ch.raw + ' <span class="bext-tag">' + ch.bext + '</span></td>';
+        NORM_COLUMNS.forEach(function(c) {
+          var val;
+          if (c.key === 'type') {
+            val = (caps.type !== undefined && caps.type !== '') ? caps.type : typeLabel(caps.prefix);
+          } else {
+            val = caps[c.key] || '';
+          }
+          html += '<td class="capture-group" contenteditable="true" data-key="' + c.key + '"'
+            + ' data-ch="' + i + '"'
+            + ' onmousedown="onNormCellMouseDown(event)"'
+            + ' onblur="onNormCellBlur(this)">' + val + '</td>';
+        });
+        html += '<td class="normalized">' + normalized + '</td>'
+          + '</tr>';
+      }
+      tbody.innerHTML = html;
+      // Re-apply selection highlight after re-render (drop if out of bounds)
+      reapplyNormSel();
     }
-    tbody.innerHTML = html;
-  }
 
   // HTML for column header row (draggable)
   function renderNormHeaders() {
@@ -3666,24 +3931,205 @@
   }
 
   // Inline edit: update capture group on blur, re-normalize for that row
-  function onNormCellBlur(el) {
-    var key = el.getAttribute('data-key');
-    var chIdx = parseInt(el.getAttribute('data-ch'), 10);
-    if (isNaN(chIdx) || chIdx < 0 || chIdx >= rawChannels.length) return;
-    var ch = rawChannels[chIdx];
-    // Re-parse the raw name to get fresh captures
-    var caps = parseName(ch.raw);
-    caps[key] = el.textContent.trim();
-    // Re-apply the template with the edited capture value
-    var template = document.getElementById('output-template').value;
-    var normalized = applyTemplate(caps, template);
-    // Update the Normalized name cell (next sibling... or find by row)
-    var row = el.parentElement;
-    var normCell = row.querySelector('.normalized');
-    if (normCell) normCell.textContent = normalized;
-    // Sync the test rename
-    testRename();
-  }
+    function onNormCellBlur(el) {
+      commitNormCell(el);
+    }
+
+    // Commit an edited/pasted capture cell into the data model and re-normalize
+    function commitNormCell(td) {
+      var key = td.getAttribute('data-key');
+      var chIdx = parseInt(td.getAttribute('data-ch'), 10);
+      if (isNaN(chIdx) || chIdx < 0 || chIdx >= rawChannels.length) return;
+      var ch = rawChannels[chIdx];
+      if (!ch.caps) ch.caps = parseName(ch.raw);
+      ch.caps[key] = td.textContent.trim();
+      var template = document.getElementById('output-template').value;
+      var normalized = applyTemplate(ch.caps, template);
+      var row = td.parentElement;
+      var normCell = row.querySelector('.normalized');
+      if (normCell) normCell.textContent = normalized;
+      testRename();
+    }
+
+    // ===== Normalize table: cell selection + copy/paste =====
+    var _normSel = null; // { r1, c1, r2, c2 } inclusive; null = no selection
+    var _lastNormClick = { t: 0, r: -1, c: -1 };
+
+    function normCellPos(td) {
+      var tr = td.closest('tr');
+      if (!tr) return null;
+      var tbody = tr.parentElement;
+      if (!tbody) return null;
+      var row = Array.prototype.indexOf.call(tbody.children, tr);
+      var col = Array.prototype.indexOf.call(tr.children, td);
+      if (row < 0 || col < 0) return null;
+      return { r: row, c: col };
+    }
+
+    function normSelRect() {
+      if (!_normSel) return null;
+      return {
+        r1: Math.min(_normSel.r1, _normSel.r2),
+        c1: Math.min(_normSel.c1, _normSel.c2),
+        r2: Math.max(_normSel.r1, _normSel.r2),
+        c2: Math.max(_normSel.c1, _normSel.c2),
+      };
+    }
+
+    function isEditingNormCell() {
+      var a = document.activeElement;
+      return !!(a && a.classList && a.classList.contains('capture-group') && a.isContentEditable);
+    }
+
+    function onNormCellMouseDown(e) {
+      var td = e.target.closest('td');
+      if (!td || !td.closest('#parse-table')) return;
+      var pos = normCellPos(td);
+      if (!pos) return;
+
+      var now = Date.now();
+      var isDbl = (now - _lastNormClick.t < 350) && (_lastNormClick.r === pos.r) && (_lastNormClick.c === pos.c);
+      _lastNormClick = { t: now, r: pos.r, c: pos.c };
+      if (isDbl) return; // allow the contenteditable to enter edit mode
+
+      // Commit any in-progress edit before changing selection
+      var active = document.activeElement;
+      if (active && active !== td && active.isContentEditable) active.blur();
+
+      e.preventDefault(); // keep focus out so we control selection
+      if (e.shiftKey && _normSel) {
+        _normSel.r2 = pos.r;
+        _normSel.c2 = pos.c;
+      } else {
+        _normSel = { r1: pos.r, c1: pos.c, r2: pos.r, c2: pos.c };
+      }
+      applyNormSel();
+    }
+
+    function applyNormSel() {
+      var tbody = document.getElementById('parse-tbody');
+      if (!tbody) return;
+      var rect = normSelRect();
+      var cells = tbody.querySelectorAll('td');
+      for (var i = 0; i < cells.length; i++) {
+        var pos = normCellPos(cells[i]);
+        var on = rect && pos && pos.r >= rect.r1 && pos.r <= rect.r2 && pos.c >= rect.c1 && pos.c <= rect.c2;
+        if (on) cells[i].classList.add('cell-selected');
+        else cells[i].classList.remove('cell-selected');
+      }
+    }
+
+    function clearNormSel() {
+      _normSel = null;
+      var cells = document.querySelectorAll('#parse-table td.cell-selected');
+      for (var i = 0; i < cells.length; i++) cells[i].classList.remove('cell-selected');
+    }
+
+    function reapplyNormSel() {
+      if (!_normSel) return;
+      var tbody = document.getElementById('parse-tbody');
+      if (!tbody || !tbody.children.length) { _normSel = null; return; }
+      var rows = tbody.children.length;
+      var cols = tbody.children[0].children.length;
+      var rect = normSelRect();
+      if (!rect || rect.r2 >= rows || rect.c2 >= cols) { _normSel = null; return; }
+      applyNormSel();
+    }
+
+    function copyNormSelection() {
+      var rect = normSelRect();
+      if (!rect) return '';
+      var tbody = document.getElementById('parse-tbody');
+      if (!tbody) return '';
+      var lines = [];
+      for (var r = rect.r1; r <= rect.r2; r++) {
+        var rowEl = tbody.children[r];
+        if (!rowEl) break;
+        var line = [];
+        for (var c = rect.c1; c <= rect.c2; c++) {
+          var td = rowEl.children[c];
+          if (!td) break;
+          line.push(td.textContent.trim());
+        }
+        lines.push(line.join('\t'));
+      }
+      return lines.join('\n');
+    }
+
+    function pasteNormSelection(text) {
+      var sel = _normSel;
+      if (!sel || !text) return 0;
+      var lines = String(text).replace(/\r?\n/g, '\n').split('\n');
+      while (lines.length && lines[lines.length - 1] === '') lines.pop();
+      if (!lines.length) return 0;
+      var grid = lines.map(function(l) { return l.split('\t'); });
+      var gridRows = grid.length;
+      var gridCols = grid.reduce(function(m, row) { return Math.max(m, row.length); }, 0);
+      if (!gridCols) return 0;
+
+      var rect = normSelRect();
+      var tRows, tCols;
+      if (rect.r1 === rect.r2 && rect.c1 === rect.c2) {
+        tRows = gridRows; tCols = gridCols; // paste the full grid from the anchor cell
+      } else {
+        tRows = rect.r2 - rect.r1 + 1;
+        tCols = rect.c2 - rect.c1 + 1;
+      }
+
+      var tbody = document.getElementById('parse-tbody');
+      if (!tbody) return 0;
+      var count = 0;
+      for (var ri = 0; ri < tRows; ri++) {
+        var r = rect.r1 + ri;
+        var rowEl = tbody.children[r];
+        if (!rowEl) break;
+        var rowVals = grid[ri % gridRows];
+        for (var ci = 0; ci < tCols; ci++) {
+          var c = rect.c1 + ci;
+          var td = rowEl.children[c];
+          if (!td) break;
+          if (!td.classList.contains('capture-group')) continue;
+          td.textContent = rowVals[ci % rowVals.length] !== undefined ? rowVals[ci % rowVals.length] : '';
+          commitNormCell(td);
+          count++;
+        }
+      }
+      return count;
+    }
+
+    // Copy/paste at the document level (Ctrl+C / Ctrl+V, right-click, Shift+Insert)
+    document.addEventListener('copy', function(e) {
+      if (isEditingNormCell() || !_normSel) return; // native behavior
+      var text = copyNormSelection();
+      if (!text) return;
+      e.preventDefault();
+      e.clipboardData.setData('text/plain', text);
+      var cells = (_normSel.r1 === _normSel.r2 && _normSel.c1 === _normSel.c2) ? 1
+        : (Math.abs(_normSel.r2 - _normSel.r1) + 1) * (Math.abs(_normSel.c2 - _normSel.c1) + 1);
+      showToast('Copied ' + cells + ' cell' + (cells === 1 ? '' : 's'));
+    });
+
+    document.addEventListener('paste', function(e) {
+      if (isEditingNormCell() || !_normSel) return; // native behavior
+      var text = e.clipboardData.getData('text/plain');
+      if (!text) return;
+      var count = pasteNormSelection(text);
+      if (count > 0) {
+        e.preventDefault();
+        showToast('Pasted into ' + count + ' cell' + (count === 1 ? '' : 's'));
+      }
+    });
+
+    // Click outside the table clears the selection; Escape clears too
+    document.addEventListener('mousedown', function(e) {
+      if (!_normSel) return;
+      if (e.target.closest && e.target.closest('#parse-table')) return;
+      clearNormSel();
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && !isEditingNormCell()) clearNormSel();
+    });
 
   // Column drag-and-drop
   var _colDragSrc = null;
@@ -3710,7 +4156,8 @@
     if (!th) return;
     var targetIdx = parseInt(th.getAttribute('data-col-idx'), 10);
     if (isNaN(targetIdx) || _colDragSrc === null || _colDragSrc === targetIdx) return;
-    // Reorder NORM_COLUMNS
+        clearNormSel();
+        // Reorder NORM_COLUMNS
     var item = NORM_COLUMNS.splice(_colDragSrc, 1)[0];
     NORM_COLUMNS.splice(targetIdx, 0, item);
     // Clear manual flag on template to allow auto-generation
@@ -3762,10 +4209,22 @@
   }
 
   function loadPreset(val) {
-      var pattern = document.getElementById('regex-pattern').value;
-      var template = document.getElementById('output-template').value;
-      document.getElementById('regex-pattern').value = pattern;
-      document.getElementById('output-template').value = template;
+    var pattern, template;
+    if (val === 'mkr') {
+      pattern = '^(?<prefix>[A-Z]+)_(?<role>[A-Za-z]+)_?(?<num>\\d+)?$';
+      template = '{prefix}_{role}_{num}';
+    } else if (val === 'blk') {
+      pattern = '^(?<prefix>[A-Z]+)_(?<role>[A-Za-z]+)(?:_?(?<num>\\d+))?$';
+      template = 'BLK_{prefix}_{role}_{num}';
+    } else if (val === 'svr') {
+      pattern = '^(?<prefix>[A-Z]+)_(?<role>[A-Za-z]+)_?(?<num>\\d+)?$';
+      template = 'SVR_{prefix}_{role}_{num}';
+    } else {
+      pattern = document.getElementById('regex-pattern').value;
+      template = document.getElementById('output-template').value;
+    }
+    document.getElementById('regex-pattern').value = pattern;
+    document.getElementById('output-template').value = template;
     _templateSlots = parseTemplateString(template);
     renderTemplateChips();
     updateParseTableBody();
@@ -3993,7 +4452,6 @@
 
     var time = 0;
 
-    var animId = null;
     function draw() {
       ctx.clearRect(0, 0, W, H);
       time += 1;
@@ -4032,18 +4490,8 @@
         ctx.fill();
       });
 
-      animId = requestAnimationFrame(draw);
+      requestAnimationFrame(draw);
     }
-
-    // Pause/resume on visibility change (saves CPU when minimized)
-    document.addEventListener('visibilitychange', function() {
-      if (document.hidden) {
-        if (animId) { cancelAnimationFrame(animId); animId = null; }
-      } else {
-        draw();
-      }
-    });
-
     draw();
   })();
 
@@ -4065,8 +4513,14 @@
   })();
 
   // ===== Fixed header: compensate for height so content doesn't hide behind it =====
-  // Handled by CSS padding-top on .app-wrap (106px matches the sticky-header height)
-  // No JS needed — CSS avoids font-load timing issues.
+  (function() {
+    var header = document.getElementById('stickyHeader');
+    var wrap = document.querySelector('.app-wrap');
+    if (!header || !wrap) return;
+    function pad() { wrap.style.paddingTop = header.offsetHeight + 'px'; }
+    pad();
+    window.addEventListener('resize', pad);
+  })();
 
   // ===== Home tab: Drop zone interactions =====
   (function() {
@@ -4075,179 +4529,270 @@
     var btn = document.getElementById('dropZoneBtn');
     if (!zone) return;
 
-    function buildRoutingFromChannels() {
-      // Group templates for auto-assign — keywords in names and fallback prefixes
-      var GROUP_TEMPLATES = {
-        HST: { label: 'Hosts', name: 'Presenters', color: '#c4664a', suffix: 'Host', keywords: ['host'] },
-        BM:  { label: 'Booms', name: 'Boom operators', color: '#c8a96e', suffix: 'Boom', keywords: ['boom'] },
-        LAV: { label: 'Isos', name: 'Lavalières', color: '#7a9e8c', suffix: 'Lav', keywords: ['lav', 'contestant', 'iso', 'wireless'] },
-        AMB: { label: 'Ambience', name: 'Ambience', color: '#7f8fa0', suffix: 'Amb', keywords: ['amb', 'ambience', 'kitchen', 'dining', 'atmos'] },
-        MIX: { label: 'Mix', name: 'Stereo mix', color: '#b08fcf', suffix: 'Mix', keywords: ['mix l', 'mix r', 'mix left', 'mix right'] },
-        TC:  { label: 'Timecode', name: 'Timecode', color: '#aaa', suffix: 'TC', keywords: ['timecode', 'tc_'] },
-        GDE: { label: 'Guide', name: 'Guide track', color: '#aaa', suffix: 'Guide', keywords: ['guide', 'gde_'] },
-      };
-
-      function guessGroup(name) {
-        var lower = name.toLowerCase();
-        // Try keyword matching first
-        for (var gk in GROUP_TEMPLATES) {
-          var kw = GROUP_TEMPLATES[gk].keywords || [];
-          for (var k = 0; k < kw.length; k++) {
-            if (lower.indexOf(kw[k]) !== -1) return gk;
+        // Update hero header with file metadata
+        function updateHeroMeta(info) {
+          var elSub = document.getElementById('heroSubtitle');
+          var elMeta = document.getElementById('heroMeta');
+          var elDot = document.getElementById('heroStatusDot');
+          if (elSub) {
+            elSub.innerHTML = '<strong>' + (_clipName || 'Polywav Ingest') + '</strong> &middot; '
+              + (info ? info.channels + ' channels' : 'Ready to load');
+          }
+          if (elMeta && info) {
+                      var sr = info.sampleRate >= 1000 ? (info.sampleRate / 1000).toFixed(0) + ' kHz' : info.sampleRate + ' Hz';
+                      elMeta.innerHTML = info.channels + ' channels \u00B7 ' + sr + ' \u00B7 ' + info.bitDepth + '-bit';
+                    }
+          if (elDot) {
+            elDot.style.color = info ? 'var(--sage)' : 'var(--tomato)';
           }
         }
-        // Try underscore parse (HST_Host_1 style)
-        var parts = name.split('_');
-        if (parts.length >= 2 && parts[0].length <= 4) {
-          var prefix = parts[0].toUpperCase();
-          if (GROUP_TEMPLATES[prefix]) return prefix;
-        }
-        // Single word? Use first 3 chars
-        if (parts.length === 1 && name.trim().length >= 3) {
-          return name.trim().substring(0, 3).toUpperCase();
-        }
-        return 'ISO';
-      }
 
-      // Group channels
-      var groupMap = {};
-      var groupOrder = [];
-      rawChannels.forEach(function(ch) {
-        var gk = guessGroup(ch.raw);
-        if (!groupMap[gk]) { groupMap[gk] = []; groupOrder.push(gk); }
-        groupMap[gk].push(ch);
-      });
+        // Build routing data and raw channels from probe metadata
+                function buildDataFromProbe(info) {
+                  var names = info.channelNames && info.channelNames.length === info.channels
+                    ? info.channelNames
+                    : [];
+                  // Generate names if probe didn't produce them
+                  for (var i = names.length; i < info.channels; i++) {
+                    names.push('Channel ' + String(i + 1).padStart(2, '0'));
+                  }
+                  // Build ROUTING_DATA
+                  var route = [];
+                  var raw = [];
+                  for (var i = 0; i < info.channels; i++) {
+                    var chNum = String(i + 1).padStart(2, '0');
+                    var chName = names[i];
+                                        // Auto-detect separator for bext description display
+                                        var bextSep = '_';
+                                        if (chName.indexOf(' ') >= 0) bextSep = ' ';
+                                        else if (chName.indexOf('-') >= 0) bextSep = '-';
+                                        else if (chName.indexOf('.') >= 0) bextSep = '.';
+                                        var parts = chName.split(bextSep);
+                                        var bextDesc = parts.length > 1 ? parts.slice(1).join(' ').trim() : chName.toLowerCase();
+                    route.push({ ch: chNum, name: chName, group: null, track: null, color: '#ccc' });
+                    raw.push({ num: chNum, raw: chName, bext: bextDesc });
+                  }
+                  ROUTING_DATA.length = 0;
+                  rawChannels.length = 0;
+                  Array.prototype.push.apply(ROUTING_DATA, route);
+                  Array.prototype.push.apply(rawChannels, raw);
+                }
 
-      var newRouting = [];
-      var newGroupInfo = {};
-      groupOrder.forEach(function(gk) {
-        var chs = groupMap[gk];
-        var tmpl = GROUP_TEMPLATES[gk] || { label: gk, name: gk, color: '#7a9e8c', suffix: gk, keywords: [] };
-        var tracks = [];
-        chs.forEach(function(ch, i) {
-          var trackLabel = tmpl.suffix + ' ' + (i + 1);
-          tracks.push(trackLabel);
-          newRouting.push({
-            ch: ch.num,
-            name: ch.raw,
-            group: gk,
-            track: trackLabel,
-            color: tmpl.color,
-          });
-        });
-        newGroupInfo[gk] = { label: tmpl.label, name: tmpl.name, color: tmpl.color, tracks: tracks };
-      });
+                // ===== Pure-JS WAV header parser (works in browser & Electron) =====
+                function parseWavHeaderBytes(buf) {
+                  // buf is a Uint8Array of at least 44 bytes
+                  if (buf.length < 44) return null;
+                  // Check RIFF / WAVE magic
+                  if (buf[0] !== 0x52 || buf[1] !== 0x49 || buf[2] !== 0x46 || buf[3] !== 0x46) return null;
+                  if (buf[8] !== 0x57 || buf[9] !== 0x41 || buf[10] !== 0x56 || buf[11] !== 0x45) return null;
 
-      ROUTING_DATA = newRouting;
-      GROUP_INFO = newGroupInfo;
-    }
+                  var view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+                  var pos = 12;
+                  var fmt = null;
+                  var dataSize = 0;
 
-    function handleFile(file) {
-      if (!file) return;
+                  while (pos + 8 <= buf.length) {
+                    var ckID = String.fromCharCode(buf[pos], buf[pos+1], buf[pos+2], buf[pos+3]);
+                    var ckSize = view.getUint32(pos + 4, true);
+                    if (ckID === 'fmt ') {
+                      fmt = {
+                        channels: view.getUint16(pos + 10, true),
+                        sampleRate: view.getUint32(pos + 12, true),
+                        bitsPerSample: view.getUint16(pos + 22, true),
+                      };
+                    } else if (ckID === 'data') {
+                      dataSize = ckSize;
+                    }
+                    pos += 8 + ckSize + (ckSize % 2);
+                    if (pos >= buf.length) break;
+                  }
+                  if (!fmt) return null;
 
-      // Show loading animation on drop zone
-      var dz = document.getElementById('dropZone');
-      var lf = document.getElementById('loadingFilename');
-      if (dz) dz.classList.add('loading');
-      if (lf) lf.textContent = file.name;
+                  var frames = (dataSize > 0 && fmt.channels > 0 && fmt.bitsPerSample > 0)
+                    ? Math.floor(dataSize / (fmt.channels * fmt.bitsPerSample / 8))
+                    : 0;
 
-      var loadChannelData = function(names, path, fileName, fileSize, meta) {
-        _fileLoaded = true;
-        _loadedFilePath = path || file.name;
+                  return {
+                    channels: fmt.channels,
+                    sampleRate: fmt.sampleRate,
+                    bitsPerSample: fmt.bitsPerSample,
+                    frames: frames,
+                    format: 'WAV / PCM_' + fmt.bitsPerSample,
+                  };
+                }
 
-        // Build rawChannels from probed names
-        rawChannels = [];
-        for (var i = 0; i < names.length; i++) {
-          rawChannels.push({
-            num: String(i + 1).padStart(2, '0'),
-            raw: names[i],
-            bext: names[i],
-          });
-        }
+                function readWavHeaderFromFile(file) {
+                  return new Promise(function(resolve, reject) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                      var header = parseWavHeaderBytes(new Uint8Array(e.target.result));
+                      if (header) resolve(header);
+                      else reject(new Error('Invalid WAV header'));
+                    };
+                    reader.onerror = function() { reject(new Error('Failed to read file')); };
+                    reader.readAsArrayBuffer(file.slice(0, 4096));
+                  });
+                }
 
-        // Generate routing data from channels
-        buildRoutingFromChannels();
+                // Shared finalizer: merges WAV header + optional BEXT probe, builds routing
+                function finalizeFileLoad(meta, bextProbePromise) {
+                  function finish(names) {
+                    meta.channelNames = names;
+                    _fileInfo = meta;
+                    buildDataFromProbe(meta);
+                    updateHeroMeta(meta);
+                    updateEmptyStates();
+                    rerenderAll();
+                    renderExportTab();
+                    showFileLoaded();
+                  }
 
-        // Reset undo history
-        HISTORY_STACK = [];
-        HISTORY_INDEX = -1;
-        pushSnapshot();
+                  function defaultNames(n) {
+                    var a = [];
+                    for (var i = 0; i < n; i++) a.push('Channel ' + String(i + 1).padStart(2, '0'));
+                    return a;
+                  }
 
-        // Update UI
-        updateEmptyStates();
-        renderExportTab();
-        updateRouteBar();
-        renderNormHeaders();
-        renderTemplateChips();
-        renderRouteTab();
-        renderRoutingMap();
+                  if (bextProbePromise) {
+                    bextProbePromise.then(function(info) {
+                      if (info && !info.error && info.channelNames && info.channelNames.length === meta.channels) {
+                        finish(info.channelNames);
+                      } else {
+                        finish(defaultNames(meta.channels));
+                      }
+                    }).catch(function() {
+                      finish(defaultNames(meta.channels));
+                    });
+                  } else {
+                    finish(defaultNames(meta.channels));
+                  }
+                }
 
-        // Update header to show loaded file info
-        updateHeaderForFile(fileName, names.length, meta);
+                // Handle file from drag-and-drop or file input
+                function handleFile(file) {
+                  if (!file) return;
+                  _fileLoaded = true;
+                  _filePath = file.path || file.name;
+                  _clipName = file.name.replace(/\.wav$/i, '').replace(/\.polywav$/i, '') || 'export';
 
-        // Remove loading state and navigate to Route tab
-        if (dz) dz.classList.remove('loading');
-        setTimeout(function() { switchTab('normalize'); }, 120);
+                  // Step 1: Always read WAV header first — gives real channel count in any context
+                  readWavHeaderFromFile(file).then(function(wavInfo) {
+                    var meta = {
+                      file: _filePath,
+                      channels: wavInfo.channels,
+                      sampleRate: wavInfo.sampleRate,
+                      frames: wavInfo.frames,
+                      format: wavInfo.format,
+                      bitDepth: wavInfo.bitsPerSample,
+                      channelNames: [],
+                    };
+                    // Step 2: Try Electron IPC for BEXT channel names if available
+                    var probePromise = null;
+                    if (file.path && window.electronAPI && window.electronAPI.probeFile) {
+                      probePromise = window.electronAPI.probeFile(file.path);
+                    }
+                    finalizeFileLoad(meta, probePromise);
+                  }).catch(function() {
+                    // Can't read WAV header — last resort fallback
+                    var meta = { file: _filePath, channels: 1, sampleRate: 48000, frames: 0, format: 'WAV / PCM_24', bitDepth: 24 };
+                    finalizeFileLoad(meta, null);
+                  });
 
-        // Add to recent files
-        var size = (fileSize / 1024 / 1024).toFixed(1) + ' MB';
-        var now = new Date();
-        var time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        var list = document.getElementById('recentList');
-        if (list) {
-          var empty = list.querySelector('.recent-empty');
-          if (empty) empty.remove();
-          var item = document.createElement('div');
-          item.className = 'recent-item';
-          item.innerHTML = '<span class="file-icon">&#x266B;</span><span class="file-name">' + fileName + '</span><span class="file-meta">' + size + ' &middot; ' + time + '</span>';
-          list.insertBefore(item, list.firstChild);
-          while (list.children.length > 5) list.removeChild(list.lastChild);
-        }
-        showToast('Loaded: ' + fileName + ' (' + names.length + ' channels)');
-      };
+                  // Add to recent files (non-blocking, always)
+                  var name = file.name;
+                  var size = (file.size / 1024 / 1024).toFixed(1) + ' MB';
+                  var now = new Date();
+                  var time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  var list = document.getElementById('recentList');
+                  if (list) {
+                    var empty = list.querySelector('.recent-empty');
+                    if (empty) empty.remove();
+                    var item = document.createElement('div');
+                    item.className = 'recent-item';
+                    item.innerHTML = '<span class="file-icon">&#x266B;</span><span class="file-name">' + name + '</span><span class="file-meta">' + size + ' &middot; ' + time + '</span>';
+                    list.insertBefore(item, list.firstChild);
+                    while (list.children.length > 5) list.removeChild(list.lastChild);
+                    saveRecentFiles();
+                  }
+                  showToast('Loaded: ' + name);
+                }
 
-      // In Electron, probe the file for real metadata
-      if (window.electronAPI && window.electronAPI.probeFile) {
-        window.electronAPI.probeFile(file.path || file.name).then(function(result) {
-          if (result.success) {
-            loadChannelData(
-              result.channelNames,
-              result.filePath,
-              result.fileName,
-              result.fileSize,
-              result
-            );
-          } else {
-            // Probe failed — fallback to generic channels from file size estimate
-            showToast('Could not read WAV metadata: ' + (result.error || 'unknown error'));
-            // Still mark file as loaded with generic single channel
-            loadChannelData(['Channel 1'], file.path, file.name, file.size);
-          }
-        }).catch(function(err) {
-          showToast('File probe error: ' + err.message);
-          loadChannelData(['Channel 1'], file.path, file.name, file.size);
-        });
-      } else {
-        // Browser fallback: use file name as single channel
-        loadChannelData(['Channel 1'], file.name, file.name, file.size);
-      }
-    }
+                // Handle file from Electron open dialog (path string, not File object)
+                function handleFilePath(filePath) {
+                  if (!filePath) return;
+                  _fileLoaded = true;
+                  _filePath = filePath;
+                  var parts = filePath.replace(/\\/g, '/').split('/');
+                  var fileName = parts[parts.length - 1];
+                  _clipName = fileName.replace(/\.wav$/i, '').replace(/\.polywav$/i, '') || 'export';
 
-    function updateHeaderForFile(fileName, channelCount, meta) {
-      var subtitle = document.querySelector('.subtitle');
-      if (subtitle) {
-        subtitle.innerHTML = '<strong>' + fileName + '</strong> &middot; ' + channelCount + ' channel' + (channelCount !== 1 ? 's' : '');
-      }
-      var status = document.querySelector('.status strong');
-      if (status) {
-        var sr = meta && meta.samplerate ? (meta.samplerate >= 1000 ? (meta.samplerate / 1000).toFixed(1) + ' kHz' : meta.samplerate + ' Hz') : '';
-        var bd = meta && meta.bitDepth ? meta.bitDepth + '-bit' : '';
-        status.innerHTML = '&#x25CF; ' + channelCount + ' channel' + (channelCount !== 1 ? 's' : '') + (sr ? ' &middot; ' + sr : '') + (bd ? ' &middot; ' + bd : '');
-      }
-    }
+                  // Step 1: Read WAV header via IPC (main process reads file bytes)
+                  if (window.electronAPI && window.electronAPI.readFileHeader) {
+                    window.electronAPI.readFileHeader(filePath).then(function(wavInfo) {
+                      if (wavInfo && !wavInfo.error) {
+                        var meta = {
+                          file: filePath,
+                          channels: wavInfo.channels,
+                          sampleRate: wavInfo.sampleRate,
+                          frames: wavInfo.frames,
+                          format: wavInfo.format,
+                          bitDepth: wavInfo.bitsPerSample,
+                          channelNames: [],
+                        };
+                        // Step 2: Try BEXT probe
+                        var probePromise = (window.electronAPI && window.electronAPI.probeFile)
+                          ? window.electronAPI.probeFile(filePath) : null;
+                        finalizeFileLoad(meta, probePromise);
+                      } else {
+                        var meta = { file: filePath, channels: 1, sampleRate: 48000, frames: 0, format: 'WAV / PCM_24', bitDepth: 24 };
+                        finalizeFileLoad(meta, null);
+                      }
+                    }).catch(function() {
+                      var meta = { file: filePath, channels: 1, sampleRate: 48000, frames: 0, format: 'WAV / PCM_24', bitDepth: 24 };
+                      finalizeFileLoad(meta, null);
+                    });
+                  } else {
+                    // No IPC available (shouldn't happen in Electron, but fallback)
+                    var meta = { file: filePath, channels: 1, sampleRate: 48000, frames: 0, format: 'WAV / PCM_24', bitDepth: 24 };
+                    finalizeFileLoad(meta, null);
+                  }
 
-    if (btn) btn.addEventListener('click', function(e) { e.stopPropagation(); if (input) input.click(); });
-    zone.addEventListener('click', function() { if (input) input.click(); });
+                  // Add to recent files
+                  var name = fileName;
+                  var size = '?.? MB';
+                  var now = new Date();
+                  var time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  var list = document.getElementById('recentList');
+                  if (list) {
+                    var empty = list.querySelector('.recent-empty');
+                    if (empty) empty.remove();
+                    var item = document.createElement('div');
+                    item.className = 'recent-item';
+                    item.innerHTML = '<span class="file-icon">&#x266B;</span><span class="file-name">' + name + '</span><span class="file-meta">' + size + ' &middot; ' + time + '</span>';
+                    list.insertBefore(item, list.firstChild);
+                    while (list.children.length > 5) list.removeChild(list.lastChild);
+                    saveRecentFiles();
+                  }
+                  showToast('Loaded: ' + name);
+                }
+
+              if (btn) btn.addEventListener('click', function(e) {
+                              e.stopPropagation();
+                              if (window.electronAPI && window.electronAPI.openFile) {
+                                window.electronAPI.openFile().then(handleFilePath);
+                              } else {
+                                if (input) input.click();
+                              }
+                            });
+                  // Drop zone click: delegate to btn click when not on button, or use IPC in Electron
+                  if (window.electronAPI && window.electronAPI.openFile) {
+                    zone.addEventListener('click', function(e) {
+                      if (e.target.closest('.drop-zone-btn')) return;
+                      window.electronAPI.openFile().then(handleFilePath);
+                    });
+                  } else {
+                    zone.addEventListener('click', function() { if (input) input.click(); });
+                  }
     if (input) {
       input.addEventListener('change', function() {
         if (this.files.length > 0) handleFile(this.files[0]);
@@ -4262,21 +4807,115 @@
     });
   })();
 
-  // ===== Global drag-drop intercept (Electron frameless window) =====
-  // Prevent default browser behavior so file drops reach our drop zone
-  document.addEventListener('dragover', function(e) { e.preventDefault(); });
-  document.addEventListener('drop', function(e) { e.preventDefault(); });
-
   // ===== Home tab: Recent files =====
-  function clearRecent() {
-    var list = document.getElementById('recentList');
-    if (list) list.innerHTML = '<div class="recent-empty">No files loaded yet</div>';
-  }
+      function clearRecent() {
+        var list = document.getElementById('recentList');
+        if (list) list.innerHTML = '<div class="recent-empty">No files loaded yet</div>';
+        try { localStorage.removeItem(RECENT_KEY); } catch (e) {}
+      }
+
+      function saveRecentFiles() {
+        try {
+          var items = document.querySelectorAll('#recentList .recent-item');
+          var data = [];
+          items.forEach(function(el) {
+            var nameEl = el.querySelector('.file-name');
+            var metaEl = el.querySelector('.file-meta');
+            if (nameEl) data.push({ name: nameEl.textContent, meta: metaEl ? metaEl.textContent : '' });
+          });
+          localStorage.setItem(RECENT_KEY, JSON.stringify(data));
+        } catch (e) {}
+      }
+
+      function loadRecentFiles() {
+        try {
+          var saved = localStorage.getItem(RECENT_KEY);
+          if (!saved) return;
+          var data = JSON.parse(saved);
+          if (!data || !data.length) return;
+          var list = document.getElementById('recentList');
+          if (!list) return;
+          var empty = list.querySelector('.recent-empty');
+          if (empty) empty.remove();
+          data.forEach(function(item) {
+            var el = document.createElement('div');
+            el.className = 'recent-item';
+            el.innerHTML = '<span class="file-icon">&#x266B;</span><span class="file-name">' + item.name + '</span><span class="file-meta">' + (item.meta || '') + '</span>';
+            list.appendChild(el);
+          });
+        } catch (e) {}
+      }
+
+    // ===== Home tab: Show file loaded summary / drop zone =====
+    function showFileLoaded() {
+      var card = document.getElementById('fileLoadedCard');
+      var heroWrap = document.getElementById('heroWrap');
+      if (card) {
+        var nameEl = document.getElementById('flFileName');
+        if (nameEl) nameEl.textContent = _clipName || _filePath || 'Unknown file';
+        var detailsEl = document.getElementById('flDetails');
+        if (detailsEl && _fileInfo) {
+          var info = _fileInfo;
+          var sr = info.sampleRate >= 1000 ? (info.sampleRate / 1000).toFixed(0) + ' kHz' : info.sampleRate + ' Hz';
+          var sizeStr = '';
+          if (info.frames && info.sampleRate && info.bitDepth && info.channels) {
+            var bytes = info.frames * info.channels * (info.bitDepth / 8);
+            sizeStr = (bytes / 1024 / 1024).toFixed(1) + ' MB';
+          }
+          var formatLabel = info.format ? info.format.replace('WAV / ', '') : 'Unknown';
+          detailsEl.innerHTML = ''
+            + '<div class="fl-detail-item"><span class="fl-detail-label">Channels</span><span class="fl-detail-value">' + info.channels + '</span></div>'
+            + '<div class="fl-detail-item"><span class="fl-detail-label">Sample rate</span><span class="fl-detail-value">' + sr + '</span></div>'
+            + '<div class="fl-detail-item"><span class="fl-detail-label">Bit depth</span><span class="fl-detail-value">' + info.bitDepth + '-bit</span></div>'
+            + '<div class="fl-detail-item"><span class="fl-detail-label">Format</span><span class="fl-detail-value">' + formatLabel + '</span></div>'
+            + (sizeStr ? '<div class="fl-detail-item"><span class="fl-detail-label">Estimated size</span><span class="fl-detail-value">' + sizeStr + '</span></div>' : '')
+            + (info.frames ? '<div class="fl-detail-item"><span class="fl-detail-label">Frames</span><span class="fl-detail-value">' + info.frames.toLocaleString() + '</span></div>' : '');
+        }
+        card.style.display = '';
+        var heroContent = heroWrap ? heroWrap.querySelector('.hero-content') : null;
+        if (heroContent) {
+          heroContent.querySelector('.hero-eyebrow').style.display = 'none';
+          heroContent.querySelector('.hero-title').style.display = 'none';
+          heroContent.querySelector('.hero-subtitle').style.display = 'none';
+          heroContent.querySelector('.hero-desc').style.display = 'none';
+          heroContent.querySelector('.hero-badges').style.display = 'none';
+          heroContent.querySelector('.drop-zone-parallax').style.display = 'none';
+        }
+      }
+    }
+    function showDropZone() {
+      var card = document.getElementById('fileLoadedCard');
+      var heroWrap = document.getElementById('heroWrap');
+      if (card) card.style.display = 'none';
+      if (heroWrap) {
+        var hc = heroWrap.querySelector('.hero-content');
+        if (hc) {
+          var els = hc.querySelectorAll('.hero-eyebrow, .hero-title, .hero-subtitle, .hero-desc, .hero-badges, .drop-zone-parallax');
+          els.forEach(function(el) { el.style.display = ''; });
+        }
+      }
+    }
 
   // ===== Patch tab: Routing map renderer =====
-  var ROUTING_DATA = [];
-
-  var GROUP_INFO = {};
+    var GROUP_INFO = {};
+      (function() {
+        var colors = ['#c4664a', '#c8a96e', '#7a9e8c', '#7f8fa0', '#b088c8', '#6ab0c0', '#d4a76a', '#9cb87e'];
+        for (var g = 0; g < 8; g++) {
+          var start = g * 8 + 1;
+          var key = 'G' + g;
+          var tracks = [];
+          for (var t = 0; t < 8; t++) {
+            var n = start + t;
+            tracks.push('A' + n);
+                      }
+                      GROUP_INFO[key] = {
+                        label: 'A' + start + '–A' + (start + 7),
+            name: 'Tracks ' + (start) + '-' + (start + 7),
+            color: colors[g],
+            tracks: tracks,
+          };
+        }
+      })();
 
   // ===== Undo / Redo system =====
   var HISTORY_STACK = [];
@@ -4326,68 +4965,64 @@
 
   // ===== Re-render both tabs =====
   function rerenderAll() {
-    renderRoutingMap();
-    renderRouteTab();
-    updateRouteBar();
+      // Update channel count badges
+      var routeBadge = document.getElementById('routeSourceBadge');
+      var normBadge = document.getElementById('normChannelBadge');
+      if (routeBadge) routeBadge.textContent = ROUTING_DATA.length;
+      if (normBadge) normBadge.textContent = ROUTING_DATA.length + ' channels';
+
+      renderRoutingMap();
+            renderRouteTab();
+            updateParseTable();
+            updateRouteBar();
+    }
+
+  // ===== Normalised name helper =====
+  function getNormNameForChannel(chIdx) {
+    var ch = rawChannels[chIdx];
+    if (!ch) return '';
+    if (!ch.caps) ch.caps = parseName(ch.raw);
+    var template = document.getElementById('output-template').value;
+    return applyTemplate(ch.caps, template);
   }
 
+  // ===== Route tab: AO track colours =====
+  var AO_COLORS = ['#c4664a', '#c8a96e', '#7a9e8c', '#7f8fa0', '#b088c8', '#6ab0c0', '#d4a76a', '#9cb87e'];
+
   // ===== Route tab: dynamic table =====
-  var ROUTE_TRACK_OPTIONS = {
-    HST: { label: 'Host', values: { HST: 'Host 1', HST2: 'Host 2' } },
-    BM:  { label: 'Boom', values: { BM1: 'Boom 1', BM2: 'Boom 2' } },
-    ISO: { label: 'ISO',  values: { ISO1: 'ISO 1', ISO2: 'ISO 2', ISO3: 'ISO 3', ISO4: 'ISO 4' } },
-    AMB: { label: 'Ambient', values: { AMB1: 'Ambient 1', AMB2: 'Ambient 2' } },
-    TC:  { label: 'TC', values: { TC: 'Timecode' } },
-  };
-
-  // Map ROUTING_DATA group keys to option keys used by <select>
-  var GROUP_TO_SEL = { HST: 'HST', BM: 'BM', ISO: 'ISO', AMB: 'AMB' };
-
   function renderRouteTab() {
     var tbody = document.getElementById('routeTableBody');
     var summary = document.getElementById('routeSummaryList');
     if (!tbody) return;
 
+    var aoOpts = [];
+        for (var aoi = 1; aoi <= 64; aoi++) {
+          aoOpts.push('A' + aoi);
+        }
+
     var html = '';
     ROUTING_DATA.forEach(function(d, idx) {
       var chNum = parseInt(d.ch, 10);
-      var rawInfo = rawChannels[chNum - 1] || { raw: d.name, bext: '' };
+      var normName = getNormNameForChannel(chNum - 1);
       var assigned = d.group !== null;
       var selectHtml = '<select class="track-select' + (assigned ? ' assigned' : '') + '" data-ch="' + d.ch + '">';
       selectHtml += '<option value="">— Unassigned —</option>';
 
-      // Determine which groups to show: all groups for every channel, TC only for Ch 11
-      var groupKeys = (d.ch === '11') ? ['TC'] : ['HST', 'BM', 'ISO', 'AMB'];
-      groupKeys.forEach(function(gk) {
-        var opt = ROUTE_TRACK_OPTIONS[gk];
-        var vals = [];
-        Object.keys(opt.values).forEach(function(vk) {
-          var isSel = assigned && d.group === gk && d.track === opt.values[vk];
-          vals.push({ key: vk, label: opt.values[vk], sel: isSel });
-        });
-
-        if (vals.length > 0) {
-          selectHtml += '<optgroup label="' + opt.label + '">';
-          vals.forEach(function(v) {
-            selectHtml += '<option value="' + v.key + '"' + (v.sel ? ' selected' : '') + '>' + opt.label + ' — ' + v.label + '</option>';
-          });
-          selectHtml += '</optgroup>';
-        }
+      aoOpts.forEach(function(ao) {
+        var isSel = assigned && d.track === ao;
+        selectHtml += '<option value="' + ao + '"' + (isSel ? ' selected' : '') + '>' + ao + '</option>';
       });
 
       selectHtml += '</select>';
 
       var trackPreview = assigned
-        ? '<span class="track-name editable-text" contenteditable="true">' + d.name + '</span>'
+        ? '<span class="track-name">' + d.track + '</span>'
         : '<span class="unassigned">—</span>';
 
       html += '<tr>'
         + '<td class="drag-handle">&#9776;</td>'
         + '<td class="ch-num">' + d.ch + '</td>'
-        + '<td class="ch-name">' + d.name
-        + '<span class="bext-tag">' + rawInfo.bext + '</span>'
-        + '<span class="raw-hint">raw: ' + rawInfo.raw + '</span>'
-        + '</td>'
+        + '<td class="ch-name">' + normName + '</td>'
         + '<td>' + selectHtml + '</td>'
         + '<td class="track-preview">' + trackPreview + '</td>'
         + '</tr>';
@@ -4399,69 +5034,45 @@
       sel.addEventListener('change', function() {
         var ch = this.getAttribute('data-ch');
         var val = this.value;
-        if (!val) {
-          // Unassign
-          for (var i = 0; i < ROUTING_DATA.length; i++) {
-            if (ROUTING_DATA[i].ch === ch) {
+        for (var i = 0; i < ROUTING_DATA.length; i++) {
+          if (ROUTING_DATA[i].ch === ch) {
+            if (!val) {
               ROUTING_DATA[i].group = null;
               ROUTING_DATA[i].track = null;
               ROUTING_DATA[i].color = '#ccc';
-              break;
+            } else {
+              var aoNum = parseInt(val.charAt(0) === 'A' ? val.slice(1) : val, 10);
+              var colorIdx = Math.floor((aoNum - 1) / 8) % AO_COLORS.length;
+              ROUTING_DATA[i].group = 'AO';
+              ROUTING_DATA[i].track = val;
+              ROUTING_DATA[i].color = AO_COLORS[colorIdx];
             }
-          }
-        } else {
-          // Assign: determine which group and track label
-          for (var i = 0; i < ROUTING_DATA.length; i++) {
-            if (ROUTING_DATA[i].ch === ch) {
-              var groupKey = null;
-              var trackLabel = null;
-              var color = '#ccc';
-              Object.keys(ROUTE_TRACK_OPTIONS).forEach(function(gk) {
-                var opt = ROUTE_TRACK_OPTIONS[gk];
-                if (opt.values[val] !== undefined) {
-                  groupKey = gk;
-                  trackLabel = opt.values[val];
-                }
-              });
-              // Use GROUP_INFO for color
-              Object.keys(GROUP_INFO).forEach(function(gk) {
-                if (groupKey !== null && (gk === groupKey || GROUP_TO_SEL[gk] === groupKey)) {
-                  color = GROUP_INFO[gk].color;
-                }
-              });
-              ROUTING_DATA[i].group = groupKey;
-              ROUTING_DATA[i].track = trackLabel;
-              ROUTING_DATA[i].color = color;
-              break;
-            }
+            break;
           }
         }
         pushSnapshot();
         rerenderAll();
-        showToast('Updated: Ch ' + ch);
+        showToast('Updated: Ch ' + ch + ' → ' + (val || 'unassigned'));
       });
     });
 
-    // Render summary panel — iterate hardcoded groups + any extras from GROUP_INFO
+    // Render summary panel
     if (summary) {
       var sumHtml = '';
-      var baseOrder = ['HST', 'BM', 'ISO', 'AMB'];
-      var allGroups = baseOrder.concat(
-        Object.keys(GROUP_INFO).filter(function(gk) { return baseOrder.indexOf(gk) === -1; })
-      );
-      allGroups.forEach(function(gk) {
-        var info = GROUP_INFO[gk];
-        if (!info) return;
-        var assigned = ROUTING_DATA.filter(function(d) { return d.group === gk; });
-        sumHtml += '<li class="summary-group-header">' + info.label + '</li>';
-        info.tracks.forEach(function(t) {
-          var match = ROUTING_DATA.filter(function(d) { return d.track === t; });
-          sumHtml += '<li>'
-            + '<span class="track-label">' + (match.length > 0 ? match[0].name : t) + '</span>'
+      for (var g = 0; g < 8; g++) {
+        var start = g * 8 + 1;
+        var end = start + 7;
+        var grpLabel = 'A' + start + '–A' + end;
+                sumHtml += '<li class="summary-group-header" style="color:' + AO_COLORS[g % AO_COLORS.length] + '">' + grpLabel + '</li>';
+                for (var s = 0; s < 8; s++) {
+                  var a = 'A' + (start + s);
+                            var match = ROUTING_DATA.filter(function(d) { return d.track === a; });
+                            sumHtml += '<li>'
+                              + '<span class="track-label">' + a + '</span>'
             + (match.length > 0 ? '<span class="track-count">Ch ' + match.map(function(m) { return m.ch; }).join(', Ch ') + '</span>' : '<span class="track-empty">unassigned</span>')
             + '</li>';
-        });
-      });
+        }
+      }
       summary.innerHTML = sumHtml;
 
       // Update bottom-bar info
@@ -4488,11 +5099,11 @@
   function renderExportTab() {
     var total = ROUTING_DATA.length;
     var assigned = ROUTING_DATA.filter(function(d) { return d.group !== null; }).length;
-    var trackGroups = {};
-    ROUTING_DATA.forEach(function(d) {
-      if (d.group) { trackGroups[d.group] = (trackGroups[d.group] || 0) + 1; }
-    });
-    var trackCount = Object.keys(trackGroups).length || 1;
+        var trackGroups = {};
+        ROUTING_DATA.forEach(function(d) {
+          if (d.track) { trackGroups[d.track] = (trackGroups[d.track] || 0) + 1; }
+        });
+        var trackCount = Object.keys(trackGroups).length || 0;
 
     // Mode labels
     var modeLabel = SETTINGS.mode === 'group' ? 'Group Clip'
@@ -4524,28 +5135,36 @@
     updateAafPreview();
 
     // Build CLI command
-    buildCLICommand();
-  }
+        buildCLICommand();
+
+        // Sync export format radio buttons with SETTINGS.essence
+                var formatVal = SETTINGS.essence === 'external' ? 'wav' : SETTINGS.essence;  // 'embedded' or 'mxf'
+                document.querySelectorAll('input[name="export-format"]').forEach(function(rb) {
+          rb.checked = (rb.value === formatVal);
+          var opt = rb.closest('.export-option');
+          if (opt) opt.classList.toggle('selected', rb.checked);
+        });
+      }
 
   function exportFormatClick(el) {
-    var type = el.value;
-    var essence = type === 'wav' ? 'external' : 'mxf';
-    SETTINGS.essence = essence;
-    document.querySelectorAll('.export-option').forEach(function(o) { o.classList.remove('selected'); });
-    el.closest('.export-option').classList.add('selected');
-    renderExportTab();
-  }
+        var type = el.value;
+        var essence = type;  // embedded → 'embedded', wav → 'external', mxf → 'mxf'
+        if (type === 'wav') essence = 'external';
+        SETTINGS.essence = essence;
+        saveSettings();
+        document.querySelectorAll('.export-option').forEach(function(o) { o.classList.remove('selected'); });
+        el.closest('.export-option').classList.add('selected');
+        renderExportTab();
+      }
 
   function buildCLICommand() {
-    var routingParts = [];
-    ROUTING_DATA.forEach(function(d) {
-      if (d.group && d.track) {
-        var parts = d.name.split('_');
-        var prefix = parts[0] || 'CH';
-        routingParts.push(d.ch + ':' + prefix);
-      }
-    });
-    var routingStr = routingParts.join(',') || 'all:auto';
+      var routingParts = [];
+      ROUTING_DATA.forEach(function(d, i) {
+        if (d.group && d.track) {
+          routingParts.push(i + ':' + d.track);
+        }
+      });
+      var routingStr = routingParts.join(',') || 'all:auto';
 
     var modeFlag = SETTINGS.mode !== 'group' ? ' --mode ' + SETTINGS.mode : '';
     var essenceFlag = SETTINGS.essence !== 'embedded' ? ' --essence ' + SETTINGS.essence : '';
@@ -4553,7 +5172,9 @@
     var bdFlag = SETTINGS.bitDepth !== 'auto' ? ' --subtype PCM_' + SETTINGS.bitDepth : '';
 
     var aafDir = SETTINGS.outputAafDir || './output';
-    var cmd = 'polywav embed-aaf -i ./source.wav -o ' + aafDir + '/Episode_104.aaf'
+        var inPath = _filePath || './source.wav';
+        var outName = (_clipName || 'export') + '.aaf';
+        var cmd = 'polywav embed-aaf -i ' + inPath + ' -o ' + aafDir + '/' + outName
       + ' --routing "' + routingStr + '"'
       + modeFlag + essenceFlag + srFlag + bdFlag;
 
@@ -4561,192 +5182,110 @@
     if (el) el.textContent = cmd;
   }
 
-  // ── Electron API bridge ────────────────────────────────────
-  // Detect if running inside Electron
-  var isElectron = typeof window !== 'undefined' && window.electronAPI;
-
-  // Wrap browseDir to use native dialog in Electron, fallback to prompt in browser
   function browseDir(fieldId) {
-    var current = fieldId === 'outputAafDir' ? SETTINGS.outputAafDir : SETTINGS.outputMxfDir;
-    if (isElectron) {
-      window.electronAPI.openDirectoryDialog().then(function(chosen) {
-        if (!chosen) return;
-        if (fieldId === 'outputAafDir') SETTINGS.outputAafDir = chosen;
-        else SETTINGS.outputMxfDir = chosen;
-        saveSettings();
-        syncSettingsUI();
-        buildCLICommand();
-        updateAafPreview();
-        showToast('Output ' + (fieldId === 'outputAafDir' ? 'AAF' : 'MXF') + ' folder updated');
-      });
-    } else {
+      var current = fieldId === 'outputAafDir' ? SETTINGS.outputAafDir : SETTINGS.outputMxfDir;
       var label = fieldId === 'outputAafDir' ? 'output folder' : 'MXF folder';
-      var chosen = prompt('Enter the full path for the ' + label + ':', current);
-      if (chosen !== null && chosen.trim()) {
-        if (fieldId === 'outputAafDir') SETTINGS.outputAafDir = chosen.trim();
-        else SETTINGS.outputMxfDir = chosen.trim();
-        saveSettings();
-        syncSettingsUI();
-        buildCLICommand();
-        updateAafPreview();
-        showToast('Output ' + (fieldId === 'outputAafDir' ? 'AAF' : 'MXF') + ' folder updated');
+      // Use Electron dialog if available
+      if (window.electronAPI && window.electronAPI.openDirectoryWithDefault) {
+        window.electronAPI.openDirectoryWithDefault(current).then(function(chosen) {
+          if (!chosen) return;
+          if (fieldId === 'outputAafDir') SETTINGS.outputAafDir = chosen;
+          else SETTINGS.outputMxfDir = chosen;
+          saveSettings();
+          syncSettingsUI();
+          buildCLICommand();
+          updateAafPreview();
+          showToast('Output ' + (fieldId === 'outputAafDir' ? 'AAF' : 'MXF') + ' folder updated');
+        });
+      } else {
+        var chosen = prompt('Enter the full path for the ' + label + ':', current);
+        if (chosen !== null && chosen.trim()) {
+          if (fieldId === 'outputAafDir') SETTINGS.outputAafDir = chosen.trim();
+          else SETTINGS.outputMxfDir = chosen.trim();
+          saveSettings();
+          syncSettingsUI();
+          buildCLICommand();
+          updateAafPreview();
+          showToast('Output ' + (fieldId === 'outputAafDir' ? 'AAF' : 'MXF') + ' folder updated');
+        }
       }
     }
-  }
-
-  // ── Export progress functions ─────────────────────────────
-  function doExport() {
-    if (!_fileLoaded) {
-      showToast('Load a polywav file on the Home tab first');
-      return;
-    }
-
-    if (isElectron) {
-      // Build config from current settings
-      var config = {
-        inputFile: _loadedFilePath || '',
-        outputDir: SETTINGS.outputAafDir || './output',
-        mode: SETTINGS.mode || 'group_clip',
-        essence: SETTINGS.essence || 'mxf',
-        sampleRate: SETTINGS.sampleRate || 48000,
-        bitDepth: SETTINGS.bitDepth || 24,
-        preset: SETTINGS.activePreset || 'mkr',
-        clipName: SETTINGS.projectName || 'Polywav',
-        template: document.getElementById('output-template').value || '{prefix}_{role}_{num}',
-      };
-
-      showExportProgress();
-      isExporting = true;
-
-      // Clean up any previous progress listener
-      if (_exportCleanup) _exportCleanup();
-
-      _exportCleanup = window.electronAPI.onExportProgress(function(data) {
-        updateExportProgress(data.pct, data.step);
-      });
-
-      window.electronAPI.startExport(config).then(function(result) {
-        isExporting = false;
-        if (_exportCleanup) { _exportCleanup(); _exportCleanup = null; }
-        if (result.success) {
-          completeExport(result.outputPath, result.outputDir || config.outputDir);
-        } else {
-          showToast('Export failed: ' + (result.error || 'Unknown error'));
-          closeExportProgress();
-        }
-      });
-    } else {
-      // Browser fallback: just build CLI command
-      buildCLICommand();
-      switchTab('export');
-      setTimeout(function() {
-        var cmd = document.getElementById('exportCLI');
-        if (cmd && cmd.textContent && cmd.textContent.indexOf('polywav') > 0) {
-          try {
-            navigator.clipboard.writeText(cmd.textContent).then(function() {
-              showToast('CLI command copied to clipboard');
-            }).catch(function() {
-              showToast('Switch to Export tab to copy the CLI command');
-            });
-          } catch(e) {
-            showToast('Switch to Export tab to copy the CLI command');
-          }
-        }
-      }, 100);
-    }
-  }
-
-  var isExporting = false;
-  var _exportCleanup = null;
-
-  function showExportProgress() {
-    var overlay = document.getElementById('exportProgressOverlay');
-    var done = document.getElementById('exportProgressDone');
-    var pct = document.getElementById('exportProgressPct');
-    var bar = document.getElementById('exportProgressBar');
-    var step = document.getElementById('exportProgressStep');
-    var cancel = document.getElementById('exportProgressCancel');
-    if (overlay) overlay.classList.add('open');
-    if (done) done.classList.remove('open');
-    if (pct) pct.textContent = '0%';
-    if (bar) bar.style.width = '0%';
-    if (step) step.textContent = 'Starting...';
-    if (cancel) cancel.style.display = '';
-  }
-
-  function updateExportProgress(pct, stepText) {
-    var pctEl = document.getElementById('exportProgressPct');
-    var barEl = document.getElementById('exportProgressBar');
-    var stepEl = document.getElementById('exportProgressStep');
-    if (pctEl) pctEl.textContent = Math.round(pct) + '%';
-    if (barEl) barEl.style.width = pct + '%';
-    if (stepEl && stepText) stepEl.textContent = stepText;
-  }
-
-  function completeExport(outputPath, outputDir) {
-    var overlay = document.getElementById('exportProgressOverlay');
-    var done = document.getElementById('exportProgressDone');
-    var pct = document.getElementById('exportProgressPct');
-    var bar = document.getElementById('exportProgressBar');
-    var step = document.getElementById('exportProgressStep');
-    var cancel = document.getElementById('exportProgressCancel');
-    var pathEl = document.getElementById('exportProgressPath');
-
-    if (pct) pct.textContent = '100%';
-    if (bar) bar.style.width = '100%';
-    if (step) step.textContent = 'Export complete';
-    if (cancel) cancel.style.display = 'none';
-    if (done) done.classList.add('open');
-    if (pathEl) pathEl.textContent = outputPath || '';
-
-    // Store paths for "Open folder" button
-    _lastExportPath = outputPath;
-    _lastExportDir = outputDir;
-  }
-
-  function closeExportProgress() {
-    var overlay = document.getElementById('exportProgressOverlay');
-    if (overlay) overlay.classList.remove('open');
-    isExporting = false;
-  }
-
-  function cancelExport() {
-    if (isElectron) {
-      window.electronAPI.cancelExport().then(function() {
-        showToast('Export cancelled');
-        closeExportProgress();
-      });
-    } else {
-      closeExportProgress();
-    }
-  }
-
-  var _lastExportPath = null;
-  var _lastExportDir = null;
-
-  function openExportFolder() {
-    var folder = _lastExportDir || _lastExportPath;
-    if (!folder) {
-      showToast('No export path available');
-      return;
-    }
-    if (isElectron) {
-      window.electronAPI.openFolder(folder).then(function() {
-        showToast('Opening output folder...');
-      });
-    } else {
-      showToast('Output saved to: ' + folder);
-    }
-  }
 
   function updateAafPreview() {
-    var el = document.getElementById('outputAafPreview');
-    if (el) {
-      el.textContent = (SETTINGS.outputAafDir || './output') + '/Episode_104.aaf';
+      var el = document.getElementById('outputAafPreview');
+      if (el) {
+        el.textContent = (SETTINGS.outputAafDir || './output') + '/' + (_clipName || 'export') + '.aaf';
+      }
     }
-  }
 
-  function copyCLI() {
+  function doExport() {
+        if (!_fileLoaded) {
+          showToast('Load a polywav file on the Home tab first');
+          return;
+        }
+        if (_exporting) {
+          showToast('Export already in progress');
+          return;
+        }
+
+        // Clear log + show progress
+        _exportLog = [];
+        renderExportLog();
+        showExportProgress(true);
+        setExportBadge('running', 'running');
+
+        buildCLICommand();
+
+      // Collect config from settings
+            var routingParts = [];
+            ROUTING_DATA.forEach(function(d, i) {
+              if (d.group && d.track) {
+                routingParts.push(i + ':' + d.track);
+              }
+            });
+            var routingStr = routingParts.join(',') || '';
+
+            var config = {
+              inputPath: _filePath,
+              outputPath: (SETTINGS.outputAafDir || './output') + '/' + (_clipName || 'export') + '.aaf',
+              clipName: _clipName || 'export',
+              routing: routingStr || undefined,
+              mode: SETTINGS.mode !== 'group' ? SETTINGS.mode : undefined,
+              sampleRate: SETTINGS.sampleRate !== 'auto' ? parseInt(SETTINGS.sampleRate, 10) : undefined,
+              subtype: SETTINGS.bitDepth !== 'auto' ? 'PCM_' + SETTINGS.bitDepth : undefined,
+              essence: SETTINGS.essence !== 'embedded' ? SETTINGS.essence : undefined,
+            };
+
+      // Try to start export via IPC
+      if (window.electronAPI && window.electronAPI.exportStart) {
+        window.electronAPI.exportStart(config).then(function(result) {
+          if (result.error) {
+            showToast('Export error: ' + result.error);
+            return;
+          }
+          _exporting = true;
+          switchTab('export');
+          showToast('Export started');
+          addExportLog('Export started: ' + (config.clipName || ''), 'info');
+          updateExportButton(true);
+        }).catch(function(err) {
+          showToast('Failed to start export: ' + err.message);
+        });
+      } else {
+        // Fallback (no Electron): copy CLI command
+        var el = document.getElementById('exportCLI');
+        if (el && el.textContent && el.textContent.indexOf('polywav') > 0) {
+          navigator.clipboard.writeText(el.textContent).catch(function() {});
+          showToast('CLI command copied to clipboard');
+        }
+        switchTab('export');
+      }
+    }
+
+    // Keep exportCLI as alias for backwards compatibility
+    var exportCLI = doExport;
+
+    function copyCLI() {
     var el = document.getElementById('exportCLI');
     if (!el || !el.textContent) return;
     try {
@@ -4765,7 +5304,97 @@
     }
   }
 
-  // Initial snapshot
+    // ---- Export Helpers ------------------------------------------------------
+    function addExportLog(msg, type) {
+      type = type || 'info';
+      _exportLog.push({ msg: msg, type: type, time: new Date().toLocaleTimeString() });
+      renderExportLog();
+    }
+
+    function renderExportLog() {
+      var el = document.getElementById('exportLog');
+      if (!el) return;
+      el.innerHTML = _exportLog.map(function(entry) {
+        var cls = 'export-log-' + entry.type;
+        return '<div class="' + cls + '"><span class="export-log-time">' + entry.time + '</span> ' + escapeHtml(entry.msg) + '</div>';
+      }).join('');
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+          var div = document.createElement('div');
+          div.appendChild(document.createTextNode(str));
+          return div.innerHTML;
+        }
+
+        function showExportProgress(show) {
+          var el = document.getElementById('exportProgress');
+          if (el) el.style.display = show ? '' : 'none';
+        }
+
+        function setExportBadge(state, label) {
+          var el = document.getElementById('exportStatusBadge');
+          if (!el) return;
+          el.className = 'badge' + (state !== 'ready' ? ' ' + state : '');
+          el.textContent = label || state;
+        }
+
+        function updateExportButton(running) {
+              var btn = document.getElementById('exportBtn');
+              if (!btn) return;
+              if (running) {
+                btn.textContent = '\u2716 Cancel Export';
+                btn.onclick = cancelExport;
+              } else {
+                btn.textContent = '\u21E9 Export for Avid';
+                btn.onclick = doExport;
+              }
+            }
+
+    function cancelExport() {
+          if (window.electronAPI && window.electronAPI.exportCancel) {
+            window.electronAPI.exportCancel().then(function(result) {
+              if (result.ok) {
+                showToast('Export cancelled');
+                addExportLog('Export cancelled by user', 'warn');
+              }
+              _exporting = false;
+              updateExportButton(false);
+              showExportProgress(false);
+              setExportBadge('ready', 'cancelled');
+            });
+          } else {
+            _exporting = false;
+            updateExportButton(false);
+            showExportProgress(false);
+            setExportBadge('ready', 'cancelled');
+          }
+        }
+
+    // ---- IPC Event Wiring (Electron only) ------------------------------------
+    if (window.electronAPI) {
+      window.electronAPI.onExportProgress(function(data) {
+        addExportLog(data.line || data, 'stdout');
+      });
+      window.electronAPI.onExportComplete(function(result) {
+              _exporting = false;
+              updateExportButton(false);
+              showExportProgress(false);
+              setExportBadge('success', 'complete');
+              addExportLog('Export complete: ' + result.outputPath, 'success');
+              showToast('Export complete');
+            });
+            window.electronAPI.onExportError(function(err) {
+              _exporting = false;
+              updateExportButton(false);
+              showExportProgress(false);
+              setExportBadge('error', 'failed');
+              addExportLog('Export error: ' + (err.message || err.stderr || 'Unknown error'), 'error');
+              showToast('Export failed');
+            });
+    }
+
+    // Initial snapshot
   pushSnapshot();
 
   function renderRoutingMap() {
@@ -4777,27 +5406,25 @@
     if (!wrap || !srcList || !groupsEl || !svgEl) return;
 
     // Render source chips
-    var srcHtml = '';
-    ROUTING_DATA.forEach(function(d) {
-      var assigned = d.group !== null;
-     srcHtml += '<div class="patch-src' + (assigned ? '' : ' unrouted') + '" draggable="true" data-ch="' + d.ch + '">'
-        + '<span class="src-dot" style="background:' + (assigned ? d.color : '#ccc') + '"></span> '
-        + '<span class="src-ch">Ch ' + d.ch + '</span>'
-        + '<span class="src-name">' + d.name + '</span>'
-        + '<span class="src-rename" title="Rename">\u270E</span>'
-        + '</div>';
+        var srcHtml = '';
+        ROUTING_DATA.forEach(function(d) {
+          var assigned = d.group !== null;
+          var chNum = parseInt(d.ch, 10);
+          var normName = getNormNameForChannel(chNum - 1);
+         srcHtml += '<div class="patch-src' + (assigned ? '' : ' unrouted') + '" draggable="true" data-ch="' + d.ch + '">'
+            + '<span class="src-dot" style="background:' + (assigned ? d.color : '#ccc') + '"></span> '
+            + '<span class="src-ch">Ch ' + d.ch + '</span>'
+            + '<span class="src-name">' + normName + '</span>'
+            + '<span class="src-rename" title="Rename">&#9998;</span>'
+            + '</div>';
     });
     srcList.innerHTML = srcHtml;
 
     // Render groups
-    var groupsHtml = '';
-    var baseGroups = ['HST', 'BM', 'ISO', 'AMB'];
-    var allMapGroups = baseGroups.concat(
-      Object.keys(GROUP_INFO).filter(function(gk) { return baseGroups.indexOf(gk) === -1; })
-    );
-    allMapGroups.forEach(function(g) {
+        var groupsHtml = '';
+        var orderedGroups = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7'];
+    orderedGroups.forEach(function(g) {
       var info = GROUP_INFO[g];
-      if (!info) return;
       var tracksHtml = '';
       info.tracks.forEach(function(t) {
         var count = ROUTING_DATA.filter(function(d) { return d.track === t; }).length;
@@ -4821,7 +5448,9 @@
       document.getElementById('patchUnrouted').style.display = 'block';
       var chipsHtml = '';
       unrouted.forEach(function(d) {
-        chipsHtml += '<span class="unrouted-chip">Ch ' + d.ch + ' ' + d.name + '</span>';
+              var chNum = parseInt(d.ch, 10);
+              var normName = getNormNameForChannel(chNum - 1);
+              chipsHtml += '<span class="unrouted-chip">Ch ' + d.ch + ' ' + normName + '</span>';
       });
       unroutedChips.innerHTML = chipsHtml;
     } else {
@@ -5173,31 +5802,36 @@
         e.preventDefault();
         var ch = nameEl.closest('.patch-src').getAttribute('data-ch');
         for (var i = 0; i < ROUTING_DATA.length; i++) {
-          if (ROUTING_DATA[i].ch === ch) { nameEl.textContent = ROUTING_DATA[i].name; break; }
+          if (ROUTING_DATA[i].ch === ch) { nameEl.textContent = getNormNameForChannel(parseInt(ch, 10) - 1); break; }
         }
         nameEl.blur();
       }
     });
 
     wrap.addEventListener('focusout', function(e) {
-      var nameEl = e.target.closest('.src-name');
-      if (!nameEl || !nameEl.hasAttribute('contenteditable')) return;
-      nameEl.removeAttribute('contenteditable');
-      var val = nameEl.textContent.trim();
-      var ch = nameEl.closest('.patch-src').getAttribute('data-ch');
-      for (var i = 0; i < ROUTING_DATA.length; i++) {
-        if (ROUTING_DATA[i].ch === ch) {
-          var old = ROUTING_DATA[i].name;
-          if (val && val !== old) {
-            ROUTING_DATA[i].name = val;
-            pushSnapshot();
-            showToast('Renamed: ' + old + ' → ' + val);
-            rerenderAll();
+          var nameEl = e.target.closest('.src-name');
+          if (!nameEl || !nameEl.hasAttribute('contenteditable')) return;
+          nameEl.removeAttribute('contenteditable');
+          var val = nameEl.textContent.trim();
+          var ch = nameEl.closest('.patch-src').getAttribute('data-ch');
+          for (var i = 0; i < ROUTING_DATA.length; i++) {
+            if (ROUTING_DATA[i].ch === ch) {
+              var chIdx = parseInt(ROUTING_DATA[i].ch, 10) - 1;
+              var chData = rawChannels[chIdx];
+              if (chData) {
+                var old = chData.raw;
+                if (val && val !== old) {
+                  chData.raw = val;
+                  chData.caps = parseName(val);
+                  pushSnapshot();
+                  showToast('Renamed: ' + old + ' → ' + val);
+                  rerenderAll();
+                }
+              }
+              break;
+            }
           }
-          break;
-        }
-      }
-    });
+        });
 
     // Allow dropping onto right lane background -> unassign tracks
     var rightLane = wrap.querySelector('.patch-lane:last-child');
@@ -5242,13 +5876,14 @@
   updateEmptyStates();
 
   // ===== Settings state (persisted to localStorage) =====
-  var SETTINGS_KEY = 'polywav-settings';
-  var DEFAULT_SETTINGS = {
+    var SETTINGS_KEY = 'polywav-settings';
+    var RECENT_KEY = 'polywav-recent';
+    var DEFAULT_SETTINGS = {
     mode: 'group',            // 'group' | 'sequence' | 'mixed'
     essence: 'embedded',      // 'embedded' | 'external' | 'mxf'
     sampleRate: 'auto',       // 'auto' | '48000' | '96000' | '192000'
     bitDepth: '24',           // 'auto' | '16' | '24' | '32'
-    presetName: 'My Preset',
+    presetName: 'Masterchef Kitchens (MKR)',
     namingTemplate: '{prefix}_{role}_{num}',
     mixGain: -3,
     outputAafDir: './output',
@@ -5262,8 +5897,16 @@
 
   function loadSettings() {
     var merged = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-    // Ignore any previously saved data to start truly fresh
-    try { localStorage.removeItem(SETTINGS_KEY); } catch(e) {}
+    var saved = null;
+    try { saved = localStorage.getItem(SETTINGS_KEY); } catch (e) {}
+    if (saved) {
+      try {
+        var parsed = JSON.parse(saved);
+        for (var k in DEFAULT_SETTINGS) {
+          if (parsed[k] !== undefined) merged[k] = parsed[k];
+        }
+      } catch (e) {}
+    }
     SETTINGS = merged;
   }
   function saveSettings() {
@@ -5276,17 +5919,14 @@
   }
   // Refresh all settings controls from SETTINGS (used on open + after import)
   function syncSettingsUI() {
-    var sr = document.getElementById('srSelect');       if (sr) sr.value = SETTINGS.sampleRate;
-    var bd = document.getElementById('bdSelect');       if (bd) bd.value = SETTINGS.bitDepth;
-    var ns = document.getElementById('namingTemplateInput'); if (ns) ns.value = SETTINGS.namingTemplate;
-    var mg = document.getElementById('mixGainInput');   if (mg) mg.value = SETTINGS.mixGain;
-    var ps = document.getElementById('presetSelect');   if (ps) ps.value = SETTINGS.presetName;
-    var rb = document.getElementById('rawBextToggle');  if (rb) rb.checked = SETTINGS.showRawBext;
-    var aa = document.getElementById('autoAssignToggle'); if (aa) aa.checked = SETTINGS.autoAssign;
-    var tt = document.getElementById('toastToggle');    if (tt) tt.checked = SETTINGS.showToasts;
-    var cf = document.getElementById('confirmToggle');  if (cf) cf.checked = SETTINGS.confirmExport;
-    var oa = document.getElementById('outputAafDir');   if (oa) oa.value = SETTINGS.outputAafDir;
-    var om = document.getElementById('outputMxfDir');   if (om) om.value = SETTINGS.outputMxfDir;
+      var sr = document.getElementById('srSelect');       if (sr) sr.value = SETTINGS.sampleRate;
+      var bd = document.getElementById('bdSelect');       if (bd) bd.value = SETTINGS.bitDepth;
+      var ns = document.getElementById('namingTemplateInput'); if (ns) ns.value = SETTINGS.namingTemplate;
+      var ps = document.getElementById('presetSelect');   if (ps) ps.value = SETTINGS.presetName;
+      var rb = document.getElementById('rawBextToggle');  if (rb) rb.checked = SETTINGS.showRawBext;
+      var tt = document.getElementById('toastToggle');    if (tt) tt.checked = SETTINGS.showToasts;
+      var oa = document.getElementById('outputAafDir');   if (oa) oa.value = SETTINGS.outputAafDir;
+      var om = document.getElementById('outputMxfDir');   if (om) om.value = SETTINGS.outputMxfDir;
     // Segmented controls
     document.querySelectorAll('.settings-section .segmented').forEach(function(seg) {
       var btns = seg.querySelectorAll('.seg-option');
@@ -5333,21 +5973,19 @@
   // Build a preset object in the backend ShowPreset schema from the
   // current ROUTING_DATA + SETTINGS.
   function buildPresetData() {
-    var tracks = ROUTING_DATA.map(function(d, idx) {
-      var t = {
-        source_channel: parseInt(d.ch, 10),
-        target_track: idx + 1,
-        label: d.name,
-        role: 'iso',
-        type: 'unknown',
-      };
-      if (d.group && GROUP_INFO[d.group]) {
-        t.role = d.group === 'AMB' ? 'ambient' : (d.group === 'BM' ? 'boom' : 'iso');
-        t.type = d.group === 'BM' ? 'boom' : 'wireless';
-        t.target_track_label = d.track || (GROUP_INFO[d.group].tracks[0] || '');
-      }
-      return t;
-    });
+      var tracks = ROUTING_DATA.map(function(d, idx) {
+        var t = {
+          source_channel: parseInt(d.ch, 10),
+          target_track: idx + 1,
+          label: getNormNameForChannel(parseInt(d.ch, 10) - 1),
+          role: 'iso',
+          type: 'unknown',
+        };
+        if (d.track) {
+          t.target_track_label = d.track;
+        }
+        return t;
+      });
     return {
       name: SETTINGS.presetName,
       source: { format: 'polywav', channels: ROUTING_DATA.length, recorder: 'sounddevices' },
@@ -5521,256 +6159,379 @@
     input.click();
   }
   function applyPresetData(data) {
-    if (data && data.name) { SETTINGS.presetName = data.name; }
-    if (data && data.output) {
-      if (data.output.essence_mode) SETTINGS.essence = data.output.essence_mode;
-      if (data.output.structure_mode) SETTINGS.mode = data.output.structure_mode;
-      if (data.output.mix_gain_db !== undefined) SETTINGS.mixGain = Number(data.output.mix_gain_db);
-      if (data.output.track_naming && data.output.track_naming.template) {
-        SETTINGS.namingTemplate = data.output.track_naming.template;
-      }
-    }
-    saveSettings();
-    // Apply routing from preset tracks
-    var tracks = (data && data.tracks) || [];
-    if (tracks.length) {
-      var byCh = {};
-      tracks.forEach(function(t) {
-        var sc = parseInt(t.source_channel, 10);
-        if (!isNaN(sc)) byCh[sc] = t;
-      });
-      ROUTING_DATA.forEach(function(d) {
-        var t = byCh[parseInt(d.ch, 10)];
-        if (t) {
-          d.name = t.label || d.name;
-          // Try to map back to a group: 1) target_track_label, 2) label prefix, 3) unassigned
-          var mapped = null;
-          var matchTrack = t.target_track_label || t.track || '';
-          // First try exact match on track label
-          Object.keys(GROUP_INFO).forEach(function(gk) {
-            if (mapped) return;
-            if (GROUP_INFO[gk].tracks.indexOf(matchTrack) >= 0) {
-              mapped = { group: gk, track: matchTrack };
-            }
-          });
-          // Fallback: match label prefix (e.g. "HST_Host_1" → HST)
-          if (!mapped && t.label) {
-            Object.keys(GROUP_INFO).forEach(function(gk) {
-              if (mapped) return;
-              if (t.label.toUpperCase().indexOf(gk) === 0) {
-                mapped = { group: gk, track: GROUP_INFO[gk].tracks[0] || null };
-              }
-            });
-          }
-          if (mapped) {
-            d.group = mapped.group;
-            d.track = mapped.track || GROUP_INFO[mapped.group].tracks[0];
-            d.color = GROUP_INFO[mapped.group].color;
-          } else {
-            d.group = null;
-            d.track = null;
-            d.color = '#ccc';
-          }
+      if (data && data.name) { SETTINGS.presetName = data.name; }
+      if (data && data.output) {
+        if (data.output.essence_mode) SETTINGS.essence = data.output.essence_mode;
+        if (data.output.structure_mode) SETTINGS.mode = data.output.structure_mode;
+        if (data.output.mix_gain_db !== undefined) SETTINGS.mixGain = Number(data.output.mix_gain_db);
+        if (data.output.track_naming && data.output.track_naming.template) {
+          SETTINGS.namingTemplate = data.output.track_naming.template;
         }
-      });
-      pushSnapshot();
-      rerenderAll();
-    }
-    syncSettingsUI();
-  }
-
-  // Load settings + sync UI on boot
-  loadSettings();
-  syncSettingsUI();
-
-  // ── Window controls (frameless, integrated into header) ──
-  (function initWindowControls() {
-    var wcMin = document.getElementById('wcMinimize');
-    var wcMax = document.getElementById('wcMaximize');
-    var wcClose = document.getElementById('wcClose');
-    var bodyEl = document.body;
-
-    if (wcMin) wcMin.addEventListener('click', function() {
-      if (window.electronAPI && window.electronAPI.minimizeWindow) {
-        window.electronAPI.minimizeWindow();
       }
-    });
-    if (wcMax) wcMax.addEventListener('click', function() {
-      if (window.electronAPI && window.electronAPI.maximizeWindow) {
-        window.electronAPI.maximizeWindow();
+      saveSettings();
+      // Apply routing from preset tracks
+      var tracks = (data && data.tracks) || [];
+      if (tracks.length) {
+        var byCh = {};
+        tracks.forEach(function(t) {
+          var sc = parseInt(t.source_channel, 10);
+          if (!isNaN(sc)) byCh[sc] = t;
+        });
+        ROUTING_DATA.forEach(function(d) {
+                var t = byCh[parseInt(d.ch, 10)];
+                if (t) {
+                  var chIdx = parseInt(d.ch, 10) - 1;
+                  var chData = rawChannels[chIdx];
+                  if (chData && t.label) {
+                    chData.raw = t.label;
+                    chData.caps = parseName(t.label);
+                  }
+                  // Try to map back to an AO track: use target_track_label
+                  var matchedTrack = null;
+                  var matchTrack = t.target_track_label || t.track || '';
+                  // Search GROUP_INFO tracks for exact match
+                  if (matchTrack) {
+                    Object.keys(GROUP_INFO).forEach(function(gk) {
+                      if (matchedTrack) return;
+                      if (GROUP_INFO[gk].tracks.indexOf(matchTrack) >= 0) {
+                        matchedTrack = matchTrack;
+                      }
+                    });
+                  }
+                  if (matchedTrack) {
+                    var aoNum = parseInt(matchedTrack.charAt(0) === 'A' ? matchedTrack.slice(1) : matchedTrack, 10);
+                    var colorIdx = Math.floor((aoNum - 1) / 8) % AO_COLORS.length;
+                    d.group = 'AO';
+                    d.track = matchedTrack;
+                    d.color = AO_COLORS[colorIdx];
+                  } else {
+                    d.group = null;
+                    d.track = null;
+                    d.color = '#ccc';
+                  }
+          }
+        });
+        pushSnapshot();
+        rerenderAll();
       }
-    });
-    if (wcClose) wcClose.addEventListener('click', function() {
-      if (window.electronAPI && window.electronAPI.closeWindow) {
-        window.electronAPI.closeWindow();
+      syncSettingsUI();
+        }
+
+        // ===== Setup Wizard =====
+    var WIZARD_TEMPLATES = {
+      panel: {
+        name: 'Panel Show',
+        naming: { template: '{prefix}_{role}_{num}', separator: '_' },
+        routing: { autoAssign: true, trackGroup: 'A1-A8', mixGain: -3 },
+        export: { mode: 'group', essence: 'embedded', sampleRate: 'auto', bitDepth: '24', aafDir: './output', mxfDir: './output/mxf' }
+      },
+      cooking: {
+        name: 'Cooking Show',
+        naming: { template: '{prefix}_{role}_{num}', separator: '_' },
+        routing: { autoAssign: true, trackGroup: 'A9-A16', mixGain: -3 },
+        export: { mode: 'mixed', essence: 'mxf', sampleRate: 'auto', bitDepth: '24', aafDir: './output', mxfDir: './output/mxf' }
+      },
+      music: {
+        name: 'Music',
+        naming: { template: 'track_{num}_{role}', separator: '_' },
+        routing: { autoAssign: false, trackGroup: 'A1-A8', mixGain: 0 },
+        export: { mode: 'sequence', essence: 'embedded', sampleRate: '48000', bitDepth: '24', aafDir: './output', mxfDir: './output/mxf' }
+      },
+      custom: {
+        name: 'Custom',
+        naming: { template: '{prefix}_{role}_{num}', separator: '_' },
+        routing: { autoAssign: true, trackGroup: 'A1-A8', mixGain: -3 },
+        export: { mode: 'group', essence: 'embedded', sampleRate: 'auto', bitDepth: '24', aafDir: './output', mxfDir: './output/mxf' }
       }
-    });
-
-    // Check initial maximize state
-    if (window.electronAPI && window.electronAPI.isMaximized) {
-      window.electronAPI.isMaximized().then(function(maximized) {
-        if (maximized) bodyEl.classList.add('window-maximized');
-      });
-    }
-
-    // Listen for maximize/unmaximize from main process
-    if (window.electronAPI && window.electronAPI.onMaximizeChange) {
-      window.electronAPI.onMaximizeChange(function(maximized) {
-        if (maximized) bodyEl.classList.add('window-maximized');
-        else bodyEl.classList.remove('window-maximized');
-      });
-    }
-  })();
-
-  // ── Preset Wizard ─────────────────────────────────────────
-  var wizState = { name: '', prefix: '', template: '{prefix}_{role}_{num}', sourceFile: null, channelNames: [], groups: {} };
-
-  function openWizard() {
-    wizState = { name: '', prefix: '', template: '{prefix}_{role}_{num}', sourceFile: null, channelNames: [], groups: {} };
-    document.getElementById('wizName').value = '';
-    document.getElementById('wizPrefix').value = '';
-    document.getElementById('wizTemplate').value = '{prefix}_{role}_{num}';
-    document.getElementById('wizFileInfo').style.display = 'none';
-    document.getElementById('wizGroupGrid').innerHTML = '';
-    document.getElementById('wizSummary').innerHTML = '';
-    document.getElementById('presetWizard').classList.add('open');
-    wizGoToStep(0);
-  }
-
-  function closeWizard() {
-    document.getElementById('presetWizard').classList.remove('open');
-  }
-
-  var wizCurrentStep = 0;
-  function wizGoToStep(n) {
-    wizCurrentStep = n;
-    document.querySelectorAll('.wiz-section').forEach(function(el) { el.classList.remove('active'); });
-    document.getElementById('wizStep' + n).classList.add('active');
-    document.querySelectorAll('.wizard-step').forEach(function(el) {
-      var s = parseInt(el.getAttribute('data-step'), 10);
-      el.classList.toggle('active', s === n);
-      el.classList.toggle('done', s < n);
-    });
-    updateWizardNav();
-  }
-
-  function updateWizardNav() {
-    var backBtn = document.getElementById('wizBackBtn');
-    var nextBtn = document.getElementById('wizNextBtn');
-    backBtn.style.display = wizCurrentStep === 0 ? 'none' : 'inline-block';
-    if (wizCurrentStep === 3) {
-      nextBtn.textContent = 'Save Preset';
-      nextBtn.disabled = !wizState.name.trim();
-    } else {
-      nextBtn.textContent = 'Next';
-      nextBtn.disabled = wizCurrentStep === 0 && !wizState.name.trim();
-    }
-  }
-
-  function wizardPrev() { if (wizCurrentStep > 0) wizGoToStep(wizCurrentStep - 1); }
-
-  function wizardNext() {
-    if (wizCurrentStep === 0 && !wizState.name.trim()) return;
-    if (wizCurrentStep < 3) { wizGoToStep(wizCurrentStep + 1); return; }
-    // Save preset
-    var preset = {
-      name: wizState.name.trim(),
-      prefix: wizState.prefix.trim(),
-      template: wizState.template,
-      sourceChannels: wizState.channelNames,
-      groups: wizState.groups,
-      savedAt: new Date().toISOString(),
     };
-    try {
-      var existing = JSON.parse(localStorage.getItem('polywav-presets') || '[]');
-      existing.push(preset);
-      localStorage.setItem('polywav-presets', JSON.stringify(existing));
-    } catch(e) {}
-    SETTINGS.presetName = preset.name;
-    SETTINGS.namingTemplate = preset.template;
-    saveSettings();
-    closeWizard();
-    showToast('Preset "' + preset.name + '" saved');
-  }
 
-  function wizHandleDrop(e) {
-    e.preventDefault();
-    document.getElementById('wizDropZone').classList.remove('wiz-drag-over');
-    if (e.dataTransfer.files.length > 0) wizProcessFile(e.dataTransfer.files[0]);
-  }
+    var wizState = {
+      step: 0,
+      template: null,
+      naming: { template: '{prefix}_{role}_{num}', separator: '_' },
+      routing: { autoAssign: true, trackGroup: 'A1-A8', mixGain: -3 },
+      export: { mode: 'group', essence: 'embedded', sampleRate: 'auto', bitDepth: '24', aafDir: './output', mxfDir: './output/mxf' }
+    };
 
-  function wizHandleFileInput(files) {
-    if (files.length > 0) wizProcessFile(files[0]);
-  }
-
-  function wizProcessFile(file) {
-    if (!file.name.toLowerCase().endsWith('.wav')) { showToast('Please select a WAV file'); return; }
-    wizState.sourceFile = file;
-    document.getElementById('wizFileName').textContent = file.name;
-    document.getElementById('wizFileMeta').textContent = (file.size / 1024 / 1024).toFixed(1) + ' MB';
-    document.getElementById('wizFileInfo').style.display = 'block';
-
-    if (window.electronAPI && window.electronAPI.probeFile) {
-      window.electronAPI.probeFile(file.path || file.name).then(function(result) {
-        if (result.success) {
-          wizState.channelNames = result.channelNames || [];
-          var chList = document.getElementById('wizChannelList');
-          chList.innerHTML = '';
-          wizState.channelNames.forEach(function(n) {
-            var tag = document.createElement('span');
-            tag.className = 'wiz-channel-tag';
-            tag.textContent = n;
-            chList.appendChild(tag);
-          });
-          // Auto-detect groups using existing GROUP_TEMPLATES
-          var rawChs = wizState.channelNames.map(function(n, i) { return { num: String(i+1).padStart(2,'0'), raw: n, bext: n }; });
-          var groupMap = {}, groupOrder = [];
-          rawChs.forEach(function(ch) {
-            var lower = ch.raw.toLowerCase();
-            var gk = 'ISO';
-            for (var g in GROUP_TEMPLATES) {
-              var kw = GROUP_TEMPLATES[g].keywords || [];
-              for (var k = 0; k < kw.length; k++) { if (lower.indexOf(kw[k]) !== -1) { gk = g; break; } }
-              if (gk !== 'ISO') break;
-            }
-            if (gk === 'ISO') {
-              var parts = ch.raw.split('_');
-              if (parts.length >= 2 && parts[0].length <= 4) { gk = parts[0].toUpperCase(); }
-              else if (parts.length === 1 && ch.raw.trim().length >= 3) { gk = ch.raw.trim().substring(0,3).toUpperCase(); }
-            }
-            if (!groupMap[gk]) { groupMap[gk] = []; groupOrder.push(gk); }
-            groupMap[gk].push(ch);
-          });
-          // Auto-detect prefix from first channel if not set
-          if (!wizState.prefix && wizState.channelNames.length > 0) {
-            var firstParts = wizState.channelNames[0].split('_');
-            if (firstParts.length >= 2 && firstParts[0].length <= 6) {
-              wizState.prefix = firstParts[0];
-              document.getElementById('wizPrefix').value = wizState.prefix;
-            }
-          }
-          // Render groups
-          var grid = document.getElementById('wizGroupGrid');
-          grid.innerHTML = '';
-          groupOrder.forEach(function(gk) {
-            var tmpl = GROUP_TEMPLATES[gk] || { label: gk, name: gk, color: '#7a9e8c' };
-            var card = document.createElement('div');
-            card.className = 'wizard-group-card';
-            var names = groupMap[gk].map(function(ch) { return ch.raw; }).join(', ');
-            card.innerHTML = '<div class="wiz-group-label" style="color:' + tmpl.color + '">' + tmpl.label + '</div><div class="wiz-group-channels">' + names + '</div>';
-            grid.appendChild(card);
-          });
-          wizState.groups = groupOrder;
-        } else {
-          showToast('Could not read file: ' + (result.error || 'unknown error'));
-        }
-      });
-    } else {
-      wizState.channelNames = ['Channel 1'];
-      var chList = document.getElementById('wizChannelList');
-      chList.innerHTML = '<span class="wiz-channel-tag">Channel 1</span>';
+    function openWizard() {
+      // Reset state if no template selected yet
+      if (!wizState.template) {
+        wizState.step = 0;
+        wizState.template = null;
+        wizState.naming = { template: '{prefix}_{role}_{num}', separator: '_' };
+        wizState.routing = { autoAssign: true, trackGroup: 'A1-A8', mixGain: -3 };
+        wizState.export = { mode: 'group', essence: 'embedded', sampleRate: 'auto', bitDepth: '24', aafDir: './output', mxfDir: './output/mxf' };
+      }
+      var overlay = document.getElementById('wizardOverlay');
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      renderWizard();
     }
-  }
+
+    function closeWizard() {
+      var overlay = document.getElementById('wizardOverlay');
+      overlay.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    // Close wizard on Escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var overlay = document.getElementById('wizardOverlay');
+        if (overlay && overlay.classList.contains('open')) closeWizard();
+      }
+    });
+
+    function selectTemplate(template) {
+      wizState.template = template;
+      // Highlight card
+      document.querySelectorAll('.wizard-tmpl-card').forEach(function(c) {
+        c.classList.toggle('selected', c.getAttribute('data-template') === template);
+      });
+      // Apply defaults
+      var tpl = WIZARD_TEMPLATES[template];
+      if (tpl) {
+        wizState.naming = JSON.parse(JSON.stringify(tpl.naming));
+        wizState.routing = JSON.parse(JSON.stringify(tpl.routing));
+        wizState.export = JSON.parse(JSON.stringify(tpl.export));
+      }
+    }
+
+    function renderWizard() {
+      renderStepDots();
+      renderStepPanel();
+      renderFooter();
+    }
+
+    function renderStepDots() {
+      var labels = ['Template', 'Naming', 'Routing', 'Export', 'Save'];
+      var html = '';
+      for (var i = 0; i < 5; i++) {
+        html += '<div class="wizard-step-dot' +
+          (i === wizState.step ? ' active' : '') +
+          (i < wizState.step ? ' done' : '') +
+          '" onclick="wizState.step=' + i + ';renderWizard();">' +
+          '<span class="wizard-dot"></span>' +
+          '<span class="wizard-step-label">' + labels[i] + '</span>' +
+          '</div>';
+        if (i < 4) html += '<span class="wizard-steps-sep"></span>';
+      }
+      document.getElementById('wizardSteps').innerHTML = html;
+    }
+
+    function renderStepPanel() {
+      // Hide all panels
+      document.querySelectorAll('.wizard-step-panel').forEach(function(p) { p.classList.remove('active'); });
+      // Show current
+      var panel = document.getElementById('wizStep' + wizState.step);
+      if (panel) panel.classList.add('active');
+
+      // Sync form values from state
+      syncWizardForm();
+    }
+
+    function syncWizardForm() {
+      var nt = document.getElementById('wizNamingTemplate');
+      if (nt) nt.value = wizState.naming.template;
+
+      var sep = document.getElementById('wizSeparator');
+      if (sep) sep.value = wizState.naming.separator;
+
+      var aa = document.getElementById('wizAutoAssign');
+      if (aa) aa.checked = wizState.routing.autoAssign;
+
+      var tg = document.getElementById('wizTrackGroup');
+      if (tg) tg.value = wizState.routing.trackGroup;
+
+      var mg = document.getElementById('wizMixGain');
+      if (mg) mg.value = wizState.routing.mixGain;
+
+      var md = document.getElementById('wizMode');
+      if (md) md.value = wizState.export.mode;
+
+      var es = document.getElementById('wizEssence');
+      if (es) es.value = wizState.export.essence;
+
+      var sr = document.getElementById('wizSampleRate');
+      if (sr) sr.value = wizState.export.sampleRate;
+
+      var bd = document.getElementById('wizBitDepth');
+      if (bd) bd.value = wizState.export.bitDepth;
+
+      var ad = document.getElementById('wizAafDir');
+      if (ad) ad.value = wizState.export.aafDir;
+
+      var md2 = document.getElementById('wizMxfDir');
+      if (md2) md2.value = wizState.export.mxfDir;
+
+      updateNamingPreview();
+
+      // If on step 5 (summary), render summary
+      if (wizState.step === 4) renderWizardSummary();
+    }
+
+    function updateNamingPreview() {
+      var preview = document.getElementById('wizNamingPreview');
+      if (!preview) return;
+      var sep = wizState.naming.separator;
+      var tmpl = wizState.naming.template;
+      // Build a sample from the template
+      var sample = tmpl
+        .replace(/{prefix}/g, 'ISO')
+        .replace(/{role}/g, 'Presenter')
+        .replace(/{num}/g, '01')
+        .replace(/{side}/g, 'L')
+        .replace(/_/g, sep)
+        .replace(/-/g, sep);
+      preview.textContent = sample;
+    }
+
+    // Live update naming preview when inputs change
+    document.addEventListener('change', function(e) {
+      if (e.target.id === 'wizNamingTemplate' || e.target.id === 'wizSeparator') {
+        updateNamingPreview();
+      }
+    });
+    document.addEventListener('input', function(e) {
+      if (e.target.id === 'wizNamingTemplate' || e.target.id === 'wizSeparator') {
+        updateNamingPreview();
+      }
+    });
+
+    function renderFooter() {
+      var left = document.getElementById('wizFooterLeft');
+      left.textContent = 'Step ' + (wizState.step + 1) + ' of 5';
+
+      var back = document.getElementById('wizBackBtn');
+      back.style.visibility = wizState.step === 0 ? 'hidden' : 'visible';
+
+      var next = document.getElementById('wizNextBtn');
+      if (wizState.step === 4) {
+        next.textContent = 'Finish';
+      } else {
+        next.textContent = 'Next';
+      }
+    }
+
+    function wizardNext() {
+      // Validate step 1: must select a template
+      if (wizState.step === 0 && !wizState.template) {
+        showToast('Please select a project template first');
+        return;
+      }
+      // Collect current form values into state (step 1-3)
+      readWizardForm();
+      if (wizState.step < 4) {
+        wizState.step++;
+        renderWizard();
+      } else {
+        // Finish
+        wizardFinish();
+      }
+    }
+
+    function wizardBack() {
+      if (wizState.step > 0) {
+        readWizardForm();
+        wizState.step--;
+        renderWizard();
+      }
+    }
+
+    function readWizardForm() {
+      var nt = document.getElementById('wizNamingTemplate');
+      if (nt) wizState.naming.template = nt.value;
+
+      var sep = document.getElementById('wizSeparator');
+      if (sep) wizState.naming.separator = sep.value;
+
+      var aa = document.getElementById('wizAutoAssign');
+      if (aa) wizState.routing.autoAssign = aa.checked;
+
+      var tg = document.getElementById('wizTrackGroup');
+      if (tg) wizState.routing.trackGroup = tg.value;
+
+      var mg = document.getElementById('wizMixGain');
+      if (mg) wizState.routing.mixGain = parseFloat(mg.value) || 0;
+
+      var md = document.getElementById('wizMode');
+      if (md) wizState.export.mode = md.value;
+
+      var es = document.getElementById('wizEssence');
+      if (es) wizState.export.essence = es.value;
+
+      var sr = document.getElementById('wizSampleRate');
+      if (sr) wizState.export.sampleRate = sr.value;
+
+      var bd = document.getElementById('wizBitDepth');
+      if (bd) wizState.export.bitDepth = bd.value;
+
+      var ad = document.getElementById('wizAafDir');
+      if (ad) wizState.export.aafDir = ad.value;
+
+      var md2 = document.getElementById('wizMxfDir');
+      if (md2) wizState.export.mxfDir = md2.value;
+    }
+
+    function renderWizardSummary() {
+      var summary = document.getElementById('wizSummary');
+      var tplName = wizState.template ? WIZARD_TEMPLATES[wizState.template].name : 'Custom';
+      var modeLabels = { group: 'Group Clip', sequence: 'Sequence', mixed: 'Mixed' };
+      var essenceLabels = { embedded: 'Embedded in AAF', external: 'Separate WAV', mxf: 'Avid MXF (OP-Atom)' };
+      var html =
+        '<div class="wizard-summary-row"><span class="sum-key">Template</span><span class="sum-val">' + tplName + '</span></div>' +
+        '<div class="wizard-summary-row"><span class="sum-key">Naming pattern</span><span class="sum-val" style="font-family:var(--font-mono);font-size:12px;">' + wizState.naming.template + '</span></div>' +
+        '<div class="wizard-summary-row"><span class="sum-key">Separator</span><span class="sum-val" style="font-family:var(--font-mono);">' + (wizState.naming.separator === ' ' ? '&nbsp;(space)' : wizState.naming.separator) + '</span></div>' +
+        '<div class="wizard-summary-row"><span class="sum-key">Auto-assign</span><span class="sum-val">' + (wizState.routing.autoAssign ? 'Yes' : 'No') + '</span></div>' +
+        '<div class="wizard-summary-row"><span class="sum-key">Track group</span><span class="sum-val">' + wizState.routing.trackGroup + '</span></div>' +
+        '<div class="wizard-summary-row"><span class="sum-key">Mix gain</span><span class="sum-val">' + wizState.routing.mixGain + ' dB</span></div>' +
+        '<div class="wizard-summary-row"><span class="sum-key">Output structure</span><span class="sum-val">' + (modeLabels[wizState.export.mode] || wizState.export.mode) + '</span></div>' +
+        '<div class="wizard-summary-row"><span class="sum-key">Media format</span><span class="sum-val">' + (essenceLabels[wizState.export.essence] || wizState.export.essence) + '</span></div>' +
+        '<div class="wizard-summary-row"><span class="sum-key">Sample rate</span><span class="sum-val">' + wizState.export.sampleRate + '</span></div>' +
+        '<div class="wizard-summary-row"><span class="sum-key">Bit depth</span><span class="sum-val">' + wizState.export.bitDepth + '</span></div>' +
+        '<div class="wizard-summary-row"><span class="sum-key">AAF directory</span><span class="sum-val" style="font-family:var(--font-mono);font-size:12px;">' + wizState.export.aafDir + '</span></div>' +
+        '<div class="wizard-summary-row"><span class="sum-key">Media directory</span><span class="sum-val" style="font-family:var(--font-mono);font-size:12px;">' + wizState.export.mxfDir + '</span></div>';
+      summary.innerHTML = html;
+    }
+
+    function wizardFinish() {
+      readWizardForm();
+
+      // Apply to SETTINGS
+      SETTINGS.namingTemplate = wizState.naming.template;
+      // Store separator in namingTemplate too (replaces _ in template)
+      SETTINGS.essence = wizState.export.essence;
+      SETTINGS.mode = wizState.export.mode;
+      SETTINGS.sampleRate = wizState.export.sampleRate;
+      SETTINGS.bitDepth = wizState.export.bitDepth;
+      SETTINGS.outputAafDir = wizState.export.aafDir;
+      SETTINGS.outputMxfDir = wizState.export.mxfDir;
+      SETTINGS.mixGain = wizState.routing.mixGain;
+      saveSettings();
+
+      // Mark wizard as done
+            try { localStorage.setItem('polywav-wizard-done', '1'); } catch(e) {}
+
+            closeWizard();
+            showToast('Setup complete: ' + (wizState.template ? WIZARD_TEMPLATES[wizState.template].name : 'Custom'));
+
+      // Refresh settings UI
+            syncSettingsUI();
+          }
+
+          // Load settings + sync UI on boot
+          loadSettings();
+          syncSettingsUI();
+          loadRecentFiles();
+
+          // Auto-show setup wizard on first launch
+          (function() {
+            try {
+              if (!localStorage.getItem('polywav-wizard-done')) {
+                setTimeout(openWizard, 300);
+              }
+            } catch(e) {}
+          })();
 </script>
 </div>
 </body>
