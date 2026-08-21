@@ -65,7 +65,7 @@ function countDynamicInnerHtmlAssignments() {
 console.log('\n[Branch 1] fix/security-xss');
 
 test('B1: webSecurity:false is removed from main.js', () => {
-  assertMain(/webSecurity/, 'webSecurity still referenced in main.js');
+  assert(!/webSecurity/.test(mainJs), 'webSecurity still referenced in main.js');
 });
 
 test('B1: esc() helper exists in renderer', () => {

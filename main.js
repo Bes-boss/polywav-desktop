@@ -67,12 +67,23 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      webSecurity: false,
-      sandbox: false,
+      sandbox: true,
     },
   });
 
   mainWindow.loadFile('index.html');
+
+  // Audit N-3: navigation & window hardening. The renderer processes
+  // untrusted client files; any XSS must not be able to pivot to remote
+  // content or spawn unsandboxed windows.
+  mainWindow.webContents.setWindowOpenHandler(function () {
+    return { action: 'deny' };
+  });
+  mainWindow.webContents.on('will-navigate', function (e, url) {
+    if (!url.startsWith('file://')) {
+      e.preventDefault();
+    }
+  });
 
   // Restore maximized state
   if (state.maximized) {
