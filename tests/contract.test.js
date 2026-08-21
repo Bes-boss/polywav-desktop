@@ -15,6 +15,9 @@ const ROOT = path.join(__dirname, '..');
 const indexHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const mainJs = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
 const preloadJs = fs.readFileSync(path.join(ROOT, 'preload.js'), 'utf8');
+// Renderer JS lives in app.js (extracted from index.html so the strict CSP
+// `script-src 'self'` can keep blocking ALL inline script execution).
+const inlineJs = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
 
 let pass = 0, fail = 0;
 const failures = [];
@@ -36,9 +39,8 @@ function assertNo(re, msg) { assert(!re.test(indexHtml) && !re.test(mainJs), msg
 function assertHtml(re, msg) { assert(re.test(indexHtml), msg); }
 function assertMain(re, msg) { assert(re.test(mainJs), msg); }
 
-// Extract the inline <script> body for JS-level assertions
-const scriptMatch = indexHtml.match(/<script>([\s\S]*)<\/script>/);
-const inlineJs = scriptMatch ? scriptMatch[1] : '';
+// (inline script extraction removed — renderer JS now lives in app.js,
+// loaded above as inlineJs)
 
 // ---------------------------------------------------------------- helpers
 /** Count innerHTML assignments whose RHS has no esc( wrapper around concat parts */
@@ -69,16 +71,16 @@ test('B1: webSecurity:false is removed from main.js', () => {
 });
 
 test('B1: esc() helper exists in renderer', () => {
-  assertHtml(/function esc\(/, 'no esc() helper defined');
+  assert(/function esc\(/.test(inlineJs), 'no esc() helper defined');
 });
 
 test('B1: BEXT/raw channel names escaped in normalize table', () => {
-  assertHtml(/esc\(ch\.raw\)/, 'ch.raw injected without esc()');
-  assertHtml(/esc\(ch\.bext\)/, 'ch.bext injected without esc()');
+  assert(/esc\(ch\.raw\)/.test(inlineJs), 'ch.raw injected without esc()');
+  assert(/esc\(ch\.bext\)/.test(inlineJs), 'ch.bext injected without esc()');
 });
 
 test('B1: clip name escaped in hero subtitle', () => {
-  assertHtml(/esc\(_clipName/, '_clipName injected without esc()');
+  assert(/esc\(_clipName/.test(inlineJs), '_clipName injected without esc()');
 });
 
 test('B1: recent-file names built via textContent (not innerHTML concat)', () => {
@@ -168,7 +170,7 @@ test('B3: wizard selectTemplate re-syncs form (no stale read-back)', () => {
 });
 
 test('B3: probe epoch guard against stale async file loads', () => {
-  assertHtml(/_loadEpoch|loadEpoch|_fileEpoch/, 'no load-epoch guard');
+  assert(/_loadEpoch|loadEpoch|_fileEpoch/.test(inlineJs), 'no load-epoch guard');
 });
 
 test('B3: recent files deduped by name', () => {
