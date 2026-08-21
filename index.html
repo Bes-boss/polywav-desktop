@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark light">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'">
 <title>Polywav — Ingest Pipeline</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,6 +24,7 @@
     --bg-highlight: #332f2a;
     --radius: 8px;
     --radius-sm: 6px;
+    --radius-md: 12px;
     --shadow: 0 2px 12px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.25);
     --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
@@ -495,7 +497,7 @@
   }
   .parse-table td {
     padding: 8px 16px;
-    border-bottom: 1px solid #f0ece4;
+    border-bottom: 1px solid var(--border);
     vertical-align: middle;
     font-family: var(--font-mono);
     font-size: 12px;
@@ -602,7 +604,7 @@
   }
   .routing-table td {
     padding: 8px 16px;
-    border-bottom: 1px solid #f0ece4;
+    border-bottom: 1px solid var(--border);
     vertical-align: middle;
   }
   .routing-table tr:hover td { background: #fbf8f3; }
@@ -686,7 +688,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 20px;
-    border-bottom: 1px solid #f0ece4;
+    border-bottom: 1px solid var(--border);
     font-size: 13px;
   }
   .summary-list li:last-child { border-bottom: none; }
@@ -787,7 +789,7 @@
   .patch-matrix th, .patch-matrix td {
     text-align: center;
     padding: 8px 6px;
-    border-bottom: 1px solid #f0ece4;
+    border-bottom: 1px solid var(--border);
     min-width: 60px;
   }
   .patch-matrix th {
@@ -831,7 +833,7 @@
   .patch-tracks { list-style: none; }
   .patch-tracks li {
     padding: 8px 16px;
-    border-bottom: 1px solid #f0ece4;
+    border-bottom: 1px solid var(--border);
     font-size: 13px;
   }
   .patch-tracks .patch-track-label { font-weight: 600; }
@@ -857,7 +859,7 @@
     display: flex;
     justify-content: space-between;
     padding: 8px 0;
-    border-bottom: 1px solid #f0ece4;
+    border-bottom: 1px solid var(--border);
     font-size: 14px;
   }
   .export-summary .line-item:last-child { border-bottom: none; }
@@ -1124,7 +1126,7 @@
   /* Sections */
   .settings-section {
     padding: 20px 24px;
-    border-bottom: 1px solid #f0ece4;
+    border-bottom: 1px solid var(--border);
   }
   .settings-section:last-of-type {
     border-bottom: none;
@@ -1496,11 +1498,7 @@
     opacity: 0.16;
     animation: orbFloat 12s ease-in-out infinite 3s;
   }
-  @keyframes orbFloat {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    33% { transform: translate(30px, -30px) scale(1.08); }
-    66% { transform: translate(-22px, 22px) scale(0.94); }
-  }
+  /* (duplicate orbFloat keyframes removed — defined once, near the app orbs) */
 
   /* Typography — light on dark */
   .hero-eyebrow {
@@ -2677,7 +2675,31 @@
     .wizard-btn.primary:hover { background: #b2563b; }
     .wizard-btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
 
-      </style>
+        /* ===== A11y & light-mode contrast (design audit) ===================== */
+
+  /* P0: hero + drop-zone titles hardcode a near-white that is invisible
+     (1.0-1.2:1) on the light theme. Use the theme ink instead. */
+  .light-mode .hero-title,
+  .light-mode .drop-zone-title {
+    color: var(--ink);
+  }
+
+  /* Keyboard focus visibility */
+  :focus-visible {
+    outline: 2px solid var(--tomato);
+    outline-offset: 2px;
+  }
+
+  /* Respect users who opt out of decorative motion */
+  @media (prefers-reduced-motion: reduce) {
+    .app-orb, .hero-orb,
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
 <body>
 <canvas class="app-canvas" id="heroCanvas"></canvas>
 <div class="app-orb app-orb-1" id="orb1"></div>
