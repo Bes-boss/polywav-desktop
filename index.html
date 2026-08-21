@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'">
 <title>Polywav — Ingest Pipeline</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -3517,6 +3518,18 @@
 </div>
 
 <script>
+    // Audit N-2: escape every dynamic string before innerHTML injection.
+    // Channel names come from the BEXT field of client WAV files — fully
+    // attacker-controlled bytes. This helper is the single gate.
+    function esc(str) {
+      var s = (str === null || str === undefined) ? '' : String(str);
+      return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
   // ===== Electron IPC Bridge =====
   var eIPC = window.electronAPI || null;
 
@@ -3878,8 +3891,8 @@
         var caps = ch.caps || (ch.caps = parseName(ch.raw));
         var normalized = applyTemplate(caps, document.getElementById('output-template').value);
         html += '<tr>'
-          + '<td class="ch-num">' + ch.num + '</td>'
-          + '<td class="raw-name">' + ch.raw + ' <span class="bext-tag">' + ch.bext + '</span></td>';
+          + '<td class="ch-num">' + esc(ch.num) + '</td>'
+          + '<td class="raw-name">' + esc(ch.raw) + ' <span class="bext-tag">' + esc(ch.bext) + '</span></td>';
         NORM_COLUMNS.forEach(function(c) {
           var val;
           if (c.key === 'type') {
@@ -3890,9 +3903,9 @@
           html += '<td class="capture-group" contenteditable="true" data-key="' + c.key + '"'
             + ' data-ch="' + i + '"'
             + ' onmousedown="onNormCellMouseDown(event)"'
-            + ' onblur="onNormCellBlur(this)">' + val + '</td>';
+            + ' onblur="onNormCellBlur(this)">' + esc(val) + '</td>';
         });
-        html += '<td class="normalized">' + normalized + '</td>'
+        html += '<td class="normalized">' + esc(normalized) + '</td>'
           + '</tr>';
       }
       tbody.innerHTML = html;
@@ -4535,7 +4548,7 @@
           var elMeta = document.getElementById('heroMeta');
           var elDot = document.getElementById('heroStatusDot');
           if (elSub) {
-            elSub.innerHTML = '<strong>' + (_clipName || 'Polywav Ingest') + '</strong> &middot; '
+            elSub.innerHTML = '<strong>' + esc(_clipName || 'Polywav Ingest') + '</strong> &middot; '
               + (info ? info.channels + ' channels' : 'Ready to load');
           }
           if (elMeta && info) {
@@ -4703,17 +4716,7 @@
                   var size = (file.size / 1024 / 1024).toFixed(1) + ' MB';
                   var now = new Date();
                   var time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                  var list = document.getElementById('recentList');
-                  if (list) {
-                    var empty = list.querySelector('.recent-empty');
-                    if (empty) empty.remove();
-                    var item = document.createElement('div');
-                    item.className = 'recent-item';
-                    item.innerHTML = '<span class="file-icon">&#x266B;</span><span class="file-name">' + name + '</span><span class="file-meta">' + size + ' &middot; ' + time + '</span>';
-                    list.insertBefore(item, list.firstChild);
-                    while (list.children.length > 5) list.removeChild(list.lastChild);
-                    saveRecentFiles();
-                  }
+                  addRecentFileItem(name, size, time);
                   showToast('Loaded: ' + name);
                 }
 
@@ -4762,17 +4765,7 @@
                   var size = '?.? MB';
                   var now = new Date();
                   var time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                  var list = document.getElementById('recentList');
-                  if (list) {
-                    var empty = list.querySelector('.recent-empty');
-                    if (empty) empty.remove();
-                    var item = document.createElement('div');
-                    item.className = 'recent-item';
-                    item.innerHTML = '<span class="file-icon">&#x266B;</span><span class="file-name">' + name + '</span><span class="file-meta">' + size + ' &middot; ' + time + '</span>';
-                    list.insertBefore(item, list.firstChild);
-                    while (list.children.length > 5) list.removeChild(list.lastChild);
-                    saveRecentFiles();
-                  }
+                  addRecentFileItem(name, size, time);
                   showToast('Loaded: ' + name);
                 }
 
@@ -4808,6 +4801,41 @@
   })();
 
   // ===== Home tab: Recent files =====
+      // Shared creator for recent-file entries (audit N-2/N-17): builds DOM
+      // nodes with textContent so untrusted filenames are never parsed as
+      // HTML, and dedupes by name (same file listed twice was a visible bug).
+      function addRecentFileItem(name, size, time) {
+        var list = document.getElementById('recentList');
+        if (!list) return;
+        var empty = list.querySelector('.recent-empty');
+        if (empty) empty.remove();
+        // Dedupe: drop any existing entry for the same filename
+        var existing = list.querySelectorAll('.recent-item .file-name');
+        existing.forEach(function(el) {
+          if (el.textContent === name) {
+            el.closest('.recent-item').remove();
+          }
+        });
+        var item = document.createElement('div');
+        item.className = 'recent-item';
+        var icon = document.createElement('span');
+        icon.className = 'file-icon';
+        icon.innerHTML = '&#x266B;';  // static glyph, safe
+        var nameEl = document.createElement('span');
+        nameEl.className = 'file-name';
+        nameEl.textContent = name;    // untrusted -> textContent, never innerHTML
+        var metaEl = document.createElement('span');
+        metaEl.className = 'file-meta';
+        metaEl.textContent = size + ' · ' + time;
+        item.appendChild(icon);
+        item.appendChild(nameEl);
+        item.appendChild(metaEl);
+        item.dataset.name = name;
+        list.insertBefore(item, list.firstChild);
+        while (list.children.length > 5) list.removeChild(list.lastChild);
+        saveRecentFiles();
+      }
+
       function clearRecent() {
         var list = document.getElementById('recentList');
         if (list) list.innerHTML = '<div class="recent-empty">No files loaded yet</div>';
@@ -4838,9 +4866,20 @@
           var empty = list.querySelector('.recent-empty');
           if (empty) empty.remove();
           data.forEach(function(item) {
+            if (!item || typeof item.name !== 'string') return;  // N-17: validate shape
             var el = document.createElement('div');
             el.className = 'recent-item';
-            el.innerHTML = '<span class="file-icon">&#x266B;</span><span class="file-name">' + item.name + '</span><span class="file-meta">' + (item.meta || '') + '</span>';
+            el.dataset.name = item.name;
+            var icon = document.createElement('span');
+            icon.className = 'file-icon';
+            icon.innerHTML = '&#x266B;';  // static glyph, safe
+            var nameEl = document.createElement('span');
+            nameEl.className = 'file-name';
+            nameEl.textContent = item.name;  // N-2: untrusted -> textContent
+            var metaEl = document.createElement('span');
+            metaEl.className = 'file-meta';
+            metaEl.textContent = item.meta || '';
+            el.appendChild(icon); el.appendChild(nameEl); el.appendChild(metaEl);
             list.appendChild(el);
           });
         } catch (e) {}
@@ -5021,8 +5060,8 @@
 
       html += '<tr>'
         + '<td class="drag-handle">&#9776;</td>'
-        + '<td class="ch-num">' + d.ch + '</td>'
-        + '<td class="ch-name">' + normName + '</td>'
+        + '<td class="ch-num">' + esc(d.ch) + '</td>'
+        + '<td class="ch-name">' + esc(normName) + '</td>'
         + '<td>' + selectHtml + '</td>'
         + '<td class="track-preview">' + trackPreview + '</td>'
         + '</tr>';
@@ -5411,10 +5450,10 @@
           var assigned = d.group !== null;
           var chNum = parseInt(d.ch, 10);
           var normName = getNormNameForChannel(chNum - 1);
-         srcHtml += '<div class="patch-src' + (assigned ? '' : ' unrouted') + '" draggable="true" data-ch="' + d.ch + '">'
+         srcHtml += '<div class="patch-src' + (assigned ? '' : ' unrouted') + '" draggable="true" data-ch="' + esc(d.ch) + '">'
             + '<span class="src-dot" style="background:' + (assigned ? d.color : '#ccc') + '"></span> '
-            + '<span class="src-ch">Ch ' + d.ch + '</span>'
-            + '<span class="src-name">' + normName + '</span>'
+            + '<span class="src-ch">Ch ' + esc(d.ch) + '</span>'
+            + '<span class="src-name">' + esc(normName) + '</span>'
             + '<span class="src-rename" title="Rename">&#9998;</span>'
             + '</div>';
     });
