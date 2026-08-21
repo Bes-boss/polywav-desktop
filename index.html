@@ -3293,7 +3293,7 @@
               </div>
 
     <div class="settings-footer">
-      <span class="version">Polywav Ingest v0.2.0 &middot; AAF OP-Atom Engine</span>
+      <span class="version">Polywav Ingest v1.0.0 &middot; AAF OP-Atom Engine</span>
       <button class="btn-setting" onclick="toggleSettings()">Cancel</button>
       <button class="btn-setting btn-setting-primary" onclick="applySettings()">Apply</button>
     </div>
@@ -3532,15 +3532,11 @@
     }
   // ===== Electron IPC Bridge =====
   var eIPC = window.electronAPI || null;
+  var _tabSwitchEpoch = 0;  // bumped on every switchTab; stale timers bail out
 
   function minimizeWindow() { if (eIPC && eIPC.minimizeWindow) eIPC.minimizeWindow(); }
   function maximizeWindow() {
-    var btn = document.getElementById('maxBtn');
     if (eIPC && eIPC.maximizeWindow) eIPC.maximizeWindow();
-    if (eIPC && eIPC.onMaximizeChange) eIPC.onMaximizeChange(function(maximized) {
-      btn.textContent = maximized ? '❐' : '□';
-      btn.title = maximized ? 'Restore' : 'Maximize';
-    });
   }
   function closeWindow() { if (eIPC && eIPC.closeWindow) eIPC.closeWindow(); }
 
@@ -3555,12 +3551,17 @@
       t.classList.toggle('active', t.getAttribute('data-tab') === name);
     });
 
-    // Fade out the current visible tab, then fade in the new one
+    // Fade out the current visible tab, then fade in the new one.
+    // Epoch token guards against A->B->A races: a delayed hide for an old
+    // switch must not blank the tab that became active again meanwhile.
     var current = document.querySelector('.tab-content.active');
     if (current && current !== newTab) {
       current.classList.remove('active');
+      var switchEpoch = ++_tabSwitchEpoch;
+      var elToHide = current;
       setTimeout(function() {
-        current.style.display = 'none';
+        if (switchEpoch !== _tabSwitchEpoch) return;  // newer switch happened
+        if (!elToHide.classList.contains('active')) elToHide.style.display = 'none';
       }, 400);
     }
 
@@ -4648,8 +4649,11 @@
                 }
 
                 // Shared finalizer: merges WAV header + optional BEXT probe, builds routing
+                var _loadEpoch = 0;  // bumped per load; stale async callbacks bail out
                 function finalizeFileLoad(meta, bextProbePromise) {
+                  var epoch = ++_loadEpoch;
                   function finish(names) {
+                    if (epoch !== _loadEpoch) return;  // a newer load superseded this one
                     meta.channelNames = names;
                     _fileInfo = meta;
                     buildDataFromProbe(meta);
@@ -4803,55 +4807,63 @@
   // ===== Home tab: Recent files =====
       // Shared creator for recent-file entries (audit N-2/N-17): builds DOM
       // nodes with textContent so untrusted filenames are never parsed as
-      // HTML, and dedupes by name (same file listed twice was a visible bug).
-      function addRecentFileItem(name, size, time) {
+      // HTML. The list is driven by the _recentFiles data model; this only
+      // appends and re-renders.
+      var _recentFiles = [];  // [{name, size, time}] — single source of truth
+
+      function renderRecentList() {
         var list = document.getElementById('recentList');
         if (!list) return;
-        var empty = list.querySelector('.recent-empty');
-        if (empty) empty.remove();
-        // Dedupe: drop any existing entry for the same filename
-        var existing = list.querySelectorAll('.recent-item .file-name');
-        existing.forEach(function(el) {
-          if (el.textContent === name) {
-            el.closest('.recent-item').remove();
-          }
+        list.innerHTML = '';
+        if (!_recentFiles.length) {
+          var empty = document.createElement('div');
+          empty.className = 'recent-empty';
+          empty.textContent = 'No files loaded yet';
+          list.appendChild(empty);
+          return;
+        }
+        _recentFiles.forEach(function(entry) {
+          var item = document.createElement('div');
+          item.className = 'recent-item';
+          var icon = document.createElement('span');
+          icon.className = 'file-icon';
+          icon.innerHTML = '&#x266B;';  // static glyph, safe
+          var nameEl = document.createElement('span');
+          nameEl.className = 'file-name';
+          nameEl.textContent = entry.name;  // untrusted -> textContent, never innerHTML
+          var metaEl = document.createElement('span');
+          metaEl.className = 'file-meta';
+          metaEl.textContent = entry.size + ' · ' + entry.time;
+          item.appendChild(icon);
+          item.appendChild(nameEl);
+          item.appendChild(metaEl);
+          item.dataset.name = entry.name;
+          list.appendChild(item);
         });
-        var item = document.createElement('div');
-        item.className = 'recent-item';
-        var icon = document.createElement('span');
-        icon.className = 'file-icon';
-        icon.innerHTML = '&#x266B;';  // static glyph, safe
-        var nameEl = document.createElement('span');
-        nameEl.className = 'file-name';
-        nameEl.textContent = name;    // untrusted -> textContent, never innerHTML
-        var metaEl = document.createElement('span');
-        metaEl.className = 'file-meta';
-        metaEl.textContent = size + ' · ' + time;
-        item.appendChild(icon);
-        item.appendChild(nameEl);
-        item.appendChild(metaEl);
-        item.dataset.name = name;
-        list.insertBefore(item, list.firstChild);
-        while (list.children.length > 5) list.removeChild(list.lastChild);
+      }
+
+      function addRecentFileItem(name, size, time) {
+        if (!name) return;
+        // Dedupe in the data model: drop any existing entry for same name
+        _recentFiles = _recentFiles.filter(function(entry) {
+          return entry.name !== name;
+        });
+        _recentFiles.unshift({ name: name, size: size || '', time: time || '' });
+        while (_recentFiles.length > 5) _recentFiles.pop();
+        renderRecentList();
         saveRecentFiles();
       }
 
       function clearRecent() {
-        var list = document.getElementById('recentList');
-        if (list) list.innerHTML = '<div class="recent-empty">No files loaded yet</div>';
+        _recentFiles = [];
+        renderRecentList();
         try { localStorage.removeItem(RECENT_KEY); } catch (e) {}
       }
 
       function saveRecentFiles() {
         try {
-          var items = document.querySelectorAll('#recentList .recent-item');
-          var data = [];
-          items.forEach(function(el) {
-            var nameEl = el.querySelector('.file-name');
-            var metaEl = el.querySelector('.file-meta');
-            if (nameEl) data.push({ name: nameEl.textContent, meta: metaEl ? metaEl.textContent : '' });
-          });
-          localStorage.setItem(RECENT_KEY, JSON.stringify(data));
+          // Persist straight from the data model (was a DOM scrape)
+          localStorage.setItem(RECENT_KEY, JSON.stringify(_recentFiles));
         } catch (e) {}
       }
 
@@ -4861,27 +4873,10 @@
           if (!saved) return;
           var data = JSON.parse(saved);
           if (!data || !data.length) return;
-          var list = document.getElementById('recentList');
-          if (!list) return;
-          var empty = list.querySelector('.recent-empty');
-          if (empty) empty.remove();
-          data.forEach(function(item) {
-            if (!item || typeof item.name !== 'string') return;  // N-17: validate shape
-            var el = document.createElement('div');
-            el.className = 'recent-item';
-            el.dataset.name = item.name;
-            var icon = document.createElement('span');
-            icon.className = 'file-icon';
-            icon.innerHTML = '&#x266B;';  // static glyph, safe
-            var nameEl = document.createElement('span');
-            nameEl.className = 'file-name';
-            nameEl.textContent = item.name;  // N-2: untrusted -> textContent
-            var metaEl = document.createElement('span');
-            metaEl.className = 'file-meta';
-            metaEl.textContent = item.meta || '';
-            el.appendChild(icon); el.appendChild(nameEl); el.appendChild(metaEl);
-            list.appendChild(el);
-          });
+          _recentFiles = data.filter(function(item) {
+            return item && typeof item.name === 'string';  // N-17: validate shape
+          }).slice(0, 5);
+          renderRecentList();
         } catch (e) {}
       }
 
@@ -4913,12 +4908,15 @@
         card.style.display = '';
         var heroContent = heroWrap ? heroWrap.querySelector('.hero-content') : null;
         if (heroContent) {
-          heroContent.querySelector('.hero-eyebrow').style.display = 'none';
-          heroContent.querySelector('.hero-title').style.display = 'none';
-          heroContent.querySelector('.hero-subtitle').style.display = 'none';
-          heroContent.querySelector('.hero-desc').style.display = 'none';
-          heroContent.querySelector('.hero-badges').style.display = 'none';
-          heroContent.querySelector('.drop-zone-parallax').style.display = 'none';
+          // Hide whichever hero children exist. .hero-badges was replaced by
+          // .wizard-cta in the markup; blind querySelector here crashed every
+          // file load (audit N-14).
+          ['.hero-eyebrow', '.hero-title', '.hero-subtitle', '.hero-desc',
+           '.hero-badges', '.wizard-cta', '.drop-zone-parallax'
+          ].forEach(function(sel) {
+            var el = heroContent.querySelector(sel);
+            if (el) el.style.display = 'none';
+          });
         }
       }
     }
@@ -5299,6 +5297,11 @@
       if (window.electronAPI && window.electronAPI.exportStart) {
         window.electronAPI.exportStart(config).then(function(result) {
           if (result.error) {
+            // N-8: failed start must not leave the progress UI stuck "running"
+            _exporting = false;
+            updateExportButton(false);
+            showExportProgress(false);
+            setExportBadge('ready', 'error');
             showToast('Export error: ' + result.error);
             return;
           }
@@ -5308,6 +5311,11 @@
           addExportLog('Export started: ' + (config.clipName || ''), 'info');
           updateExportButton(true);
         }).catch(function(err) {
+          // N-8: rejected start resets the progress UI too
+          _exporting = false;
+          updateExportButton(false);
+          showExportProgress(false);
+          setExportBadge('ready', 'error');
           showToast('Failed to start export: ' + err.message);
         });
       } else {
@@ -5412,6 +5420,16 @@
 
     // ---- IPC Event Wiring (Electron only) ------------------------------------
     if (window.electronAPI) {
+      // Maximize-state listener registered ONCE at boot (was per button
+      // click, stacking another ipcRenderer.on callback every time).
+      if (window.electronAPI.onMaximizeChange) {
+        window.electronAPI.onMaximizeChange(function(maximized) {
+          var btn = document.getElementById('maxBtn');
+          if (!btn) return;
+          btn.textContent = maximized ? '\u2750' : '\u25A1';
+          btn.title = maximized ? 'Restore' : 'Maximize';
+        });
+      }
       window.electronAPI.onExportProgress(function(data) {
         addExportLog(data.line || data, 'stdout');
       });
@@ -5431,6 +5449,16 @@
               addExportLog('Export error: ' + (err.message || err.stderr || 'Unknown error'), 'error');
               showToast('Export failed');
             });
+            if (window.electronAPI.onExportCancelled) {
+              window.electronAPI.onExportCancelled(function() {
+                // Main process confirms the cancelled child exited
+                _exporting = false;
+                updateExportButton(false);
+                showExportProgress(false);
+                setExportBadge('ready', 'cancelled');
+                addExportLog('Export cancelled', 'warn');
+              });
+            }
     }
 
     // Initial snapshot
@@ -6333,6 +6361,10 @@
         wizState.naming = JSON.parse(JSON.stringify(tpl.naming));
         wizState.routing = JSON.parse(JSON.stringify(tpl.routing));
         wizState.export = JSON.parse(JSON.stringify(tpl.export));
+        // Push the fresh defaults into the form inputs NOW. Without this,
+        // the next readWizardForm() reads back stale input values and
+        // silently overwrites the template the user just picked.
+        syncWizardForm();
       }
     }
 
@@ -6546,6 +6578,10 @@
       SETTINGS.outputAafDir = wizState.export.aafDir;
       SETTINGS.outputMxfDir = wizState.export.mxfDir;
       SETTINGS.mixGain = wizState.routing.mixGain;
+      // Record which template was actually used (was stuck on a stale name)
+      if (wizState.template && WIZARD_TEMPLATES[wizState.template]) {
+        SETTINGS.presetName = WIZARD_TEMPLATES[wizState.template].name;
+      }
       saveSettings();
 
       // Mark wizard as done

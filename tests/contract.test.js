@@ -172,11 +172,10 @@ test('B3: probe epoch guard against stale async file loads', () => {
 });
 
 test('B3: recent files deduped by name', () => {
-  const fn = inlineJs.match(/function handleFile[\s\S]{0,3000}/);
-  assert(fn, 'handleFile not found');
-  // dedupe: existing entry with same name is removed before insert
-  assert(/querySelector|dataset|recent-name|data-name/.test(fn[0]),
-    'no dedupe lookup in handleFile');
+  // Dedupe lives in addRecentFileItem via the _recentFiles data model:
+  // entries with the same name are filtered out before insert.
+  assert(/_recentFiles\s*=\s*_recentFiles\.filter\(\s*function\(entry\)\s*\{\s*return entry\.name !== name;/.test(inlineJs),
+    'addRecentFileItem does not dedupe by name in the data model');
 });
 
 test('B3: recent files persisted from data model, not DOM scrape', () => {

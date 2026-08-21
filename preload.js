@@ -35,4 +35,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onExportError: (callback) => {
     ipcRenderer.on('export:error', (event, error) => callback(error));
   },
+  onExportCancelled: (callback) => {
+    ipcRenderer.on('export:cancelled', (event, data) => callback(data));
+  },
 });
