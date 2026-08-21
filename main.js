@@ -25,24 +25,76 @@ function getWinStatePath() {
 function loadWindowState() {
   try {
     var data = fs.readFileSync(getWinStatePath(), 'utf-8');
-    return JSON.parse(data);
+    var parsed = JSON.parse(data);
+    // Audit N-11c: corrupt-but-valid JSON must not reach BrowserWindow opts
+    var safe = {};
+    ['width', 'height', 'x', 'y'].forEach(function (k) {
+      var v = parsed ? parsed[k] : undefined;
+      if (typeof v === 'number' && isFinite(v)) safe[k] = Math.round(v);
+    });
+    if (!safe.width || safe.width < 200) safe.width = 1280;
+    if (!safe.height || safe.height < 150) safe.height = 820;
+    safe.maximized = !!(parsed && parsed.maximized);
+    return safe;
   } catch (e) {
     return { width: 1280, height: 820 };
   }
 }
 
+// Audit N-11a: a saved position may land off-screen after a monitor change.
+// Clamp x/y into the union of all visible display work areas.
+function clampToDisplays(state) {
+  try {
+    const { screen } = require('electron');
+    const displays = screen.getAllDisplays();
+    if (!displays || !displays.length) return state;
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    displays.forEach(function (d) {
+      var wa = d.workArea;
+      minX = Math.min(minX, wa.x);
+      minY = Math.min(minY, wa.y);
+      maxX = Math.max(maxX, wa.x + wa.width);
+      maxY = Math.max(maxY, wa.y + wa.height);
+    });
+    // Require at least the title-bar region (100px) to be reachable
+    if (state.x !== undefined) {
+      if (state.x < minX - 100 || state.x > maxX - 100) delete state.x;
+      else state.x = Math.max(minX, Math.min(state.x, maxX - 200));
+    }
+    if (state.y !== undefined) {
+      if (state.y < minY - 30 || state.y > maxY - 100) delete state.y;
+      else state.y = Math.max(minY, Math.min(state.y, maxY - 100));
+    }
+  } catch (e) { /* screen module not ready — skip clamping */ }
+  return state;
+}
+
 function saveWindowState() {
   if (!mainWindow) return;
   try {
+    // Audit N-11b: while maximized, do NOT persist maximized geometry as
+    // normal bounds — remember only the flag; keep last known normal size.
+    if (mainWindow.isMaximized()) {
+      var prev = loadWindowState();
+      var state = {
+        width: prev.width || 1280,
+        height: prev.height || 820,
+        x: prev.x,
+        y: prev.y,
+        maximized: true,
+      };
+      fs.writeFileSync(getWinStatePath(), JSON.stringify(state, null, 2));
+      return;
+    }
     var bounds = mainWindow.getBounds();
-    var state = {
+    var state2 = {
       width: bounds.width,
       height: bounds.height,
       x: bounds.x,
       y: bounds.y,
-      maximized: mainWindow.isMaximized(),
+      maximized: false,
     };
-    fs.writeFileSync(getWinStatePath(), JSON.stringify(state, null, 2));
+    fs.writeFileSync(getWinStatePath(), JSON.stringify(state2, null, 2));
   } catch (e) {
     // Silently fail — not critical
   }
@@ -50,7 +102,7 @@ function saveWindowState() {
 
 // ---- BrowserWindow ---------------------------------------------------------
 function createWindow() {
-  var state = loadWindowState();
+  var state = clampToDisplays(loadWindowState());
   mainWindow = new BrowserWindow({
     width: state.width || 1280,
     height: state.height || 820,
@@ -160,14 +212,6 @@ ipcMain.on('window:maximize', () => {
 
 ipcMain.on('window:close', () => {
   if (mainWindow) mainWindow.close();
-});
-
-ipcMain.handle('window:getState', () => {
-  return loadWindowState();
-});
-
-ipcMain.on('window:saveState', () => {
-  saveWindowState();
 });
 
 // ---- IPC: File Dialogs ------------------------------------------------------
@@ -311,16 +355,26 @@ ipcMain.handle('file:probe', async (event, filePath) => {
       }
     });
 
-// ---- IPC: Canvas / Lifecycle ------------------------------------------------
-ipcMain.on('window:visibility-change', (event, visible) => {
-  // The renderer pauses/resumes its canvas animation via this signal
-  // visible=false when minimized, visible=true when restored
-});
-
 // ---- IPC: Export Pipeline ---------------------------------------------------
-const VENV_PYTHON = 'C:\\Users\\Liam\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe';
+// Audit N-13: resolve the Python interpreter at runtime instead of hardcoding
+// a user-specific absolute path. Order: env var -> bundled sidecar -> PATH.
+function resolvePython() {
+  if (process.env.POLYWAV_PYTHON && fs.existsSync(process.env.POLYWAV_PYTHON)) {
+    return process.env.POLYWAV_PYTHON;
+  }
+  try {
+    const bundled = path.join(app.getPath('userData'), 'bin', 'python.exe');
+    if (fs.existsSync(bundled)) return bundled;
+  } catch (e) { /* app not ready — skip */ }
+  // Dev fallback: the known venv on this machine, if it exists
+  const devVenv = 'C:\\Users\\Liam\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe';
+  if (fs.existsSync(devVenv)) return devVenv;
+  return 'python'; // last resort: whatever is on PATH
+}
+const VENV_PYTHON = resolvePython();
 
 let currentExportJob = null;
+let exportCancelled = false; // Audit N-4a: cancel must not be reported as failure
 
 ipcMain.handle('export:start', async (event, config) => {
   if (currentExportJob) {
@@ -344,12 +398,18 @@ ipcMain.handle('export:start', async (event, config) => {
   let stdout = '';
   let stderr = '';
 
+  // Audit N-7: lines can arrive split across pipe chunks. Buffer until a
+  // newline (or carriage return) and only emit complete lines. Cap the
+  // retained copies so a chatty CLI cannot exhaust memory.
+  let lineBuf = '';
   child.stdout.on('data', (data) => {
     const text = data.toString();
-    stdout += text;
-    // Stream each line as a progress event
-    const lines = text.split(/\r?\n/).filter((l) => l.trim());
-    lines.forEach((line) => {
+    if (stdout.length < 5 * 1024 * 1024) stdout += text;
+    lineBuf += text;
+    const parts = lineBuf.split(/\r\n|\n|\r/);
+    lineBuf = parts.pop(); // keep the partial tail in the buffer
+    parts.forEach((line) => {
+      if (!line.trim()) return;
       if (mainWindow && !mainWindow.isDestroyed()) {
         try { mainWindow.webContents.send('export:progress', { jobId: 'current', line }); } catch {}
       }
@@ -357,11 +417,27 @@ ipcMain.handle('export:start', async (event, config) => {
   });
 
   child.stderr.on('data', (data) => {
-    stderr += data.toString();
+    if (stderr.length < 5 * 1024 * 1024) stderr += data.toString();
   });
 
   child.on('close', (code) => {
+    // Flush any trailing partial line
+    if (lineBuf && lineBuf.trim() && mainWindow && !mainWindow.isDestroyed()) {
+      try { mainWindow.webContents.send('export:progress', { jobId: 'current', line: lineBuf }); } catch {}
+    }
+    lineBuf = '';
+    const job = currentExportJob;
     currentExportJob = null;
+    if (!job) return; // cancelled elsewhere — cancel handler owns notification
+    if (exportCancelled || job.cancelRequested) {
+      // Audit N-4a: a user-cancelled export is NOT an error.
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        try {
+          mainWindow.webContents.send('export:cancelled', { jobId: 'current' });
+        } catch {}
+      }
+      return;
+    }
     if (code === 0) {
       // Parse output path from the summary line
       const match = stdout.match(/Wrote OP-Atom AAF: (.+)/);
@@ -430,6 +506,21 @@ ipcMain.handle('export:cancel', async () => {
 });
 
 // ---- DevTools protection ----------------------------------------------------
+// Audit N-6: a running export must not outlive the app. Kill the child
+// process tree on quit so no orphaned python/polywav process lingers.
+app.on('before-quit', () => {
+  const job = currentExportJob;
+  if (!job || !job.child || !job.child.pid) return;
+  try {
+    spawn('taskkill', ['/T', '/F', '/PID', String(job.child.pid)], {
+      windowsHide: true,
+      stdio: 'ignore',
+    });
+  } catch {
+    try { job.child.kill(); } catch { /* already dead */ }
+  }
+});
+
 app.on('browser-window-created', (event, win) => {
   win.webContents.on('devtools-opened', () => {
     // Keep DevTools closed in production builds

@@ -14,24 +14,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('window:maximize-change', (event, maximized) => callback(maximized));
   },
 
-  // ---- Window State --------------------------------------------------------
-  getWindowState: () => ipcRenderer.invoke('window:getState'),
-  saveWindowState: () => ipcRenderer.send('window:saveState'),
-
   // ---- File Dialogs --------------------------------------------------------
   openDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
   openDirectoryWithDefault: (defaultPath) => ipcRenderer.invoke('dialog:openDirectoryWithDefault', defaultPath),
   openFile: () => ipcRenderer.invoke('dialog:openFile'),
-    openPath: (filePath) => ipcRenderer.invoke('shell:openPath', filePath),
 
     // ---- File Metadata --------------------------------------------------------
         probeFile: (filePath) => ipcRenderer.invoke('file:probe', filePath),
         readFileHeader: (filePath) => ipcRenderer.invoke('file:readFileHeader', filePath),
-
-    // ---- Canvas / Lifecycle --------------------------------------------------
-  onVisibilityChange: (callback) => {
-    ipcRenderer.on('window:visibility-change', (event, visible) => callback(visible));
-  },
 
   // ---- Export Pipeline -----------------------------------------------------
   exportStart: (config) => ipcRenderer.invoke('export:start', config),
