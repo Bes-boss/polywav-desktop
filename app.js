@@ -1814,25 +1814,28 @@
       }
 
   function buildCLICommand() {
-      var routingParts = [];
-      ROUTING_DATA.forEach(function(d, i) {
-        if (d.group && d.track) {
-          routingParts.push(i + ':' + d.track);
-        }
-      });
-      var routingStr = routingParts.join(',') || 'all:auto';
+    var routingParts = [];
+    ROUTING_DATA.forEach(function(d, i) {
+      if (d.group && d.track) {
+        routingParts.push(i + ':' + d.track);
+      }
+    });
+    var routingStr = routingParts.join(',') || 'all:auto';
 
     var modeFlag = SETTINGS.mode !== 'group' ? ' --mode ' + SETTINGS.mode : '';
     var essenceFlag = SETTINGS.essence !== 'embedded' ? ' --essence ' + SETTINGS.essence : '';
+    var mxfDir = SETTINGS.outputMxfDir || '';
+    var mxfFlag = (SETTINGS.essence === 'mxf' && mxfDir && mxfDir !== './output/mxf')
+      ? ' --mxf-dir "' + mxfDir + '"' : '';
     var srFlag = SETTINGS.sampleRate !== 'auto' ? ' --samplerate ' + SETTINGS.sampleRate : '';
     var bdFlag = SETTINGS.bitDepth !== 'auto' ? ' --subtype PCM_' + SETTINGS.bitDepth : '';
 
     var aafDir = SETTINGS.outputAafDir || './output';
-        var inPath = _filePath || './source.wav';
-        var outName = (_clipName || 'export') + '.aaf';
-        var cmd = 'polywav embed-aaf -i ' + inPath + ' -o ' + aafDir + '/' + outName
+    var inPath = _filePath || './source.wav';
+    var outName = (_clipName || 'export') + '.aaf';
+    var cmd = 'polywav embed-aaf -i ' + inPath + ' -o ' + aafDir + '/' + outName
       + ' --routing "' + routingStr + '"'
-      + modeFlag + essenceFlag + srFlag + bdFlag;
+      + modeFlag + essenceFlag + mxfFlag + srFlag + bdFlag;
 
     var el = document.getElementById('exportCLI');
     if (el) el.textContent = cmd;
@@ -1910,6 +1913,9 @@
               sampleRate: SETTINGS.sampleRate !== 'auto' ? parseInt(SETTINGS.sampleRate, 10) : undefined,
               subtype: SETTINGS.bitDepth !== 'auto' ? 'PCM_' + SETTINGS.bitDepth : undefined,
               essence: SETTINGS.essence !== 'embedded' ? SETTINGS.essence : undefined,
+              // Journey-audit #8: export must honor the configured MXF folder.
+              mxfDir: (SETTINGS.essence === 'mxf' && SETTINGS.outputMxfDir && SETTINGS.outputMxfDir !== './output/mxf')
+                ? SETTINGS.outputMxfDir : undefined,
             };
 
       // Try to start export via IPC
