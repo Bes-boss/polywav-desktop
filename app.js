@@ -71,15 +71,18 @@
   }
 
   function updateEmptyStates() {
-    ['normalize', 'route', 'patch', 'export'].forEach(function(tabId) {
-      var empty = document.getElementById('empty-' + tabId);
-      var content = document.getElementById('tab-' + tabId);
-      if (empty && content) {
-        var showEmpty = !_fileLoaded && content.classList.contains('active');
-        empty.style.display = showEmpty ? '' : 'none';
-      }
-    });
-  }
+      ['normalize', 'route', 'patch', 'export'].forEach(function(tabId) {
+        var empty = document.getElementById('empty-' + tabId);
+        var content = document.getElementById('tab-' + tabId);
+        if (empty && content) {
+          var showEmpty = !_fileLoaded && content.classList.contains('active');
+          empty.style.display = showEmpty ? '' : 'none';
+          // Toggle working content to match — hide when empty, show when loaded
+          var working = content.querySelector('.tab-working');
+          if (working) working.style.display = showEmpty ? 'none' : '';
+        }
+      });
+    }
   document.querySelectorAll('.tab-bar .tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
       switchTab(this.getAttribute('data-tab'));
@@ -1543,17 +1546,27 @@
       }
     }
     function showDropZone() {
-      var card = document.getElementById('fileLoadedCard');
-      var heroWrap = document.getElementById('heroWrap');
-      if (card) card.style.display = 'none';
-      if (heroWrap) {
-        var hc = heroWrap.querySelector('.hero-content');
-        if (hc) {
-          var els = hc.querySelectorAll('.hero-eyebrow, .hero-title, .hero-subtitle, .hero-desc, .hero-badges, .drop-zone-parallax');
-          els.forEach(function(el) { el.style.display = ''; });
+          var card = document.getElementById('fileLoadedCard');
+          var heroWrap = document.getElementById('heroWrap');
+          if (card) card.style.display = 'none';
+          if (heroWrap) {
+            var hc = heroWrap.querySelector('.hero-content');
+            if (hc) {
+              var els = hc.querySelectorAll('.hero-eyebrow, .hero-title, .hero-subtitle, .hero-desc, .hero-badges, .drop-zone-parallax');
+              els.forEach(function(el) { el.style.display = ''; });
+            }
+          }
+          // Reset pipeline state so user starts fresh
+          _fileLoaded = false;
+          _filePath = '';
+          _clipName = '';
+          _fileInfo = null;
+          rawChannels = [];
+          ROUTING_DATA = [];
+          rerenderAll();
+          updateEmptyStates();
+          showToast('Load cancelled — pick a new file');
         }
-      }
-    }
 
   // ===== Patch tab: Routing map renderer =====
     var GROUP_INFO = {};
@@ -1852,7 +1865,16 @@
       + modeFlag + essenceFlag + mxfFlag + srFlag + bdFlag;
 
     var el = document.getElementById('exportCLI');
-    if (el) el.textContent = cmd;
+    if (el) {
+      if (!_fileLoaded) {
+        el.textContent = 'Load a polywav file on the Home tab to generate the export command.';
+        el.style.opacity = '0.55';
+      } else {
+        el.style.opacity = '';
+      }
+    }
+    if (!_fileLoaded) return;
+    el.textContent = cmd;
   }
 
   function browseDir(fieldId) {
@@ -2204,9 +2226,12 @@
         var pathD = 'M ' + x1 + ' ' + y1 + ' C ' + cx1 + ' ' + y1 + ', ' + cx2 + ' ' + y2 + ', ' + x2 + ' ' + y2;
         paths.push({ d: pathD, color: d.color, unrouted: false });
       } else {
-        // Unassigned: flow to the right side (unrouted box area)
-        var x2 = wrapRect.width * 0.75;
-        var y2 = wrapRect.height * 0.88 + 12;
+        // Unassigned: flow to the Unassigned box (real position, not hardcoded)
+        var unroutedBox = wrap.querySelector('#patchUnrouted');
+        if (!unroutedBox || unroutedBox.style.display === 'none') return;
+        var ubRect = unroutedBox.getBoundingClientRect();
+        var x2 = ubRect.left - wrapRect.left;
+        var y2 = ubRect.top + Math.min(ubRect.height / 2, 24) - wrapRect.top;
         var cx1 = midX;
         var cx2 = midX + 40;
         var pathD = 'M ' + x1 + ' ' + y1 + ' C ' + cx1 + ' ' + y1 + ', ' + cx2 + ' ' + y2 + ', ' + x2 + ' ' + y2;

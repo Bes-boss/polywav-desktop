@@ -26,7 +26,8 @@
     --radius-sm: 6px;
     --radius-md: 12px;
     --shadow: 0 2px 12px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.25);
-    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        --active-fill: #2a3640;
+        --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
   }
   :root.light-mode {
@@ -38,11 +39,12 @@
     --gold: #c8a96e;
     --sage: #7a9e8c;
     --border: rgba(42,39,35,0.10);
-    --bg-card: #ffffff;
-    --bg-input: #ede8e0;
-    --bg-highlight: #e5dfd7;
-    --shadow: 0 2px 12px rgba(30,27,24,0.08), 0 1px 4px rgba(30,27,24,0.05);
-  }
+        --bg-card: #ffffff;
+        --bg-input: #ede8e0;
+        --bg-highlight: #e5dfd7;
+        --shadow: 0 2px 12px rgba(30,27,24,0.08), 0 1px 4px rgba(30,27,24,0.05);
+        --active-fill: #b2563b;
+      }
   body.light-mode {
     background:
       radial-gradient(1100px 600px at 75% -10%, rgba(196,102,74,0.06), transparent 60%),
@@ -233,7 +235,7 @@
     font-size: 12px;
     font-weight: 600;
     color: #fff;
-    background: var(--ink);
+    background: var(--active-fill);
     padding: 2px 10px;
     border-radius: 12px;
   }
@@ -682,7 +684,7 @@
   }
 
   /* Summary panel */
-  .summary-list { padding: 0; list-style: none; }
+  .summary-list { padding: 0; list-style: none; max-height: 480px; overflow-y: auto; }
   .summary-list li {
     display: flex;
     align-items: center;
@@ -739,7 +741,7 @@
     transition: all 0.15s;
   }
   .btn-primary {
-    background: var(--ink);
+    background: var(--active-fill);
     color: #fff;
   }
   .btn-primary:hover {
@@ -963,7 +965,7 @@
     bottom: 32px;
     left: 50%;
     transform: translateX(-50%) translateY(80px);
-    background: var(--ink);
+    background: var(--active-fill);
     color: #fff;
     padding: 12px 24px;
     border-radius: var(--radius);
@@ -976,6 +978,9 @@
     z-index: 100;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  @media (max-width: 900px) {
+    .toast { bottom: 88px; max-width: calc(100vw - 32px); text-align: center; }
+  }
 
   /* ===== SETTINGS PANEL ===== */
   .settings-btn {
@@ -1156,9 +1161,9 @@
     border-top: 1px solid #f6f2ec;
   }
   .setting-info {
-    flex: 1;
-    min-width: 0;
-  }
+      flex: 1;
+      min-width: 120px;
+    }
   .setting-info .setting-label {
     font-size: 13px;
     font-weight: 600;
@@ -1209,11 +1214,11 @@
     background: #f5f0ea;
   }
   .segmented .seg-option.active {
-    background: var(--ink);
+    background: var(--active-fill);
     color: #fff;
   }
   .segmented .seg-option.active:hover {
-    background: var(--ink);
+    background: var(--active-fill);
   }
 
   /* Select dropdowns */
@@ -1296,7 +1301,7 @@
     transform: scale(0.96);
   }
   .btn-setting-primary {
-    background: var(--ink);
+    background: var(--active-fill);
     color: #fff;
     border-color: var(--ink);
   }
@@ -2757,8 +2762,8 @@
       </h1>
       <p class="hero-subtitle">Routing &middot; Normalization &middot; AAF Export</p>
       <p class="hero-desc">
-        One polywav. Zero setup. Everything else is handled.
-      </p>
+              Load a multichannel broadcast WAV, name your channels, route them to Avid tracks, then export an AAF for Media Composer.
+            </p>
 
       <!-- Setup Wizard CTA (replaces feature badges) -->
             <button class="wizard-cta" id="wizardCta">
@@ -2833,6 +2838,7 @@
   <div class="empty-title">No file loaded</div>
   <div class="empty-hint">Drop a polywav file on the Home tab to start normalizing channel names</div>
 </div>
+<div class="tab-working" style="display:none;">
 
 <div class="preset-panel">
   <div class="preset-field">
@@ -2883,6 +2889,7 @@
     <span class="test-result" id="test-result">HST_Host_1</span>
   </div>
 </div>
+  </div>
 
 <!-- ============================================================ -->
 <!-- TAB: ROUTE -->
@@ -2895,6 +2902,7 @@
     <div class="empty-hint">Load a polywav file on the Home tab to route channels to Avid tracks</div>
   </div>
 
+  <div class="tab-working" style="display:none;">
   <div class="route-layout">
     <!-- Left: Routing table -->
     <div class="card">
@@ -2943,6 +2951,7 @@
         <button class="btn btn-primary" data-nav="export">&#x21E9; Export for Avid</button>
       </div>
     </div>
+  </div>
 </div>
 
 <!-- ============================================================ -->
@@ -2956,6 +2965,7 @@
     <div class="empty-hint">Load a polywav file on the Home tab to fine-tune track assignments</div>
   </div>
 
+<div class="tab-working" style="display:none;">
   <div class="card">
       <div class="patch-map-head">
         <h2>Routing map</h2>
@@ -3001,6 +3011,8 @@
       </div>
     </div>
   </div>
+  </div>
+  </div>
 </div>
 
 <!-- ============================================================ -->
@@ -3014,6 +3026,7 @@
     <div class="empty-hint">Load a polywav file on the Home tab and configure routing to export for Avid</div>
   </div>
 
+<div class="tab-working" style="display:none;">
   <div class="export-panel">
     <div class="card">
       <div class="card-header">
@@ -3156,6 +3169,7 @@
         <button class="btn btn-secondary" data-nav="route">Back to Route</button>
         <button class="btn btn-primary" id="exportBtn">&#x21E9; Export for Avid</button>
       </div>
+  </div>
 </div>
 
 <!-- ===== Toast ===== -->
