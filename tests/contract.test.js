@@ -347,6 +347,18 @@ test('B5: segmented mode/essence buttons wired via data attributes', () => {
     'data-setessence buttons not wired in app.js');
 });
 
+// Journey-audit #5: export format cards were <div> wrappers around bare
+// radios, so clicking the card body did nothing. They must be <label>s so
+// the whole card forwards clicks to the radio natively.
+test('B5.1: export format cards are <label> wrappers, not <div>', () => {
+  assert(!indexHtml.includes('<div class="export-option selected">'),
+    'div.export-option wrapper still present');
+  assert(indexHtml.includes('<label class="export-option selected">'),
+    'label.export-option wrapper not present');
+  const labels = (indexHtml.match(/<label class="export-option/g) || []).length;
+  assert(labels >= 3, `expected >=3 label.export-option cards, found ${labels}`);
+});
+
 // ======================================================================
 // BRANCH 6 — recents click-to-reload
 // ======================================================================
