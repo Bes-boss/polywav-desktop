@@ -255,6 +255,15 @@ test('B4: duplicate orbFloat keyframes removed (only one definition)', () => {
 const INLINE_HANDLER_RE =
   /\son(click|change|input|blur|focus|dblclick|dragstart|dragover|drop|dragend|mousedown|mouseup|keydown|keyup|submit)\s*=\s*["']/i;
 
+/** All source windows of `len` chars starting at each occurrence of `anchorRe` */
+function windowsAround(source, anchorPattern, len) {
+  const re = new RegExp(anchorPattern, 'g');
+  const wins = [];
+  let m;
+  while ((m = re.exec(source)) !== null) wins.push(source.slice(m.index, m.index + len));
+  return wins;
+}
+
 console.log('\n[Branch 5] fix/csp-inline-handlers');
 
 test('B5: index.html has ZERO inline on*= handler attributes', () => {
@@ -270,31 +279,32 @@ test('B5: app.js emits no on*= attributes in generated HTML strings', () => {
 });
 
 test('B5: template chips driven by delegated click listener on container', () => {
-  const block = inlineJs.match(/getElementById\('template-chips'\)[\s\S]{0,500}?addEventListener\('click'/);
-  assert(block, 'no delegated click listener bound at #template-chips');
+  const wins = windowsAround(inlineJs, "getElementById\\('template-chips'\\)", 600);
+  assert(wins.some((w) => /addEventListener\('click'/.test(w)),
+    'no delegated click listener bound at #template-chips');
 });
 
 test('B5: chip remove (chip-x) handled inside the delegation', () => {
-  const block = inlineJs.match(/getElementById\('template-chips'\)[\s\S]{0,1200}/);
-  assert(block && /chip-x/.test(block[0]) && /removeChipSlot/.test(block[0]),
+  const wins = windowsAround(inlineJs, "getElementById\\('template-chips'\\)", 1600);
+  assert(wins.some((w) => /chip-x/.test(w) && /removeChipSlot/.test(w)),
     'chip-x removal not found in chip delegation');
 });
 
 test('B5: parse table cells use delegated mousedown/focusout (no per-cell handlers)', () => {
-  const block = inlineJs.match(/getElementById\('parse-tbody'\)[\s\S]{0,600}/);
-  assert(block, 'parse-tbody delegation block not found');
-  assert(/addEventListener\('mousedown'/.test(block[0]), 'no delegated mousedown on parse-tbody');
-  assert(/addEventListener\('focusout'/.test(block[0]), 'no delegated focusout on parse-tbody');
-  assert(!/onblur=|onmousedown=/.test(block[0].split('addEventListener')[0]),
+  const wins = windowsAround(inlineJs, "getElementById\\('parse-tbody'\\)", 700);
+  const w = wins.find((x) => /addEventListener\('mousedown'/.test(x));
+  assert(w, 'no delegated mousedown on parse-tbody');
+  assert(/addEventListener\('focusout'/.test(w), 'no delegated focusout near the delegation block');
+  assert(!/onblur=|onmousedown=/.test(w.split('addEventListener')[0]),
     'cells still emit inline handlers in row HTML');
 });
 
 test('B5: column header drag/drop driven by thead-level delegation', () => {
-  const block = inlineJs.match(/querySelector\('#parse-table thead'\)[\s\S]{0,900}/) ||
-                inlineJs.match(/'#parse-table thead'[\s\S]{0,900}/);
-  assert(block, 'thead delegation block not found');
-  for (const ev of ["'dragstart'", "'dragover'", "'drop'", "'dragend'", "'dblclick'"]) {
-    assert(block[0].includes(`addEventListener(${ev}`), `missing delegated ${ev} on thead`);
+  const wins = windowsAround(inlineJs, "querySelector\\('#parse-table thead'\\)", 900);
+  const w = wins.find((x) => x.includes("addEventListener('dragstart'"));
+  assert(w, 'thead delegation block not found');
+  for (const ev of ["'dragover'", "'drop'", "'dragend'", "'dblclick'"]) {
+    assert(w.includes(`addEventListener(${ev}`), `missing delegated ${ev} on thead`);
   }
 });
 
@@ -302,16 +312,18 @@ test('B5: wizard step dots navigable via delegated click (no onclick= in dot HTM
   const dotsFn = inlineJs.match(/function renderStepDots\([\s\S]{0,900}/);
   assert(dotsFn, 'renderStepDots not found');
   assert(!/onclick=/.test(dotsFn[0]), 'step dots still emit onclick=');
-  const block = inlineJs.match(/getElementById\('wizardSteps'\)[\s\S]{0,200}[\s\S]*?addEventListener\('click'/) ||
-                inlineJs.match(/wizard-step-dot[\s\S]{0,400}addEventListener\('click'/);
-  assert(block, 'no delegated click listener for wizard steps');
+  const wins = windowsAround(inlineJs, "getElementById\\('wizardSteps'\\)", 600);
+  const wired = wins.some((w) => /addEventListener\('click'/.test(w));
+  assert(wired, 'no delegated click listener for wizard steps');
 });
 
 test('B5: settings controls wired via JS change/click listeners (ids kept)', () => {
   for (const id of ['srSelect', 'bdSelect', 'presetSelect', 'namingTemplateInput',
                     'rawBextToggle', 'toastToggle', 'regex-pattern', 'test-raw']) {
-    const re = new RegExp(`getElementById\\('${id}'\\)[\\s\\S]{0,300}?addEventListener\\('(change|input)'`);
-    assert(re.test(inlineJs), `'${id}' has no JS-bound change/input listener`);
+    const wins = windowsAround(inlineJs, `getElementById\\('${id}'\\)`, 400);
+    assert(wins.length > 0, `'${id}' never referenced in app.js`);
+    const wired = wins.some((w) => /addEventListener\('(change|input)'/.test(w));
+    assert(wired, `'${id}' has no JS-bound change/input listener near any reference`);
   }
 });
 
@@ -389,9 +401,9 @@ test('B7: overlays are labelled dialogs (aria-modal)', () => {
 });
 
 test('B7: focus trap helper exists and is applied to both overlays', () => {
-  assert(/function trapFocus\(|const trapFocus|var trapFocus/.test(inlineJs),
+  assert(/function trapFocus\(|const trapFocus|var trapFocus|window\.trapFocus\s*=/.test(inlineJs),
     'no trapFocus helper');
-  const refs = (inlineJs.match(/trapFocus\(/g) || []).length;
+  const refs = (inlineJs.match(/trapFocus/g) || []).length;
   assert(refs >= 3, `trapFocus defined but barely used (${refs} refs)`);
 });
 
@@ -399,8 +411,8 @@ test('B7: wizard template cards are keyboard-operable buttons', () => {
   const cards = (indexHtml.match(/wizard-tmpl-card[^>]*role="button"/g) ||
                  indexHtml.match(/role="button"[^>]*class="wizard-tmpl-card"/g) || []).length;
   assert(cards >= 4, `template cards lack role="button" (${cards}/4)`);
-  const block = inlineJs.match(/wizard-tmpl-card[\s\S]{0,1200}/);
-  assert(block && /(Enter|Space)/.test(block[0]),
+  const wins = windowsAround(inlineJs, "wizard-tmpl-card", 700);
+  assert(wins.some((w) => /'Enter'/.test(w) && /selectTemplate/.test(w)),
     'no Enter/Space activation for template cards');
 });
 

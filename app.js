@@ -29,7 +29,16 @@
     if (!newTab) return;
 
     tabs.forEach(function(t) {
-      t.classList.toggle('active', t.getAttribute('data-tab') === name);
+      var active = t.getAttribute('data-tab') === name;
+      t.classList.toggle('active', active);
+      // ARIA tab pattern: selected state lives on the role=tab button
+      t.setAttribute('aria-selected', active ? 'true' : 'false');
+      t.tabIndex = active ? 0 : -1;
+    });
+
+    // Panels: aria-hidden tracks visibility for assistive tech
+    contents.forEach(function(c) {
+      c.setAttribute('aria-hidden', c === newTab ? 'false' : 'true');
     });
 
     // Fade out the current visible tab, then fade in the new one.
@@ -229,20 +238,55 @@
     var html = '';
     _templateSlots.forEach(function(s, idx) {
       if (s.key === 'sep') {
-        html += '<span class="template-chip-sep">' + (s.text || '_') + '</span>';
+        html += '<span class="template-chip-sep">' + esc(s.text || '_') + '</span>';
       } else {
         var label = s.label;
         if (s.format) label += ':' + s.format + 'd';
-        html += '<span class="template-chip" data-slot="' + idx + '" onclick="onChipClick(event,' + idx + ')">'
-          + label + '<span class="chip-x" onclick="event.stopPropagation();removeChipSlot(' + idx + ')">&#x2715;</span></span>';
+        html += '<span class="template-chip" data-slot="' + idx + '" role="button" tabindex="0">'
+          + label + '<span class="chip-x" data-remove-slot="' + idx + '" role="button" tabindex="-1">&#x2715;</span></span>';
       }
     });
-    html += '<span class="template-chip-add" onclick="addChipSlot()" title="Add template slot">+</span>';
+    html += '<span class="template-chip-add" id="chipAddBtn" title="Add template slot" role="button" tabindex="0">+</span>';
     container.innerHTML = html;
 
     // Sync the hidden template input
     document.getElementById('output-template').value = buildTemplateString();
   }
+
+  // CSP migration: chip interactions are delegated from the #template-chips
+  // container (the old generated onclick= attributes were dead under
+  // script-src 'self'). Keyboard: Enter/Space activates.
+  (function wireTemplateChips() {
+    var container = document.getElementById('template-chips');
+    if (!container) return;
+
+    function activateChip(chip) {
+      if (chip.classList.contains('template-chip-add')) { addChipSlot(); return; }
+      var idx = parseInt(chip.getAttribute('data-slot'), 10);
+      if (!isNaN(idx)) onChipClick({ stopPropagation: function() {}, currentTarget: chip }, idx);
+    }
+
+    container.addEventListener('click', function(e) {
+      var rm = e.target.closest('.chip-x');
+      if (rm) {
+        e.stopPropagation();
+        var rIdx = parseInt(rm.getAttribute('data-remove-slot'), 10);
+        if (!isNaN(rIdx)) removeChipSlot(rIdx);
+        return;
+      }
+      var chip = e.target.closest('.template-chip, .template-chip-add');
+      if (chip) { e.stopPropagation(); activateChip(chip); }
+    });
+
+    container.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var chip = e.target.closest('.template-chip, .template-chip-add');
+      if (chip && !e.target.closest('.chip-x')) {
+        e.preventDefault();
+        activateChip(chip);
+      }
+    });
+  })();
 
   // Close any open chip dropdowns
   function closeChipDropdowns() {
@@ -382,10 +426,10 @@
           } else {
             val = caps[c.key] || '';
           }
-          html += '<td class="capture-group" contenteditable="true" data-key="' + c.key + '"'
-            + ' data-ch="' + i + '"'
-            + ' onmousedown="onNormCellMouseDown(event)"'
-            + ' onblur="onNormCellBlur(this)">' + esc(val) + '</td>';
+          // No inline handlers here: interaction is delegated from #parse-tbody
+          // (CSP script-src 'self' blocks attribute handlers).
+          html += '<td class="capture-group" contenteditable="true" spellcheck="false" data-key="' + c.key + '"'
+            + ' data-ch="' + i + '">' + esc(val) + '</td>';
         });
         html += '<td class="normalized">' + esc(normalized) + '</td>'
           + '</tr>';
@@ -403,14 +447,63 @@
     NORM_COLUMNS.forEach(function(c, idx) {
       html += '<th style="min-width:' + c.width + ';cursor:grab;" draggable="true"'
         + ' data-col-idx="' + idx + '" data-col-key="' + c.key + '"'
-        + ' ondragstart="onColDragStart(event)" ondragover="onColDragOver(event)" ondrop="onColDrop(event)" ondragend="onColDragEnd(event)" ondblclick="onColLabelEdit(this)">'
-        + '<span class="col-toggle" onclick="event.stopPropagation();toggleColTemplate(' + idx + ')" title="' + (c.template ? 'In template (click to remove)' : 'Not in template (click to add)') + '" style="cursor:pointer;margin-right:4px;font-size:10px;">' + (c.template ? '&#x25CF;' : '&#x25CB;') + '</span>'
-        + c.label + '</th>';
+        + ' title="' + esc(c.template ? 'In template (click the dot to remove)' : 'Not in template (click the dot to add)') + '"'
+        + ' aria-label="' + esc(c.label) + ' column">'
+        + '<span class="col-toggle" data-col-toggle="' + idx + '" role="button" tabindex="0"'
+        + ' aria-pressed="' + (c.template ? 'true' : 'false') + '"'
+        + ' title="' + (c.template ? 'In template (click to remove)' : 'Not in template (click to add)') + '"'
+        + ' style="cursor:pointer;margin-right:4px;font-size:10px;">' + (c.template ? '&#x25CF;' : '&#x25CB;') + '</span>'
+        + esc(c.label) + '</th>';
     });
     html += '<th>Normalized name</th>';
     html += '</tr>';
     return html;
   }
+
+  // CSP migration: parse-table interactions are delegated at table scope.
+  // (Generated drag/dblclick/blur attributes were dead under script-src
+  // 'self'.) Keyboard: col-toggle dots respond to Enter/Space.
+  (function wireParseTable() {
+    var tbody = document.getElementById('parse-tbody');
+    var table = document.getElementById('parse-table');
+    if (!tbody || !table) return;
+    var thead = document.querySelector('#parse-table thead');
+
+    // Cell selection (mousedown) + edit commit (focusout)
+    tbody.addEventListener('mousedown', function(e) {
+      var td = e.target.closest('td');
+      if (!td || !td.classList.contains('capture-group')) return;
+      onNormCellMouseDown(e);
+    });
+    tbody.addEventListener('focusout', function(e) {
+      var td = e.target.closest ? e.target.closest('td.capture-group') : null;
+      if (td) commitNormCell(td);
+    });
+
+    if (!thead) return;
+    // Column drag-reorder + double-click label edit + toggle dot clicks
+    thead.addEventListener('dragstart', onColDragStart);
+    thead.addEventListener('dragover', onColDragOver);
+    thead.addEventListener('drop', onColDrop);
+    thead.addEventListener('dragend', onColDragEnd);
+    thead.addEventListener('dblclick', function(e) {
+      var th = e.target.closest('th');
+      if (th && th.hasAttribute('data-col-key')) onColLabelEdit(th);
+    });
+    function onToggleActivate(span) {
+      var idx = parseInt(span.getAttribute('data-col-toggle'), 10);
+      if (!isNaN(idx)) toggleColTemplate(idx);
+    }
+    thead.addEventListener('click', function(e) {
+      var span = e.target.closest('.col-toggle');
+      if (span) { e.stopPropagation(); onToggleActivate(span); }
+    });
+    thead.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var span = e.target.closest('.col-toggle');
+      if (span) { e.preventDefault(); e.stopPropagation(); onToggleActivate(span); }
+    });
+  })();
 
   function updateParseTable() {
     var thead = document.querySelector('#parse-table thead');
@@ -1245,12 +1338,13 @@
                     finalizeFileLoad(meta, null);
                   }
 
-                  // Add to recent files
+                  // Add to recent files (path stored locally so the entry is
+                  // click-to-reload; same machine, same trust domain)
                   var name = fileName;
                   var size = '?.? MB';
                   var now = new Date();
                   var time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                  addRecentFileItem(name, size, time);
+                  addRecentFileItem(name, size, time, filePath);
                   showToast('Loaded: ' + name);
                 }
 
@@ -1290,7 +1384,35 @@
       // nodes with textContent so untrusted filenames are never parsed as
       // HTML. The list is driven by the _recentFiles data model; this only
       // appends and re-renders.
-      var _recentFiles = [];  // [{name, size, time}] — single source of truth
+      var _recentFiles = [];  // [{name, size, time, path}] — single source of truth
+
+      // CSP migration: recents activation is delegated here (the old markup
+      // had no inline handlers; items are plain divs). Clicking an entry
+      // reloads that file via its stored absolute path. Entries recorded
+      // before paths were persisted stay visible but inert.
+      (function wireRecentList() {
+        var list = document.getElementById('recentList');
+        if (!list) return;
+        function activate(entry) {
+          if (!entry) return;
+          if (!entry.path) { showToast('No stored path for this entry — load it again manually'); return; }
+          showToast('Reloading: ' + entry.name);
+          handleFilePath(entry.path);
+        }
+        function entryFromItem(item) {
+          var name = item && item.getAttribute('data-name');
+          return _recentFiles.find(function(en) { return en.name === name; });
+        }
+        list.addEventListener('click', function(e) {
+          var item = e.target.closest('.recent-item');
+          if (item) activate(entryFromItem(item));
+        });
+        list.addEventListener('keydown', function(e) {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          var item = e.target.closest('.recent-item');
+          if (item) { e.preventDefault(); activate(entryFromItem(item)); }
+        });
+      })();
 
       function renderRecentList() {
         var list = document.getElementById('recentList');
@@ -1306,6 +1428,12 @@
         _recentFiles.forEach(function(entry) {
           var item = document.createElement('div');
           item.className = 'recent-item';
+          if (entry.path) {
+            item.setAttribute('role', 'button');
+            item.tabIndex = 0;
+            item.title = 'Click to reload: ' + entry.path;
+          }
+          item.setAttribute('aria-label', 'Recent file ' + entry.name + (entry.path ? ' (click to reload)' : ''));
           var icon = document.createElement('span');
           icon.className = 'file-icon';
           icon.innerHTML = '&#x266B;';  // static glyph, safe
@@ -1319,17 +1447,18 @@
           item.appendChild(nameEl);
           item.appendChild(metaEl);
           item.dataset.name = entry.name;
+          item.dataset.path = entry.path || '';
           list.appendChild(item);
         });
       }
 
-      function addRecentFileItem(name, size, time) {
+      function addRecentFileItem(name, size, time, path) {
         if (!name) return;
         // Dedupe in the data model: drop any existing entry for same name
         _recentFiles = _recentFiles.filter(function(entry) {
           return entry.name !== name;
         });
-        _recentFiles.unshift({ name: name, size: size || '', time: time || '' });
+        _recentFiles.unshift({ name: name, size: size || '', time: time || '', path: path || '' });
         while (_recentFiles.length > 5) _recentFiles.pop();
         renderRecentList();
         saveRecentFiles();
@@ -2475,17 +2604,15 @@
       var tt = document.getElementById('toastToggle');    if (tt) tt.checked = SETTINGS.showToasts;
       var oa = document.getElementById('outputAafDir');   if (oa) oa.value = SETTINGS.outputAafDir;
       var om = document.getElementById('outputMxfDir');   if (om) om.value = SETTINGS.outputMxfDir;
-    // Segmented controls
+    // Segmented controls: active state now read from data attributes
+    // (the CSP migration replaced the old setMode/setEssence handler attrs)
     document.querySelectorAll('.settings-section .segmented').forEach(function(seg) {
       var btns = seg.querySelectorAll('.seg-option');
       btns.forEach(function(b) {
-        var handler = b.getAttribute('onclick') || '';
-        var active = false;
-        if (handler.indexOf("setMode(this, '") === 0) {
-          active = handler.indexOf("'" + SETTINGS.mode + "'") > 0;
-        } else if (handler.indexOf("setEssence(this, '") === 0) {
-          active = handler.indexOf("'" + SETTINGS.essence + "'") > 0;
-        }
+        var mode = b.getAttribute('data-setmode');
+        var essence = b.getAttribute('data-setessence');
+        var active = (mode !== null && mode === SETTINGS.mode) ||
+                     (essence !== null && essence === SETTINGS.essence);
         b.classList.toggle('active', active);
       });
     });
@@ -2859,10 +2986,12 @@
       var labels = ['Template', 'Naming', 'Routing', 'Export', 'Save'];
       var html = '';
       for (var i = 0; i < 5; i++) {
+        // Navigation is delegated from #wizardSteps (attribute handlers are
+        // dead under CSP)
         html += '<div class="wizard-step-dot' +
           (i === wizState.step ? ' active' : '') +
           (i < wizState.step ? ' done' : '') +
-          '" onclick="wizState.step=' + i + ';renderWizard();">' +
+          '" data-step="' + i + '" role="button" tabindex="0">' +
           '<span class="wizard-dot"></span>' +
           '<span class="wizard-step-label">' + labels[i] + '</span>' +
           '</div>';
@@ -3088,3 +3217,197 @@
               }
             } catch(e) {}
           })();
+
+// ======================================================================
+// CSP migration wiring (fix/csp-inline-handlers)
+// The strict CSP (script-src 'self') blocks ALL inline event handler
+// attributes. Everything below replaces handlers that used to live in
+// index.html attributes or generated on*= markup. All referenced
+// functions are top-level declarations in this file, so a single boot-
+// time block can bind them.
+// ======================================================================
+(function wireCspMigration() {
+  function on(id, ev, fn) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener(ev, fn);
+  }
+  function q(sel, ev, fn) {
+    document.querySelectorAll(sel).forEach(function(el) { el.addEventListener(ev, fn); });
+  }
+
+  // ---- Window chrome ----
+  on('winMinBtn', 'click', minimizeWindow);
+  on('maxBtn', 'click', maximizeWindow);
+  on('winCloseBtn', 'click', closeWindow);
+
+  // ---- Header ----
+  q('[data-nav]', 'click', function() { switchTab(this.getAttribute('data-nav')); });
+
+  // ---- Settings overlay open/close/outside-click/apply ----
+  on('settingsToggle', 'click', toggleSettings);
+  on('settingsCloseBtn', 'click', toggleSettings);
+  on('settingsCancelBtn', 'click', toggleSettings);
+  on('settingsApplyBtn', 'click', applySettings);
+  on('settingsOverlay', 'click', closeSettingsOutside);
+
+  // Theme segmented control
+  q('.seg-option[data-theme]', 'click', function() {
+    setThemeFromSettings(this.getAttribute('data-theme'));
+  });
+  // Mode / essence segmented controls (state-backed setMode/setEssence)
+  q('[data-setmode]', 'click', function() { setMode(this, this.getAttribute('data-setmode')); });
+  q('[data-setessence]', 'click', function() { setEssence(this, this.getAttribute('data-setessence')); });
+
+  // Settings selects/toggles: persist via onSettingChange / onPresetChange.
+  // Bound explicitly by id so the contract tests can trace each control.
+  var srSel = document.getElementById('srSelect');
+  if (srSel) srSel.addEventListener('change', function() { onSettingChange('sampleRate', this.value); });
+  var bdSel = document.getElementById('bdSelect');
+  if (bdSel) bdSel.addEventListener('change', function() { onSettingChange('bitDepth', this.value); });
+  var presetSel = document.getElementById('presetSelect');
+  if (presetSel) presetSel.addEventListener('change', function() { onPresetChange(this.value); });
+  var namingTpl = document.getElementById('namingTemplateInput');
+  if (namingTpl) namingTpl.addEventListener('change', function() { onSettingChange('namingTemplate', this.value); });
+  var rawBext = document.getElementById('rawBextToggle');
+  if (rawBext) rawBext.addEventListener('change', function() { onSettingChange('showRawBext', this.checked); });
+  var toastTgl = document.getElementById('toastToggle');
+  if (toastTgl) toastTgl.addEventListener('change', function() { onSettingChange('showToasts', this.checked); });
+
+  // ---- Export tab ----
+  on('outputAafDir', 'change', function() {
+    onSettingChange('outputAafDir', this.value);
+    buildCLICommand();
+  });
+  on('outputMxfDir', 'change', function() {
+    onSettingChange('outputMxfDir', this.value);
+    buildCLICommand();
+  });
+  on('browseAafDirBtn', 'click', function() { browseDir('outputAafDir'); });
+  on('browseMxfDirBtn', 'click', function() { browseDir('outputMxfDir'); });
+  on('copyCliBtn', 'click', copyCLI);
+  q('input[name="export-format"]', 'click', function() { exportFormatClick(this); });
+  on('exportBtn', 'click', doExport);
+
+  // ---- Route / patch tab buttons ----
+  on('routeUndoBtn', 'click', undoAction);
+  on('routeRedoBtn', 'click', redoAction);
+  on('patchUndoBtn', 'click', undoAction);
+  on('patchRedoBtn', 'click', redoAction);
+  q('[data-toast]', 'click', function() { showToast(this.getAttribute('data-toast')); });
+
+  // ---- Home tab ----
+  on('wizardCta', 'click', openWizard);
+  on('recentClearBtn', 'click', clearRecent);
+  on('flNewBtn', 'click', showDropZone);
+
+  // ---- Normalize inputs ----
+  var patternInput = document.getElementById('regex-pattern');
+  if (patternInput) patternInput.addEventListener('input', updateParseTable);
+  var testRawInput = document.getElementById('test-raw');
+  if (testRawInput) testRawInput.addEventListener('input', testRename);
+
+  // ---- Wizard overlay ----
+  on('wizardCloseBtn', 'click', closeWizard);
+  on('wizBackBtn', 'click', wizardBack);
+  on('wizNextBtn', 'click', wizardNext);
+  // Outside click closes the wizard (was inline onclick with target check)
+  on('wizardOverlay', 'click', function(e) {
+    if (e.target === e.currentTarget) closeWizard();
+  });
+  // Template cards
+  q('.wizard-tmpl-card', 'click', function() {
+    selectTemplate(this.getAttribute('data-template'));
+  });
+  q('.wizard-tmpl-card', 'keydown', function(e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    selectTemplate(this.getAttribute('data-template'));
+  });
+  // Step dots navigation
+  var wizSteps = document.getElementById('wizardSteps');
+  if (wizSteps) {
+    wizSteps.addEventListener('click', function(e) {
+      var dot = e.target.closest('.wizard-step-dot');
+      if (!dot) return;
+      wizState.step = parseInt(dot.getAttribute('data-step'), 10);
+      renderWizard();
+    });
+    wizSteps.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var dot = e.target.closest('.wizard-step-dot');
+      if (!dot) return;
+      e.preventDefault();
+      wizState.step = parseInt(dot.getAttribute('data-step'), 10);
+      renderWizard();
+    });
+  }
+  // Wizard form controls -> wizState
+  on('wizNamingTemplate', 'change', function() { wizState.naming.template = this.value; });
+  on('wizSeparator', 'change', function() { wizState.naming.separator = this.value; });
+  on('wizAutoAssign', 'change', function() { wizState.routing.autoAssign = this.checked; });
+  on('wizTrackGroup', 'change', function() { wizState.routing.trackGroup = this.value; });
+  on('wizMixGain', 'change', function() { wizState.routing.mixGain = parseFloat(this.value); });
+  on('wizMode', 'change', function() { wizState.export.mode = this.value; });
+  on('wizEssence', 'change', function() { wizState.export.essence = this.value; });
+  on('wizSampleRate', 'change', function() { wizState.export.sampleRate = this.value; });
+  on('wizBitDepth', 'change', function() { wizState.export.bitDepth = this.value; });
+  on('wizAafDir', 'change', function() { wizState.export.aafDir = this.value; });
+  on('wizMxfDir', 'change', function() { wizState.export.mxfDir = this.value; });
+  // Live naming preview while typing
+  on('wizNamingTemplate', 'input', updateNamingPreview);
+
+  // ====================================================================
+  // ARIA deepening: roving-tabindex arrow keys + dialog focus traps
+  // ====================================================================
+
+  // Arrow-key navigation between tabs (WAI-ARIA tabs pattern)
+  var tabBar = document.querySelector('.tab-bar');
+  if (tabBar) {
+    tabBar.addEventListener('keydown', function(e) {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' &&
+          e.key !== 'Home' && e.key !== 'End') return;
+      var tabs = Array.prototype.slice.call(tabBar.querySelectorAll('.tab'));
+      var cur = tabs.indexOf(document.activeElement);
+      if (cur < 0) cur = tabs.findIndex(function(t) { return t.classList.contains('active'); });
+      if (cur < 0) return;
+      var next;
+      if (e.key === 'ArrowRight') next = (cur + 1) % tabs.length;
+      else if (e.key === 'ArrowLeft') next = (cur - 1 + tabs.length) % tabs.length;
+      else if (e.key === 'Home') next = 0;
+      else next = tabs.length - 1;
+      e.preventDefault();
+      tabs[next].focus();
+      switchTab(tabs[next].getAttribute('data-tab'));
+    });
+  }
+
+  // Focus trap for modal overlays: Tab cycles inside the open dialog and
+  // focus is pulled back in if it escapes.
+  window.trapFocus = function(overlay) {
+    if (!overlay) return null;
+    function focusables() {
+      return Array.prototype.filter.call(
+        overlay.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'),
+        function(el) { return el.offsetParent !== null || el === document.activeElement; }
+      );
+    }
+    function keyHandler(e) {
+      if (e.key !== 'Tab') return;
+      var list = focusables();
+      if (!list.length) { e.preventDefault(); return; }
+      var first = list[0], last = list[list.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      } else if (!overlay.contains(document.activeElement)) {
+        e.preventDefault(); first.focus();
+      }
+    }
+    overlay.addEventListener('keydown', keyHandler);
+    return function releaseTrap() { overlay.removeEventListener('keydown', keyHandler); };
+  };
+
+  var _releaseSettingsTrap = trapFocus(document.getElementById('settingsOverlay'));
+  var _releaseWizardTrap = trapFocus(document.getElementById('wizardOverlay'));
+})();
