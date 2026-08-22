@@ -1348,6 +1348,12 @@
                   showToast('Loaded: ' + name);
                 }
 
+                // CSP-sprint follow-up (journey audit #1): recents wiring lives
+                // outside this IIFE; expose the loader entry points so activate()
+                // can call them without crossing closures.
+                window.handleFilePath = handleFilePath;
+                window.finalizeFileLoad = finalizeFileLoad;
+
               if (btn) btn.addEventListener('click', function(e) {
                               e.stopPropagation();
                               if (window.electronAPI && window.electronAPI.openFile) {

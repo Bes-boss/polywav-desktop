@@ -363,6 +363,13 @@ test('B6: loaded-from-recents toast tells the user which file came back', () => 
   assert(block && /showToast/.test(block[0]), 'no user feedback on recents reload');
 });
 
+test('B6.1: handleFilePath exposed on window (recents caller sits OUTSIDE the dropzone IIFE)', () => {
+  assert(/window\.handleFilePath\s*=\s*handleFilePath/.test(inlineJs),
+    'handleFilePath not exposed on window');
+  assert(/window\.finalizeFileLoad\s*=\s*finalizeFileLoad/.test(inlineJs),
+    'finalizeFileLoad not exposed on window');
+});
+
 // ======================================================================
 // BRANCH 7 — deeper ARIA (tabs, dialogs, focus traps, keyboard)
 // ======================================================================
