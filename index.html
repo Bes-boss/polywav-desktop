@@ -4,11 +4,54 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark light">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; script-src 'self'">
 <title>Polywav — Ingest Pipeline</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Fonts are self-hosted (fonts/*.woff2, SIL Open Font License) so the app works fully offline. -->
 <style>
+  /* ---- Self-hosted fonts (Fontsource builds, OFL) ---- */
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/Inter-latin-400-normal.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('fonts/Inter-latin-500-normal.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('fonts/Inter-latin-600-normal.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('fonts/Inter-latin-700-normal.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/JetBrainsMono-latin-400-normal.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('fonts/JetBrainsMono-latin-500-normal.woff2') format('woff2');
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     --page: #1f1c19;
@@ -3592,6 +3635,33 @@
         <button class="wizard-btn primary" id="wizNextBtn">Next</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Fatal error overlay: shown by app.js window.onerror boundary (audit hardening 2026-08-22) -->
+<style>
+  .fatal-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(30, 27, 24, 0.65);
+  }
+  .fatal-overlay[hidden] { display: none; }
+  .fatal-card {
+    width: 520px; max-width: 92vw;
+    background: var(--bg-card, #262220);
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  }
+</style>
+<div id="fatalError" class="fatal-overlay" role="alertdialog" aria-modal="true" aria-labelledby="fatalTitle" aria-describedby="fatalDesc" hidden>
+  <div class="fatal-card">
+    <h2 id="fatalTitle" style="margin-bottom:12px">Something went wrong</h2>
+    <p id="fatalDesc" style="white-space:pre-wrap;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.5"></p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-primary" id="fatalReloadBtn">Reload</button>
+    </div>
+    <p style="margin-top:10px;opacity:0.7;font-size:12px">Your presets and settings are safe. Reload restarts the interface only.</p>
   </div>
 </div>
 

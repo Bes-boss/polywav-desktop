@@ -6,6 +6,7 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
+    "engine:build": "cd ../polywav && ./.venv-build/Scripts/python.exe packaging/build_engine.py",
     "build": "electron-builder"
   },
   "build": {
@@ -14,9 +15,26 @@
     "directories": {
       "output": "release"
     },
+    "files": [
+      "main.js",
+      "preload.js",
+      "app.js",
+      "index.html",
+      "fonts/**",
+      "presets/**"
+    ],
+    "extraResources": [
+      {
+        "from": "../dist/polywav-engine",
+        "to": "engine",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "win": {
       "target": "nsis",
-      "icon": null
+      "icon": "buildres/icon.ico"
     },
     "nsis": {
       "oneClick": false,
