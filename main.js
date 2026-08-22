@@ -12,6 +12,26 @@ let mainWindow = null;
 let isMaximized = false;
 let winStatePath = null;
 
+// ---- Main-process crash guard (audit hardening 2026-08-22) ------------------
+// An uncaught exception in the main process must not silently kill the app.
+// Log to stderr; keep the window alive for recoverable errors.
+process.on('uncaughtException', (err) => {
+  try {
+    console.error('[polywav] uncaught exception in main process:', err);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('export:progress', {
+        jobId: 'current',
+        line: '[polywav] internal error: ' + (err && err.message ? err.message : String(err)),
+      });
+    }
+  } catch (_) { /* never throw inside the guard */ }
+});
+process.on('unhandledRejection', (reason) => {
+  try {
+    console.error('[polywav] unhandled rejection in main process:', reason);
+  } catch (_) { /* never throw inside the guard */ }
+});
+
 // ---- Window State Persistence -----------------------------------------------
 const WINDOW_STATE_FILE = 'win-state.json';
 
@@ -352,7 +372,7 @@ ipcMain.handle('presets:importOpen', async () => {
 // ---- IPC: File Probe --------------------------------------------------------
 ipcMain.handle('file:probe', async (event, filePath) => {
   return new Promise((resolve) => {
-    const child = spawn(VENV_PYTHON, ['-m', 'polywav.cli', 'probe', '-i', filePath], {
+    const child = spawn(VENV_PYTHON, buildEngineArgs(['probe', '-i', filePath]), {
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -460,12 +480,26 @@ ipcMain.handle('file:probe', async (event, filePath) => {
 // Audit N-13: resolve the Python interpreter at runtime instead of hardcoding
 // a user-specific absolute path. Order: env var -> bundled sidecar -> PATH.
 function resolvePython() {
-  if (process.env.POLYWAV_PYTHON && fs.existsSync(process.env.POLYWAV_PYTHON)) {
-    return process.env.POLYWAV_PYTHON;
+  // 0. Explicit env override (engine exe or interpreter).
+  //    POLYWAV_PYTHON kept as a legacy alias.
+  const envEngine = process.env.POLYWAV_ENGINE || process.env.POLYWAV_PYTHON;
+  if (envEngine && fs.existsSync(envEngine)) {
+    return envEngine;
   }
+  // 1. Packaged engine sidecar next to the installed app
   try {
-    const bundled = path.join(app.getPath('userData'), 'bin', 'python.exe');
-    if (fs.existsSync(bundled)) return bundled;
+    const sidecar = path.join(process.resourcesPath || '', 'engine', 'polywav-engine.exe');
+    if (process.resourcesPath && fs.existsSync(sidecar)) return sidecar;
+  } catch (e) { /* resourcesPath unavailable in some contexts */ }
+  // 2. Engine sidecar dropped into the user-data bin dir
+  try {
+    const bundledExe = path.join(app.getPath('userData'), 'bin', 'polywav-engine.exe');
+    if (fs.existsSync(bundledExe)) return bundledExe;
+  } catch (e) { /* app not ready — skip */ }
+  // 3. Legacy: a full python.exe dropped into userData/bin
+  try {
+    const bundledPy = path.join(app.getPath('userData'), 'bin', 'python.exe');
+    if (fs.existsSync(bundledPy)) return bundledPy;
   } catch (e) { /* app not ready — skip */ }
   // Dev fallback: the known venv on this machine, if it exists
   const devVenv = 'C:\\Users\\Liam\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe';
@@ -473,6 +507,17 @@ function resolvePython() {
   return 'python'; // last resort: whatever is on PATH
 }
 const VENV_PYTHON = resolvePython();
+// Frozen PyInstaller exe runs the CLI directly; interpreter mode needs -m module.
+const enginePathLower = String(VENV_PYTHON).toLowerCase();
+const ENGINE_IS_EXE =
+  enginePathLower.endsWith('.exe') && enginePathLower.indexOf('python') === -1;
+
+// Build full spawn argv for a polywav CLI invocation.
+// cliArgs example: ['embed-aaf', '-i', input, '-o', output].
+function buildEngineArgs(cliArgs) {
+  if (ENGINE_IS_EXE) return cliArgs.slice();
+  return ['-m', 'polywav.cli'].concat(cliArgs);
+}
 
 let currentExportJob = null;
 let exportCancelled = false; // Audit N-4a: cancel must not be reported as failure
@@ -483,7 +528,7 @@ ipcMain.handle('export:start', async (event, config) => {
   }
 
   // Build CLI arguments
-    const args = ['-m', 'polywav.cli', 'embed-aaf', '-i', config.inputPath, '-o', config.outputPath];
+    const args = buildEngineArgs(['embed-aaf', '-i', config.inputPath, '-o', config.outputPath]);
     if (config.clipName) args.push('--name', config.clipName);
     if (config.routing) args.push('--routing', config.routing);
     if (config.mode && config.mode !== 'group') args.push('--mode', config.mode);

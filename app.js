@@ -3721,3 +3721,46 @@
   var _releaseSettingsTrap = trapFocus(document.getElementById('settingsOverlay'));
   var _releaseWizardTrap = trapFocus(document.getElementById('wizardOverlay'));
 })();
+
+// ======================================================================
+// Renderer error boundary (audit hardening 2026-08-22).
+// An uncaught renderer exception must never leave a blank white screen:
+// surface a dismissible overlay with the message instead.
+// ======================================================================
+(function () {
+  'use strict';
+  var _fatalShown = false;
+
+  function showFatalError(err) {
+    if (_fatalShown) return; // one overlay; never loop on repeat errors
+    _fatalShown = true;
+    try {
+      var box = document.getElementById('fatalError');
+      var desc = document.getElementById('fatalDesc');
+      if (!box) return;
+      var msg = (err && err.stack) ? String(err.stack)
+        : (err && err.message) ? String(err.message)
+        : String(err);
+      if (desc) desc.textContent = msg.slice(0, 2000);
+      box.hidden = false;
+    } catch (_) {
+      /* boundary must never throw */
+    }
+  }
+  window.showFatalError = showFatalError;
+
+  window.addEventListener('error', function (e) {
+    // Script errors carry {message, filename, lineno}; resource errors have .target
+    if (e && e.target && e.target !== window) return; // img/css load failure, not JS
+    showFatalError(e && e.error ? e.error : e && e.message);
+  });
+
+  window.addEventListener('unhandledrejection', function (e) {
+    showFatalError(e && e.reason ? e.reason : 'Unhandled promise rejection');
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('fatalReloadBtn');
+    if (btn) btn.addEventListener('click', function () { location.reload(); });
+  });
+})();

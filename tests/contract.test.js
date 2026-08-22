@@ -534,5 +534,72 @@ test('B9f: starter preset files exist and are engine-loadable mappings', () => {
 });
 
 // ======================================================================
+// B10 — Packaging & portability (2026-08-22 hardening sprint)
+// ======================================================================
+
+function resolvePythonBody() {
+  const start = mainJs.indexOf('function resolvePython()');
+  const end = mainJs.indexOf('const VENV_PYTHON');
+  assert(start !== -1 && end > start, 'resolvePython() not found');
+  return mainJs.slice(start, end);
+}
+
+test('B10a: resolvePython checks packaged engine sidecar before dev venv', () => {
+  const fn = resolvePythonBody();
+  assert(/resourcesPath/.test(fn), 'resolvePython never checks process.resourcesPath (packaged engine)');
+  const sidecarIdx = fn.search(/resourcesPath/);
+  const devIdx = fn.indexOf('hermes-agent');
+  assert(devIdx === -1 || devIdx > sidecarIdx, 'machine-specific dev venv checked before packaged sidecar');
+});
+
+test('B10b: POLYWAV_ENGINE env override for the engine executable', () => {
+  assert(/POLYWAV_ENGINE/.test(mainJs), 'no POLYWAV_ENGINE env override');
+});
+
+test('B10c: engine invocation adapts to frozen exe vs python -m', () => {
+  assert(/ENGINE_IS_EXE/.test(mainJs), 'no ENGINE_IS_EXE discriminator');
+  assert(/function buildEngineArgs/.test(mainJs), 'no buildEngineArgs() helper');
+  // the old unconditional module-form spawn must be gone
+  assert(!/spawn\(VENV_PYTHON,\s*\['-m',\s*'polywav\.cli'/.test(mainJs),
+    "a spawn site still hardcodes ['-m','polywav.cli'] instead of buildEngineArgs()");
+  // definition + probe inline + export assignment = >= 3 usages
+  const uses = mainJs.match(/buildEngineArgs\(/g) || [];
+  assert(uses.length >= 3, `expected buildEngineArgs used at probe+export, found ${uses.length}`);
+});
+
+test('B10d: CSP allows no remote font origins (offline-capable)', () => {
+  assert(!/fonts\.googleapis\.com/.test(indexHtml), 'CSP/markup still references Google Fonts');
+  assert(!/fonts\.gstatic\.com/.test(indexHtml), 'markup still references gstatic');
+  assert(!/https:\/\/fonts/.test(mainJs), 'main.js references remote fonts');
+});
+
+test('B10e: fonts are self-hosted with @font-face', () => {
+  const fontsDir = path.join(ROOT, 'fonts');
+  assert(fs.existsSync(fontsDir), 'missing fonts/ directory');
+  const files = fs.readdirSync(fontsDir);
+  assert(files.some((f) => /^Inter-.*\.woff2$/i.test(f)), 'no Inter woff2 in fonts/');
+  assert(files.some((f) => /^JetBrainsMono-.*\.woff2$/i.test(f)), 'no JetBrains Mono woff2 in fonts/');
+  assertHtml(/@font-face/, 'index.html has no @font-face declarations');
+});
+
+test('B10f: renderer error boundary prevents white-screen', () => {
+  assertMain(/process\.on\(['"]uncaughtException['"]/, 'main process lacks uncaughtException handler');
+  assert(/window\.addEventListener\(['"]error['"]/.test(inlineJs), 'renderer lacks window error listener');
+  assert(/window\.addEventListener\(['"]unhandledrejection['"]/.test(inlineJs), 'renderer lacks unhandledrejection listener');
+  assertHtml(/id="fatalError"/, 'no #fatalError overlay element');
+  assert(/showFatalError/.test(inlineJs), 'no showFatalError() in renderer');
+});
+
+test('B10g: electron-builder bundles the engine sidecar and sets an icon', () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  const build = pkg.build || {};
+  const extra = JSON.stringify(build.extraResources || []);
+  assert(/engine/.test(extra), 'extraResources missing engine sidecar');
+  assert(/polywav-engine/.test(extra), 'engine extraResource does not point at dist/polywav-engine');
+  assert(build.win && build.win.icon, 'win.icon not configured');
+  assert(fs.existsSync(path.join(ROOT, build.win.icon)), 'configured win icon file missing on disk');
+});
+
+// ======================================================================
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);
