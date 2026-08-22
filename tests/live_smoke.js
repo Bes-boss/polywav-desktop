@@ -1,9 +1,35 @@
-/** Live CDP smoke test: boots Electron, clicks real buttons, asserts real state. */
-const { execFile, spawn } = require('child_process');
+/** Live CDP smoke test: boots Electron, clicks real controls, asserts real state.
+ *
+ * Anti-false-pass rules (burned in 2026-08-22 journey audit):
+ *  - ALWAYS Emulation.setFocusEmulationEnabled {enabled:true} right after
+ *    attach: occluded windows report visibilityState 'hidden' and Chromium
+ *    freezes requestAnimationFrame, which produced phantom bug reports.
+ *  - Assert OUTCOMES (state / artifacts), NEVER toast text: the old suite
+ *    passed 13/13 while recents click-to-reload was completely broken.
+ *  - Trusted input only: Input.dispatchMouseEvent / Input.dispatchKeyEvent.
+ *  - scrollIntoView before clicking; synthetic element.click() hides
+ *    visibility bugs, so every interaction here is a real mouse/key event.
+ */
+const { execFileSync, spawn } = require('child_process');
 const http = require('http');
+const os = require('os');
+const path = require('path');
+const fs = require('fs');
 
-const ELECTRON = process.env.ELECTRON_BIN; // node_modules/.bin/electron.cmd
 const APPDIR = process.cwd();
+const ELECTRON = process.env.ELECTRON_BIN ||
+  path.join(APPDIR, 'node_modules', '.bin', 'electron.cmd'); // node_modules/.bin/electron.cmd
+const VENV_PY = process.env.POLYWAV_PYTHON ||
+  'C:/Users/Liam/AppData/Local/hermes/hermes-agent/venv/Scripts/python.exe';
+const FIXTURE_NAME = 'field_recording.wav';
+const FIXTURE = path.join(os.tmpdir(), 'polywav_audit', FIXTURE_NAME);
+
+// Ensure the 8ch/48k/24-bit fixture exists so outcome assertions run against
+// a REAL file (the old fake-path recents check could never catch the bug).
+if (!fs.existsSync(FIXTURE)) {
+  fs.mkdirSync(path.dirname(FIXTURE), { recursive: true });
+  execFileSync(VENV_PY, [path.join(__dirname, 'make_field_wav.py'), FIXTURE], { stdio: 'ignore' });
+}
 
 function getJson(url) {
   return new Promise((resolve, reject) => {
@@ -61,6 +87,48 @@ async function main() {
       if (r.exceptionDetails) throw new Error('page threw: ' + JSON.stringify(r.exceptionDetails.exception));
       return r.result.value;
     }
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    // Occluded-window rAF freeze produced the entire false finding #4. Force
+    // visible-emulation FIRST, before any interaction or assertion.
+    await cdp('Emulation.setFocusEmulationEnabled', { enabled: true });
+
+    async function rect(sel) {
+      return evalJs(`(function(){var el=document.querySelector(${JSON.stringify(sel)});if(!el)return null;el.scrollIntoView({block:'center'});var r=el.getBoundingClientRect();var s=getComputedStyle(el);if(s.visibility==='hidden'||s.display==='none'||r.width<2||r.height<2)return null;return [Math.round((r.left+r.right)/2),Math.round((r.top+r.bottom)/2)];})()`);
+    }
+    async function clickXY(x, y) {
+      await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
+      await cdp('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 });
+      await cdp('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 });
+    }
+    async function trustClick(sel) {
+      const p = await rect(sel);
+      if (!p) throw new Error('element not found: ' + sel);
+      await clickXY(p[0], p[1]);
+    }
+    async function waitVisible(sel, maxMs) {
+      for (let i = 0; i < maxMs / 100; i++) {
+        const p = await rect(sel);
+        if (p) return p;
+        await sleep(100);
+      }
+      return null;
+    }
+    async function formatCardCenter(value) {
+      return evalJs(`(function(){
+        var rb = document.querySelector('input[name="export-format"][value="' + ${JSON.stringify(value)} + '"]');
+        if (!rb) return null;
+        var lab = rb.closest('label.export-option');
+        if (!lab) return null;
+        var t = lab.querySelector('.export-label') || lab;
+        var b = t.getBoundingClientRect();
+        return [Math.round(b.left + b.width / 2), Math.round(b.top + b.height / 2)];
+      })()`);
+    }
+    async function pressKey(keyName, vk) {
+      await cdp('Input.dispatchKeyEvent', { type: 'keyDown', key: keyName, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
+      await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: keyName, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
+    }
 
     const results = [];
     function check(name, ok, detail) {
@@ -68,110 +136,185 @@ async function main() {
       console.log((ok ? '  ok  ' : 'FAIL  ') + name + (detail ? '  [' + detail + ']' : ''));
     }
 
-    // ---- 0. App booted, no renderer errors ----
-    const ready = await evalJs('typeof switchTab + "|" + typeof openWizard + "|" + typeof doExport');
-    check('app booted with global helpers', ready === 'function|function|function', ready);
+    // ---- 0. App booted (wait out cold start; classic script = globals) ----
+    let boot = null;
+    for (let i = 0; i < 40; i++) {
+      boot = await evalJs('typeof switchTab + "|" + typeof openWizard + "|" + typeof doExport');
+      if (boot === 'function|function|function') break;
+      await sleep(250);
+    }
+    check('app booted with global helpers', boot === 'function|function|function', boot);
 
-    // ---- 1. Tab switching via simulated click (data-nav delegation) ----
-    await evalJs(`document.querySelector('.tab-bar .tab[data-tab=\"normalize\"]').click()`);
-    await new Promise((r) => setTimeout(r, 500));
-    const normActive = await evalJs(
-      `document.getElementById('tab-normalize').classList.contains('active') + '|' +
-       document.querySelector('.tab-bar .tab[data-tab=\"normalize\"]').classList.contains('active')`);
-    check('tab click switches panel + tab active state', normActive === 'true|true', normActive);
-
-    // ---- 2. Settings overlay: open via gear button, segmented control works ----
-    await evalJs(`document.getElementById('settingsToggle').click()`);
-    await new Promise((r) => setTimeout(r, 300));
-    const settingsOpen = await evalJs(`document.getElementById('settingsOverlay').classList.contains('open')`);
-    check('settings opens from header button', settingsOpen === true);
-
-    const modeBefore = await evalJs(`document.querySelector('[data-setmode=\"sequence\"]').classList.contains('active')`);
-    await evalJs(`document.querySelector('[data-setmode=\"sequence\"]').click()`);
-    await new Promise((r) => setTimeout(r, 200));
-    const modeAfter = await evalJs(
-      `document.querySelector('[data-setmode=\"sequence\"]').classList.contains('active') + '|' + SETTINGS.mode`);
-    check('segmented mode control updates state', modeAfter === 'true|sequence', modeAfter);
-    // restore
-    await evalJs(`document.querySelector('[data-setmode=\"group\"]').click()`);
-    await evalJs(`document.getElementById('settingsCloseBtn').click()`);
-    await new Promise((r) => setTimeout(r, 200));
-
-    // ---- 3. Wizard: open via CTA, pick template via card click, dots navigate ----
-    await evalJs(`document.getElementById('wizardCta').click()`);
-    await new Promise((r) => setTimeout(r, 300));
+    // ---- 1. Wizard (home tab, empty state): CTA -> template -> dot -> close ----
+    const wizCtaP = await waitVisible('#wizardCta', 3000);
+    check('wizard CTA visible on home tab', !!wizCtaP);
+    if (wizCtaP) await clickXY(wizCtaP[0], wizCtaP[1]);
+    await sleep(300);
     const wizOpen = await evalJs(`document.getElementById('wizardOverlay').classList.contains('open')`);
     check('wizard opens from CTA', wizOpen === true);
 
-    await evalJs(`document.querySelector('.wizard-tmpl-card[data-template=\"cooking\"]').click()`);
-    await new Promise((r) => setTimeout(r, 200));
+    await trustClick('.wizard-tmpl-card[data-template="cooking"]');
+    await sleep(200);
     const tpl = await evalJs(`wizState.template + '|' + wizState.export.mode + '|' + wizState.export.essence`);
     check('template card click applies Cooking Show defaults', tpl === 'cooking|mixed|mxf', tpl);
 
-    await evalJs(`document.querySelector('.wizard-step-dot[data-step=\"2\"]').click()`);
-    await new Promise((r) => setTimeout(r, 200));
+    await trustClick('.wizard-step-dot[data-step="2"]');
+    await sleep(200);
     const dotNav = await evalJs(`wizState.step`);
     check('wizard step-dot click navigates', dotNav === 2, String(dotNav));
-    await evalJs(`document.getElementById('wizardCloseBtn').click()`);
-    await new Promise((r) => setTimeout(r, 200));
+    await trustClick('#wizardCloseBtn');
+    await sleep(200);
 
-    // ---- 4. Recents: seed an entry with a fake path, click it, expect toast + no crash ----
+    // ---- 2. Tab bar delegation (normalize panel switches) ----
+    await trustClick('.tab-bar .tab[data-tab="normalize"]');
+    await sleep(500);
+    const normActive = await evalJs(
+      `document.getElementById('tab-normalize').classList.contains('active') + '|' +
+       document.querySelector('.tab-bar .tab[data-tab="normalize"]').classList.contains('active')`);
+    check('tab click switches panel + tab active state', normActive === 'true|true', normActive);
+    await trustClick('.tab-bar .tab[data-tab="home"]');
+    await sleep(400);
+
+    // ---- 3. Recents: real file, click-to-reload must change STATE ----
+    // (was: toast-text assertion that passed while the loader was broken)
     await evalJs(
       `_recentFiles.length = 0;` +
-      `addRecentFileItem('smoke_test.wav', '1.2 MB', '10:00', 'C:/definitely/not/real.wav');`);
-    await new Promise((r) => setTimeout(r, 200));
-    const item = await evalJs(
-      `(function(){ var it = document.querySelector('.recent-item'); ` +
-      `return it ? (it.getAttribute('data-path') || '') : 'NO ITEM'; })()`);
-    check('recent entry renders with stored path', item === 'C:/definitely/not/real.wav', item);
+      `addRecentFileItem(${JSON.stringify(FIXTURE_NAME)}, '5.5 MB', '10:00', ${JSON.stringify(FIXTURE)});`);
+    await sleep(300);
+    await trustClick('.recent-item');
+    let loaded = null;
+    for (let i = 0; i < 16; i++) {
+      await sleep(250);
+      loaded = await evalJs(
+        `({fl: _fileLoaded === true, p: _filePath || '', c: _clipName || '', n: rawChannels.length})`);
+      if (loaded.fl && loaded.p === FIXTURE && loaded.n === 8) break;
+    }
+    check('recents click reloads the file (outcome: _fileLoaded + path + 8ch)',
+      !!(loaded && loaded.fl && loaded.p === FIXTURE && loaded.n === 8), JSON.stringify(loaded));
 
-    const toastBefore = await evalJs(`document.getElementById('toast').textContent`);
-    await evalJs(`document.querySelector('.recent-item').click()`);
-    await new Promise((r) => setTimeout(r, 400));
-    const toastAfter = await evalJs(`document.getElementById('toast').textContent`);
-    check('recents click fires reload feedback (toast)', toastAfter && toastAfter !== toastBefore, JSON.stringify(toastAfter));
+    // ---- 4. Settings: gear opens overlay, segmented mode flips state ----
+    await trustClick('#settingsToggle');
+    await sleep(400);
+    const settingsOpen = await evalJs(`document.getElementById('settingsOverlay').classList.contains('open')`);
+    check('settings opens from header button', settingsOpen === true);
 
-    // ---- 5. ARIA: tablist roles present, aria-selected syncs on switch ----
+    await trustClick('[data-setmode="sequence"]');
+    await sleep(200);
+    const modeAfter = await evalJs(
+      `document.querySelector('[data-setmode="sequence"]').classList.contains('active') + '|' + SETTINGS.mode`);
+    check('segmented mode control updates state', modeAfter === 'true|sequence', modeAfter);
+    await trustClick('[data-setmode="group"]');
+    await trustClick('#settingsCloseBtn');
+    await sleep(200);
+
+    // ---- 5a. Digit-tolerant normalize: EP1_001_Presenter must not junk out ----
+    const norm = await evalJs(
+      `(function(){var r = parseName('EP1_001_Presenter'); return r.prefix + '|' + r.role + '|' + r.num;})()`);
+    check('normalize parses digit prefix + take number (EP1_001_Presenter)', norm === 'EP1|Presenter|001', norm);
+
+    // ---- 5b. Single-click cell editing: trusted mousedown focuses the cell ----
+    await evalJs(`switchTab('normalize');`);
+    await sleep(600);
+    const cellBefore = await evalJs(
+      `(function(){var td=document.querySelector('#parse-table td.capture-group'); return td ? td.textContent.trim().slice(0,20) : 'NO_CELL';})()`);
+    check('normalize table has editable cells', cellBefore !== 'NO_CELL', cellBefore);
+
+    await trustClick('#parse-table td.capture-group');
+    await sleep(150); // deferred td.focus() is setTimeout(0)
+    const focusState = await evalJs(
+      `(function(){var a=document.activeElement; if(!a||!a.closest) return 'NO'; var td=a.closest('td.capture-group'); return (td&&a.isContentEditable)?'YES':'NO';})()`);
+    check('single-click focuses the editable cell (no blanket preventDefault)', focusState === 'YES', focusState);
+
+    await cdp('Input.dispatchKeyEvent', { type: 'char', text: 'Z' });
+    await sleep(150);
+    const typed = await evalJs(
+      `(function(){var td=document.querySelector('#parse-table td.capture-group');return td&&td.textContent.indexOf('Z')>=0?'YES':'NO';})()`);
+    check('typed char lands in focused cell', typed === 'YES', typed);
+
+    // Selection must survive the deferred focus: click a later cell, expect a
+    // single-cell selection that tracks the click.
+    await trustClick('#parse-table td.capture-group:nth-of-type(3)');
+    await sleep(150);
+    const selState = await evalJs(
+      `(function(){var s=_normSel; return s ? ('r' + s.r1 + 'c' + s.c1 + '|r' + s.r2 + 'c' + s.c2) : 'NONE';})()`);
+    check('selection tracks single clicks', /^r\d+c\d+\|r\d+c\d+$/.test(selState), selState);
+
+    // ---- 6. Patch tab: routed cables drawn (rAF visible via focus emulation) ----
+    await trustClick('.tab-bar .tab[data-tab="route"]');
+    await sleep(600);
+    const wantMap = { '01': 'A1', '02': 'A2' };
+    const rowChs = await evalJs(
+      `Array.prototype.map.call(document.querySelectorAll('#routeTableBody select.track-select'), function(s){return s.getAttribute('data-ch');})`);
+    for (const ch of rowChs) {
+      if (!wantMap[ch]) continue;
+      await trustClick('#routeTableBody select.track-select[data-ch="' + ch + '"]');
+      await sleep(200);
+      const targetIdx = parseInt(wantMap[ch].slice(1), 10);
+      for (let i = 0; i < targetIdx; i++) await pressKey('ArrowDown', 40);
+      await pressKey('Enter', 13);
+      await sleep(180);
+    }
+    await sleep(400);
+    const routed = await evalJs(`ROUTING_DATA.filter(function(d){return d.track;}).length`);
+    await trustClick('.tab-bar .tab[data-tab="patch"]');
+    await sleep(900); // double-rAF deferred cable pass
+    const cables = await evalJs(
+      `(function(){var svg=document.getElementById('patchSvgEl')||document.querySelector('.patch-svg');if(!svg)return -1;var paths=svg.querySelectorAll('path');var unrouted=svg.querySelectorAll('path.unrouted').length;return paths.length-unrouted;})()`);
+    check('patch tab draws routed cables (rAF visible, focus emulated)',
+      cables >= routed && routed > 0, 'cables=' + cables + ' routed=' + routed);
+
+    // ---- 7. Export: card BODY clicks select format; size estimate real ----
+    await trustClick('.tab-bar .tab[data-tab="export"]');
+    await sleep(500);
+
+    const mxfP = await formatCardCenter('mxf');
+    await clickXY(mxfP[0], mxfP[1]);
+    await sleep(300);
+    const essenceMxf = await evalJs(
+      `(function(){var rb=document.querySelector('input[name="export-format"][value="mxf"]');return SETTINGS.essence + '|' + (rb.closest('label.export-option').classList.contains('selected')?'SEL':'NOSEL');})()`);
+    check('export card BODY click selects MXF (label forwarding)', essenceMxf === 'mxf|SEL', essenceMxf);
+
+    const embP = await formatCardCenter('embedded');
+    await clickXY(embP[0], embP[1]);
+    await sleep(300);
+    const essenceEmb = await evalJs(`SETTINGS.essence`);
+    check('export card BODY click selects Embedded', essenceEmb === 'embedded', essenceEmb);
+
+    const sizeTxt = await evalJs(`document.getElementById('exportSize').textContent`);
+    const gb = parseFloat((sizeTxt || '').replace(/[^0-9.]/g, ''));
+    check('size estimate reflects 5s source (<0.1 GB)', !isNaN(gb) && gb > 0 && gb < 0.1, sizeTxt);
+
+    // ---- 8. ARIA roles + switchTab sync ----
     const aria = await evalJs(
       `document.querySelector('.tab-bar').getAttribute('role') + '|' +
-       document.querySelectorAll('.tab-bar .tab[role=\"tab\"]').length + '|' +
-       document.querySelectorAll('.tab-content[role=\"tabpanel\"]').length`);
+       document.querySelectorAll('.tab-bar .tab[role="tab"]').length + '|' +
+       document.querySelectorAll('.tab-content[role="tabpanel"]').length`);
     check('ARIA roles on tab bar + panels', aria === 'tablist|5|5', aria);
 
-    await evalJs(`switchTab('export')`);
-    await new Promise((r) => setTimeout(r, 300));
-    const sel = await evalJs(
-      `document.querySelector('.tab-bar .tab[data-tab=\"export\"]').getAttribute('aria-selected') + '|' +
+    const ariaSel = await evalJs(
+      `document.querySelector('.tab-bar .tab[data-tab="export"]').getAttribute('aria-selected') + '|' +
        document.getElementById('tab-export').getAttribute('aria-hidden')`);
-    check('switchTab syncs aria-selected/aria-hidden', sel === 'true|false', sel);
+    check('switchTab syncs aria-selected/aria-hidden', ariaSel === 'true|false', ariaSel);
 
-    // ---- 6. Focus trap: Tab at end of settings overlay cycles to first control ----
-    await evalJs(`document.getElementById('settingsToggle').click()`);
-    await new Promise((r) => setTimeout(r, 300));
+    // ---- 9. Focus trap cycles inside settings overlay ----
+    await trustClick('#settingsToggle');
+    await sleep(400);
     await evalJs(
       `(function(){ var f = document.querySelectorAll('#settingsOverlay button, #settingsOverlay input, #settingsOverlay select'); ` +
       `f[f.length-1].focus(); })()`);
     await evalJs(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', {key:'Tab', bubbles:true}))`);
-    await new Promise((r) => setTimeout(r, 200));
+    await sleep(200);
     const trapped = await evalJs(`document.getElementById('settingsOverlay').contains(document.activeElement)`);
     check('focus trap cycles Tab inside settings overlay', trapped === true);
+    await trustClick('#settingsCloseBtn');
+    await sleep(200);
 
-    // ---- 7. Export-format radios still drive the option cards ----
-    await evalJs(`document.getElementById('settingsCloseBtn').click(); switchTab('export');`);
-    await new Promise((r) => setTimeout(r, 400));
-    await evalJs(`document.querySelector('input[name=\"export-format\"][value=\"mxf\"]').click()`);
-    await new Promise((r) => setTimeout(r, 200));
-    const essence = await evalJs(`document.getElementById('exportEssence').textContent`);
-    check('export format radio click updates summary', /MXF/i.test(essence), essence);
-
-    console.log('\\n' + results.filter((r) => r.ok).length + '/' + results.length + ' live checks passed');
+    console.log('\n' + results.filter((r) => r.ok).length + '/' + results.length + ' live checks passed');
     const failed = results.filter((r) => !r.ok);
     process.exitCode = failed.length ? 1 : 0;
   } finally {
     if (ws) try { ws.close(); } catch (e) {}
     if (electron && electron.pid) {
-      // shell:true means pid is the cmd.exe wrapper; kill the whole tree
-      // or electron survives as an orphan on Windows.
       try { require('child_process').execSync(`taskkill /pid ${electron.pid} /T /F`, { stdio: 'ignore' }); } catch (e) {}
     }
     setTimeout(() => process.exit(process.exitCode || 0), 300);
