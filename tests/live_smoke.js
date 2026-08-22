@@ -21,6 +21,13 @@ const ELECTRON = process.env.ELECTRON_BIN ||
   path.join(APPDIR, 'node_modules', '.bin', 'electron.cmd'); // node_modules/.bin/electron.cmd
 const VENV_PY = process.env.POLYWAV_PYTHON ||
   'C:/Users/Liam/AppData/Local/hermes/hermes-agent/venv/Scripts/python.exe';
+// Preset-library checks run against an ISOLATED store so the smoke run
+// never touches Liam's real presets (POLYWAV_PRESETS_DIR override).
+const PRESET_DIR = path.join(os.tmpdir(), 'polywav_smoke_presets');
+fs.rmSync(PRESET_DIR, { recursive: true, force: true });
+fs.mkdirSync(PRESET_DIR, { recursive: true });
+process.env.POLYWAV_PRESETS_DIR = PRESET_DIR;
+
 const FIXTURE_NAME = 'field_recording.wav';
 const FIXTURE = path.join(os.tmpdir(), 'polywav_audit', FIXTURE_NAME);
 
@@ -306,6 +313,67 @@ async function main() {
     await sleep(200);
     const trapped = await evalJs(`document.getElementById('settingsOverlay').contains(document.activeElement)`);
     check('focus trap cycles Tab inside settings overlay', trapped === true);
+    await trustClick('#settingsCloseBtn');
+    await sleep(200);
+
+    // ---- 10. Preset library: standalone YAML files, isolated store ----
+    await trustClick('#settingsToggle');
+    await sleep(400);
+
+    const presetOpts = await evalJs(
+      `(function(){var s=document.getElementById('presetSelect');` +
+      `var t=[];for(var i=0;i<s.options.length;i++)t.push(s.options[i].textContent);` +
+      `return s.options.length+'|'+t.join(';');})()`);
+    check('preset dropdown populated from bundled library',
+      /^3\|/.test(presetOpts) &&
+      presetOpts.indexOf('Masterchef Kitchens (MKR)') >= 0 &&
+      presetOpts.indexOf('The Block (BLK)') >= 0 &&
+      presetOpts.indexOf('Survivor (SVR)') >= 0,
+      presetOpts);
+
+    const nameP = await rect('#presetNameInput');
+    if (!nameP) throw new Error('presetNameInput not visible/clickable');
+    await clickXY(nameP[0], nameP[1]);
+    await cdp('Input.insertText', { text: 'Smoke Test Preset' });
+    await trustClick('#presetSaveBtn');
+    await sleep(700); // IPC write + list refresh
+
+    const savedFile = path.join(PRESET_DIR, 'smoke_test_preset.yaml');
+    check('saved preset exists as standalone yaml on disk', fs.existsSync(savedFile));
+    const yamlText = fs.existsSync(savedFile) ? fs.readFileSync(savedFile, 'utf8') : '';
+    check('standalone yaml carries engine schema (ShowPreset keys)',
+      ['name:', 'source:', 'tracks:', 'output:'].every((k) => yamlText.includes(k)), yamlText.split('\n')[0] || '');
+
+    const inList = await evalJs(
+      `(function(){var s=document.getElementById('presetSelect');` +
+      `for(var i=0;i<s.options.length;i++){if(s.options[i].textContent==='Smoke Test Preset')return true;}return false;})()`);
+    check('saved preset appears in dropdown (outcome)', inList === true);
+
+    // True disk roundtrip: apply a BUILT-IN first (state leaves the saved
+    // name), then select the saved preset BY STEM -> app must read the file
+    // via IPC and flip state back to the file's own name.
+    const selByValue = async (val) => evalJs(
+      `(function(){var s=document.getElementById('presetSelect');` +
+      `for(var i=0;i<s.options.length;i++){if(s.options[i].value===${JSON.stringify(val)}){` +
+      `s.selectedIndex=i;s.dispatchEvent(new Event('change',{bubbles:true}));return true;}}return false;})()`);
+    await selByValue('blk');
+    await sleep(600);
+    const afterBlk = await evalJs(`SETTINGS.presetName`);
+    check('built-in preset loads from its file (name changes)', afterBlk === 'The Block (BLK)', afterBlk);
+    await selByValue('smoke_test_preset');
+    await sleep(600);
+    const applied = await evalJs(`SETTINGS.presetName`);
+    check('saved preset reloads from disk (roundtrip)', applied === 'Smoke Test Preset', applied);
+
+    // Delete flow (user-tier only)
+    await trustClick('#presetDeleteBtn');
+    await sleep(700);
+    const goneUi = await evalJs(
+      `(function(){var s=document.getElementById('presetSelect');` +
+      `for(var i=0;i<s.options.length;i++){if(s.options[i].textContent==='Smoke Test Preset')return false;}return true;})()`);
+    check('deleted preset removed from dropdown (outcome)', goneUi === true);
+    check('deleted preset file removed from disk', !fs.existsSync(savedFile));
+
     await trustClick('#settingsCloseBtn');
     await sleep(200);
 

@@ -2767,7 +2767,12 @@
     if (!name) { showToast('Type a preset name first'); return; }
     var api = window.electronAPI || {};
     if (!api.presetsSave) { showToast('Preset library unavailable'); return; }
-    api.presetsSave({ name: name, yamlText: presetYamlText(), force: !!force }).then(function(res) {
+    // Saving "as <name>" renames the captured config too: the yaml content
+    // must carry the new name, not a stale SETTINGS.presetName.
+    var prevName = SETTINGS.presetName;
+    SETTINGS.presetName = name;
+    var yamlText = presetYamlText();
+    api.presetsSave({ name: name, yamlText: yamlText, force: !!force }).then(function(res) {
       if (res && res.exists && !force) {
         showToast('Preset exists - press Save again to overwrite');
         _presetSaveConfirmed = true;
@@ -2780,6 +2785,7 @@
         showToast('Preset saved');
       });
     }).catch(function(e) {
+      SETTINGS.presetName = prevName;
       showToast('Save failed: ' + e.message);
     });
   }
