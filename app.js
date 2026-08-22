@@ -138,7 +138,8 @@
             if (parts.length === 0) return { prefix: '', role: '', num: '', suffix: '' };
 
             function isNum(s) { return /^\d+$/.test(s); }
-            function isPrefix(s) { return /^[A-Z]{2,4}$/.test(s); }
+            // Journey-audit #3: prefixes may carry digits (EP1, A001, SCENE04).
+            function isPrefix(s) { return /^[A-Z][A-Z0-9]{1,5}$/.test(s); }
 
             var prefix = '';
             var role = '';
@@ -154,6 +155,14 @@
             // Last part as number if it looks like one
             if (remaining.length > 0 && isNum(remaining[remaining.length - 1])) {
               num = remaining.pop();
+            }
+
+            // Journey-audit #3: pull numeric take segments (001 in
+            // EP1_001_Presenter) out of the middle; remaining words are the role.
+            if (remaining.length > 0) {
+              var numeric = remaining.filter(function(seg) { return isNum(seg); });
+              if (numeric.length) num = (num ? num + '_' : '') + numeric.join('_');
+              remaining = remaining.filter(function(seg) { return !isNum(seg); });
             }
 
             // Everything in between is the role (rejoined with original separator)
