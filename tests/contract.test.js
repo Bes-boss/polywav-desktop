@@ -219,6 +219,16 @@ test('B3: maximize listener registered once (not per click)', () => {
   assert(!/onMaximizeChange/.test(fn[0]), 'maximizeWindow still registers onMaximizeChange per call');
 });
 
+// Journey-audit #3: default normalize presets used (?<prefix>[A-Z]+) which
+// rejects digit-bearing prefixes like EP1 in EP1_001_Presenter. Must be
+// digit-tolerant ([^_]+) in all three presets.
+test('B3.1: default presets use digit-tolerant [^_]+ prefix segment', () => {
+  const flat = inlineJs.replace(/\s+/g, ' ');
+    assert(!/\(\?<prefix>\[A-Z\]\+\)_/.test(flat), 'uppercase-only prefix still in a preset');
+    const hits = inlineJs.match(/\(\?<prefix>\[\^_\]\+\)/g) || [];
+    assert(hits.length >= 3, `digit-tolerant prefix in <3 presets (found ${hits.length})`);
+});
+
 // ======================================================================
 // BRANCH 4 — fix/light-mode-contrast
 // ======================================================================

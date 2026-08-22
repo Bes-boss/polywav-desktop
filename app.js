@@ -802,13 +802,13 @@
   function loadPreset(val) {
     var pattern, template;
     if (val === 'mkr') {
-      pattern = '^(?<prefix>[A-Z]+)_(?<role>[A-Za-z]+)_?(?<num>\\d+)?$';
+      pattern = '^(?<prefix>[^_]+)_(?<role>[A-Za-z]+)_?(?<num>\\d+)?$';
       template = '{prefix}_{role}_{num}';
     } else if (val === 'blk') {
-      pattern = '^(?<prefix>[A-Z]+)_(?<role>[A-Za-z]+)(?:_?(?<num>\\d+))?$';
+      pattern = '^(?<prefix>[^_]+)_(?<role>[A-Za-z]+)(?:_?(?<num>\\d+))?$';
       template = 'BLK_{prefix}_{role}_{num}';
     } else if (val === 'svr') {
-      pattern = '^(?<prefix>[A-Z]+)_(?<role>[A-Za-z]+)_?(?<num>\\d+)?$';
+      pattern = '^(?<prefix>[^_]+)_(?<role>[A-Za-z]+)_?(?<num>\\d+)?$';
       template = 'SVR_{prefix}_{role}_{num}';
     } else {
       pattern = document.getElementById('regex-pattern').value;
