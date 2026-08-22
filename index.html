@@ -703,14 +703,34 @@
   }
   .summary-list .track-empty { color: #bbb; font-style: italic; font-size: 12px; }
   .summary-group-header {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--tomato);
-    padding: 12px 20px 4px !important;
-    border-bottom: none !important;
-  }
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--tomato);
+      padding: 12px 20px 4px !important;
+      border-bottom: none !important;
+    }
+    .summary-group-header .grp-chevron {
+      display: inline-block;
+      width: 14px;
+      font-size: 10px;
+    }
+    .summary-group-header.grp-toggle:hover,
+    .summary-group-header.grp-toggle:focus-visible {
+      filter: brightness(1.2);
+      outline: none;
+      text-decoration: underline;
+    }
+    .summary-group-header .grp-open-count {
+      color: rgba(var(--ink-rgb),0.55);
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .summary-group-header.collapsed {
+      padding-bottom: 10px !important;
+    }
 
   /* Bottom bar */
   .bottom-bar {
@@ -2060,13 +2080,35 @@
     box-shadow: 0 3px 12px rgba(30,27,24,0.08);
   }
   .patch-group .grp-label {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: #999;
-    margin-bottom: 3px;
-  }
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #999;
+      margin-bottom: 3px;
+    }
+    .patch-group .grp-toggle {
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .patch-group .grp-toggle:hover { color: var(--ink); }
+    .patch-group .grp-toggle:focus-visible { outline: 1.5px solid var(--tomato); outline-offset: 2px; border-radius: 3px; }
+    .patch-group .grp-chevron { font-size: 9px; }
+    .patch-group.grp-collapsed { padding-bottom: 8px; }
+    .patch-group.grp-collapsed .grp-label { margin-bottom: 0; color: rgba(var(--ink-rgb),0.75); }
+    .patch-group.drag-over {
+      box-shadow: 0 0 0 2px var(--tomato);
+      background: rgba(208,113,79,0.08);
+    }
+    .patch-group .grp-open-count {
+      color: rgba(var(--ink-rgb),0.55);
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+    }
   .patch-group .grp-name {
     font-size: 13px;
     font-weight: 600;

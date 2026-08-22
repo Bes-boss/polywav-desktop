@@ -1236,10 +1236,11 @@
                 function finalizeFileLoad(meta, bextProbePromise) {
                   var epoch = ++_loadEpoch;
                   function finish(names) {
-                    if (epoch !== _loadEpoch) return;  // a newer load superseded this one
-                    meta.channelNames = names;
-                    _fileInfo = meta;
-                    buildDataFromProbe(meta);
+                                      if (epoch !== _loadEpoch) return;  // a newer load superseded this one
+                                      meta.channelNames = names;
+                                      _fileInfo = meta;
+                                      _grpCollapsed = {};  // re-derive open/collapsed for the new file
+                                      buildDataFromProbe(meta);
                     updateHeroMeta(meta);
                     updateEmptyStates();
                     rerenderAll();
@@ -1557,13 +1558,14 @@
             }
           }
           // Reset pipeline state so user starts fresh
-          _fileLoaded = false;
-          _filePath = '';
-          _clipName = '';
-          _fileInfo = null;
-          rawChannels = [];
-          ROUTING_DATA = [];
-          rerenderAll();
+                    _fileLoaded = false;
+                    _filePath = '';
+                    _clipName = '';
+                    _fileInfo = null;
+                    rawChannels = [];
+                    ROUTING_DATA = [];
+                    _grpCollapsed = {};
+                    rerenderAll();
           updateEmptyStates();
           showToast('Load cancelled — pick a new file');
         }
@@ -1718,6 +1720,7 @@
               ROUTING_DATA[i].group = 'AO';
               ROUTING_DATA[i].track = val;
               ROUTING_DATA[i].color = AO_COLORS[colorIdx];
+              ensureGroupOpenForTrack(val); // auto-open the group's summary section
             }
             break;
           }
@@ -1728,28 +1731,75 @@
       });
     });
 
-    // Render summary panel
+    // Render summary panel (collapsible groups: assigned groups open, empty collapsed)
     if (summary) {
       var sumHtml = '';
       for (var g = 0; g < 8; g++) {
         var start = g * 8 + 1;
         var end = start + 7;
-        var grpLabel = 'A' + start + '–A' + end;
-                sumHtml += '<li class="summary-group-header" style="color:' + AO_COLORS[g % AO_COLORS.length] + '">' + grpLabel + '</li>';
-                for (var s = 0; s < 8; s++) {
-                  var a = 'A' + (start + s);
-                            var match = ROUTING_DATA.filter(function(d) { return d.track === a; });
-                            sumHtml += '<li>'
-                              + '<span class="track-label">' + a + '</span>'
-            + (match.length > 0 ? '<span class="track-count">Ch ' + match.map(function(m) { return m.ch; }).join(', Ch ') + '</span>' : '<span class="track-empty">unassigned</span>')
-            + '</li>';
+        var col = AO_COLORS[g % AO_COLORS.length];
+        var gCount = ROUTING_DATA.filter(function(d) {
+          if (d.group === null || !d.track) return false;
+          var n = parseInt(String(d.track).replace('A', ''), 10);
+          return !isNaN(n) && n >= start && n <= end;
+        }).length;
+        var collapsed = grpIsCollapsed(g);
+        sumHtml += '<li class="summary-group-header grp-toggle' + (collapsed ? ' collapsed' : '') + '" data-grp="' + g + '" role="button" tabindex="0" aria-expanded="' + (!collapsed) + '" style="color:' + col + ';cursor:pointer;user-select:none;">'
+          + '<span class="grp-chevron">' + (collapsed ? '&#9656;' : '&#9662;') + '</span> A' + start + '&ndash;A' + end
+          + (gCount > 0 ? ' <span class="grp-open-count">(' + gCount + ' ch)</span>' : '')
+          + '</li>';
+        if (!collapsed) {
+          for (var s = 0; s < 8; s++) {
+            var a = 'A' + (start + s);
+            var match = ROUTING_DATA.filter(function(d) { return d.track === a; });
+            sumHtml += '<li class="summary-track-row">'
+              + '<span class="track-label">' + a + '</span>'
+              + (match.length > 0 ? '<span class="track-count">Ch ' + match.map(function(m) { return m.ch; }).join(', Ch ') + '</span>' : '<span class="track-empty">unassigned</span>')
+              + '</li>';
+          }
         }
       }
       summary.innerHTML = sumHtml;
 
+      // Toggle handlers (delegated; survives rerenderAll)
+      summary.querySelectorAll('.grp-toggle').forEach(function(hdr) {
+        function doToggle() { toggleTrackGroup(parseInt(hdr.getAttribute('data-grp'), 10)); }
+        hdr.addEventListener('click', doToggle);
+        hdr.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doToggle(); }
+        });
+      });
+
       // Update bottom-bar info
       updateRouteBar();
     }
+  }
+
+  // ===== Collapsible track groups (A1-8, A9-16, ... A57-64) =====
+  // Groups with assignments default open; empty groups collapse. State lives
+  // per session (resets on new file load). Used by Route summary + Patch map.
+  var _grpCollapsed = {};
+  function groupHasAssignments(g) {
+    var start = g * 8 + 1;
+    return ROUTING_DATA.some(function(d) {
+      if (d.group === null || !d.track) return false;
+      var n = parseInt(String(d.track).replace('A', ''), 10);
+      return !isNaN(n) && n >= start && n <= start + 7;
+    });
+  }
+  function grpIsCollapsed(g) {
+    if (_grpCollapsed[g] === undefined) _grpCollapsed[g] = !groupHasAssignments(g);
+    return !!_grpCollapsed[g];
+  }
+  function ensureGroupOpenForTrack(trackName) {
+    var n = parseInt(String(trackName).replace('A', ''), 10);
+    if (isNaN(n)) return;
+    var g = Math.floor((n - 1) / 8);
+    _grpCollapsed[g] = false;
+  }
+  function toggleTrackGroup(g) {
+    _grpCollapsed[g] = !grpIsCollapsed(g);
+    rerenderAll();
   }
 
   function updateRouteBar() {
@@ -2148,27 +2198,44 @@
     });
     srcList.innerHTML = srcHtml;
 
-    // Render groups
+    // Render groups (collapsible; collapsed header still accepts drops)
         var groupsHtml = '';
         var orderedGroups = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7'];
-    orderedGroups.forEach(function(g) {
+    orderedGroups.forEach(function(g, gIdx) {
       var info = GROUP_INFO[g];
       var tracksHtml = '';
-      info.tracks.forEach(function(t) {
-        var count = ROUTING_DATA.filter(function(d) { return d.track === t; }).length;
-        tracksHtml += '<div class="grp-track" data-track="' + t + '">'
-          + '<span style="width:8px;height:8px;border-radius:50%;background:' + info.color + ';flex-shrink:0;"></span>'
-          + t
-          + (count > 0 ? '<span class="grp-count">' + count + ' ch</span>' : '')
-          + '</div>';
-      });
-      groupsHtml += '<div class="patch-group" data-group="' + g + '" style="--grp-color:' + info.color + '">'
-        + '<div class="grp-label">' + info.label + '</div>'
-        + '<div class="grp-name">' + info.name + '</div>'
-        + '<div class="grp-tracks">' + tracksHtml + '</div>'
+      var gCount = 0;
+      var collapsed = grpIsCollapsed(gIdx);
+      if (!collapsed) {
+        info.tracks.forEach(function(t) {
+          var count = ROUTING_DATA.filter(function(d) { return d.track === t; }).length;
+          gCount += count;
+          tracksHtml += '<div class="grp-track" data-track="' + t + '">'
+            + '<span style="width:8px;height:8px;border-radius:50%;background:' + info.color + ';flex-shrink:0;"></span>'
+            + t
+            + (count > 0 ? '<span class="grp-count">' + count + ' ch</span>' : '')
+            + '</div>';
+        });
+      }
+      groupsHtml += '<div class="patch-group' + (collapsed ? ' grp-collapsed' : '') + '" data-group="' + g + '" data-grp-idx="' + gIdx + '" style="--grp-color:' + info.color + '">'
+        + '<div class="grp-label grp-toggle" role="button" tabindex="0" aria-expanded="' + (!collapsed) + '" title="' + (collapsed ? 'Expand' : 'Collapse') + '">'
+        + '<span class="grp-chevron">' + (collapsed ? '&#9656;' : '&#9662;') + '</span> ' + info.label
+        + (gCount > 0 ? ' <span class="grp-open-count">(' + gCount + ' ch)</span>' : '')
+        + '</div>'
+        + (!collapsed ? '<div class="grp-name">' + info.name + '</div>' : '')
+        + '<div class="grp-tracks"' + (collapsed ? ' data-drop-group="' + g + '"' : '') + '>' + tracksHtml + '</div>'
         + '</div>';
     });
     groupsEl.innerHTML = groupsHtml;
+
+    // Group toggle handlers (delegated at container level)
+    groupsEl.querySelectorAll('.patch-group .grp-toggle').forEach(function(hdr) {
+      function doToggle() { toggleTrackGroup(parseInt(hdr.closest('.patch-group').getAttribute('data-grp-idx'), 10)); }
+      hdr.addEventListener('click', doToggle);
+      hdr.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doToggle(); }
+      });
+    });
 
     // Render unassigned chips
     var unrouted = ROUTING_DATA.filter(function(d) { return d.group === null; });
@@ -2382,6 +2449,16 @@
         return;
       }
 
+      // Collapsed group: whole card is a drop target (assigns to A{start})
+      var collapsedGrp = e.target.closest('.patch-group.grp-collapsed');
+      if (collapsedGrp) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'link';
+        collapsedGrp.classList.add('drag-over');
+        updateTempCable(e);
+        return;
+      }
+
       var targetSrc = e.target.closest('.patch-src');
       if (targetSrc && targetSrc.getAttribute('data-ch') !== dragSrcCh) {
         e.preventDefault();
@@ -2430,6 +2507,24 @@
           rerenderAll();
           showToast('Patched: Ch ' + entry.ch + ' → ' + trackName);
         }
+        return;
+      }
+
+      // Dropped on a COLLAPSED group -> assign to its first track and expand it
+      var collapsedGrp = e.target.closest('.patch-group.grp-collapsed');
+      if (collapsedGrp) {
+        var gIdx = parseInt(collapsedGrp.getAttribute('data-grp-idx'), 10);
+        var gKey = collapsedGrp.getAttribute('data-group');
+        var gInfo = GROUP_INFO[gKey];
+        if (gIdx === 0) ensureGroupOpenForTrack('A1'); // no-op safety
+        _grpCollapsed[gIdx] = false;
+        var firstTrack = gInfo ? gInfo.tracks[0] : ('A' + (gIdx * 8 + 1));
+        entry.group = gKey;
+        entry.track = firstTrack;
+        entry.color = gInfo ? gInfo.color : '#ccc';
+        pushSnapshot();
+        rerenderAll();
+        showToast('Patched: Ch ' + entry.ch + ' → ' + firstTrack + ' (group expanded)');
         return;
       }
 
