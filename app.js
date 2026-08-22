@@ -584,7 +584,10 @@
       var active = document.activeElement;
       if (active && active !== td && active.isContentEditable) active.blur();
 
-      e.preventDefault(); // keep focus out so we control selection
+      // Journey-audit #2: blanket preventDefault here made single-click
+      // editing impossible (cell never focused). Defer an explicit focus
+      // instead so selection logic still wins over native caret placement.
+      setTimeout(function () { td.focus(); }, 0);
       if (e.shiftKey && _normSel) {
         _normSel.r2 = pos.r;
         _normSel.c2 = pos.c;

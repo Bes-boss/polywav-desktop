@@ -146,6 +146,17 @@ test('B2: sandbox:true set', () => {
   assertMain(/sandbox:\s*true/, 'sandbox not enabled');
 });
 
+// Journey-audit #2: single-click into a Normalize table cell must focus the
+// cell for editing. The old blanket preventDefault kept focus out so the
+// contenteditable never activated (only the dbl-click path worked).
+test('B2.1: onNormCellMouseDown has no blanket preventDefault; cell gets explicit focus', () => {
+  const win = inlineJs.match(/function onNormCellMouseDown\([\s\S]{0,1100}/);
+  assert(win, 'onNormCellMouseDown not found');
+  assert(!win[0].includes('e.preventDefault(); // keep focus out'),
+    'blanket preventDefault still present');
+  assert(/td\.focus\(\)/.test(win[0]), 'explicit td.focus() not present');
+});
+
 // ======================================================================
 // BRANCH 3 — fix/renderer-state-bugs
 // ======================================================================
