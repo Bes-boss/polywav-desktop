@@ -389,6 +389,7 @@ ipcMain.handle('export:start', async (event, config) => {
     if (config.sampleRate) args.push('--samplerate', String(config.sampleRate));
     if (config.subtype) args.push('--subtype', config.subtype);
     if (config.essence) args.push('--essence', config.essence);
+    if (config.mxfDir) args.push('--mxf-dir', config.mxfDir);
 
   const child = spawn(VENV_PYTHON, args, {
     windowsHide: true,

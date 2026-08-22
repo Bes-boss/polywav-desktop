@@ -146,6 +146,17 @@ test('B2: sandbox:true set', () => {
   assertMain(/sandbox:\s*true/, 'sandbox not enabled');
 });
 
+// Journey-audit #2: single-click into a Normalize table cell must focus the
+// cell for editing. The old blanket preventDefault kept focus out so the
+// contenteditable never activated (only the dbl-click path worked).
+test('B2.1: onNormCellMouseDown has no blanket preventDefault; cell gets explicit focus', () => {
+  const win = inlineJs.match(/function onNormCellMouseDown\([\s\S]{0,1100}/);
+  assert(win, 'onNormCellMouseDown not found');
+  assert(!win[0].includes('e.preventDefault(); // keep focus out'),
+    'blanket preventDefault still present');
+  assert(/td\.focus\(\)/.test(win[0]), 'explicit td.focus() not present');
+});
+
 // ======================================================================
 // BRANCH 3 — fix/renderer-state-bugs
 // ======================================================================
@@ -206,6 +217,16 @@ test('B3: maximize listener registered once (not per click)', () => {
   const fn = inlineJs.match(/function maximizeWindow\(\)[\s\S]{0,600}/);
   assert(fn, 'maximizeWindow not found');
   assert(!/onMaximizeChange/.test(fn[0]), 'maximizeWindow still registers onMaximizeChange per call');
+});
+
+// Journey-audit #3: default normalize presets used (?<prefix>[A-Z]+) which
+// rejects digit-bearing prefixes like EP1 in EP1_001_Presenter. Must be
+// digit-tolerant ([^_]+) in all three presets.
+test('B3.1: default presets use digit-tolerant [^_]+ prefix segment', () => {
+  const flat = inlineJs.replace(/\s+/g, ' ');
+    assert(!/\(\?<prefix>\[A-Z\]\+\)_/.test(flat), 'uppercase-only prefix still in a preset');
+    const hits = inlineJs.match(/\(\?<prefix>\[\^_\]\+\)/g) || [];
+    assert(hits.length >= 3, `digit-tolerant prefix in <3 presets (found ${hits.length})`);
 });
 
 // ======================================================================
@@ -336,6 +357,18 @@ test('B5: segmented mode/essence buttons wired via data attributes', () => {
     'data-setessence buttons not wired in app.js');
 });
 
+// Journey-audit #5: export format cards were <div> wrappers around bare
+// radios, so clicking the card body did nothing. They must be <label>s so
+// the whole card forwards clicks to the radio natively.
+test('B5.1: export format cards are <label> wrappers, not <div>', () => {
+  assert(!indexHtml.includes('<div class="export-option selected">'),
+    'div.export-option wrapper still present');
+  assert(indexHtml.includes('<label class="export-option selected">'),
+    'label.export-option wrapper not present');
+  const labels = (indexHtml.match(/<label class="export-option/g) || []).length;
+  assert(labels >= 3, `expected >=3 label.export-option cards, found ${labels}`);
+});
+
 // ======================================================================
 // BRANCH 6 — recents click-to-reload
 // ======================================================================
@@ -361,6 +394,13 @@ test('B6: recent click guarded — entries without a stored path are inert', () 
 test('B6: loaded-from-recents toast tells the user which file came back', () => {
   const block = inlineJs.match(/getElementById\('recentList'\)[\s\S]{0,1600}/);
   assert(block && /showToast/.test(block[0]), 'no user feedback on recents reload');
+});
+
+test('B6.1: handleFilePath exposed on window (recents caller sits OUTSIDE the dropzone IIFE)', () => {
+  assert(/window\.handleFilePath\s*=\s*handleFilePath/.test(inlineJs),
+    'handleFilePath not exposed on window');
+  assert(/window\.finalizeFileLoad\s*=\s*finalizeFileLoad/.test(inlineJs),
+    'finalizeFileLoad not exposed on window');
 });
 
 // ======================================================================
@@ -414,6 +454,20 @@ test('B7: wizard template cards are keyboard-operable buttons', () => {
   const wins = windowsAround(inlineJs, "wizard-tmpl-card", 700);
   assert(wins.some((w) => /'Enter'/.test(w) && /selectTemplate/.test(w)),
     'no Enter/Space activation for template cards');
+});
+
+// ======================================================================
+// BRANCH 8 — journey-audit size estimate (real duration, not 60-min guess)
+// ======================================================================
+console.log('\n[Branch 8] journey-audit size estimate');
+
+test('B8: size estimate derives from real file facts (no 60-minute constant)', () => {
+  assert(!/\*\s*60\s*\*\s*5e-10/.test(inlineJs),
+    '60-minute constant still in the size estimate');
+  assert(/_fileInfo\.frames/.test(inlineJs),
+    'estimate does not derive duration from loaded file frames');
+  assert(/toFixed\(3\)/.test(inlineJs),
+    'no adaptive precision for small files (a 5s file must not show ~0.0 GB)');
 });
 
 // ======================================================================

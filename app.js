@@ -138,7 +138,8 @@
             if (parts.length === 0) return { prefix: '', role: '', num: '', suffix: '' };
 
             function isNum(s) { return /^\d+$/.test(s); }
-            function isPrefix(s) { return /^[A-Z]{2,4}$/.test(s); }
+            // Journey-audit #3: prefixes may carry digits (EP1, A001, SCENE04).
+            function isPrefix(s) { return /^[A-Z][A-Z0-9]{1,5}$/.test(s); }
 
             var prefix = '';
             var role = '';
@@ -154,6 +155,14 @@
             // Last part as number if it looks like one
             if (remaining.length > 0 && isNum(remaining[remaining.length - 1])) {
               num = remaining.pop();
+            }
+
+            // Journey-audit #3: pull numeric take segments (001 in
+            // EP1_001_Presenter) out of the middle; remaining words are the role.
+            if (remaining.length > 0) {
+              var numeric = remaining.filter(function(seg) { return isNum(seg); });
+              if (numeric.length) num = (num ? num + '_' : '') + numeric.join('_');
+              remaining = remaining.filter(function(seg) { return !isNum(seg); });
             }
 
             // Everything in between is the role (rejoined with original separator)
@@ -584,7 +593,10 @@
       var active = document.activeElement;
       if (active && active !== td && active.isContentEditable) active.blur();
 
-      e.preventDefault(); // keep focus out so we control selection
+      // Journey-audit #2: blanket preventDefault here made single-click
+      // editing impossible (cell never focused). Defer an explicit focus
+      // instead so selection logic still wins over native caret placement.
+      setTimeout(function () { td.focus(); }, 0);
       if (e.shiftKey && _normSel) {
         _normSel.r2 = pos.r;
         _normSel.c2 = pos.c;
@@ -799,13 +811,13 @@
   function loadPreset(val) {
     var pattern, template;
     if (val === 'mkr') {
-      pattern = '^(?<prefix>[A-Z]+)_(?<role>[A-Za-z]+)_?(?<num>\\d+)?$';
+      pattern = '^(?<prefix>[^_]+)_(?<role>[A-Za-z]+)_?(?<num>\\d+)?$';
       template = '{prefix}_{role}_{num}';
     } else if (val === 'blk') {
-      pattern = '^(?<prefix>[A-Z]+)_(?<role>[A-Za-z]+)(?:_?(?<num>\\d+))?$';
+      pattern = '^(?<prefix>[^_]+)_(?<role>[A-Za-z]+)(?:_?(?<num>\\d+))?$';
       template = 'BLK_{prefix}_{role}_{num}';
     } else if (val === 'svr') {
-      pattern = '^(?<prefix>[A-Z]+)_(?<role>[A-Za-z]+)_?(?<num>\\d+)?$';
+      pattern = '^(?<prefix>[^_]+)_(?<role>[A-Za-z]+)_?(?<num>\\d+)?$';
       template = 'SVR_{prefix}_{role}_{num}';
     } else {
       pattern = document.getElementById('regex-pattern').value;
@@ -1348,6 +1360,12 @@
                   showToast('Loaded: ' + name);
                 }
 
+                // CSP-sprint follow-up (journey audit #1): recents wiring lives
+                // outside this IIFE; expose the loader entry points so activate()
+                // can call them without crossing closures.
+                window.handleFilePath = handleFilePath;
+                window.finalizeFileLoad = finalizeFileLoad;
+
               if (btn) btn.addEventListener('click', function(e) {
                               e.stopPropagation();
                               if (window.electronAPI && window.electronAPI.openFile) {
@@ -1773,9 +1791,20 @@
     fnEl('exportSampleRate', srLabel);
     fnEl('exportBitDepth', bdLabel);
 
-    // Rough size estimate (16 ch × 48 kHz × 24-bit × 60 min ≈ 1.2 GB)
-    var estGB = (total * (SETTINGS.bitDepth !== 'auto' ? parseInt(SETTINGS.bitDepth, 10) : 24) * 48000 * 60 * 5e-10).toFixed(1);
-    fnEl('exportSize', '~' + estGB + ' GB');
+    // Journey-audit E2: size estimate derives from the loaded file's real
+    // duration (frames / sampleRate). Only when the header gave no frames
+    // does the estimate fall back to a 60-minute take.
+    var durSec = 0;
+    if (_fileInfo && _fileInfo.frames && _fileInfo.sampleRate) {
+      durSec = _fileInfo.frames / _fileInfo.sampleRate;
+    }
+    if (durSec <= 0) durSec = 3600;
+    var depthBytes = (SETTINGS.bitDepth !== 'auto' ? parseInt(SETTINGS.bitDepth, 10) : ((_fileInfo && _fileInfo.bitDepth) || 24)) / 8;
+    var srHz = (SETTINGS.sampleRate !== 'auto' ? parseInt(SETTINGS.sampleRate, 10) : ((_fileInfo && _fileInfo.sampleRate) || 48000));
+    var mxfOverhead = (SETTINGS.essence === 'mxf' ? 1.05 : 1.0);
+    var estGB = total * depthBytes * srHz * durSec * mxfOverhead / 1e9;
+    var estStr = estGB > 0.01 ? estGB.toFixed(1) : (estGB > 0 ? estGB.toFixed(3) : '0.0');
+    fnEl('exportSize', '~' + estStr + ' GB');
 
     // Sync output destination fields from SETTINGS
     syncSettingsUI();
@@ -1805,25 +1834,28 @@
       }
 
   function buildCLICommand() {
-      var routingParts = [];
-      ROUTING_DATA.forEach(function(d, i) {
-        if (d.group && d.track) {
-          routingParts.push(i + ':' + d.track);
-        }
-      });
-      var routingStr = routingParts.join(',') || 'all:auto';
+    var routingParts = [];
+    ROUTING_DATA.forEach(function(d, i) {
+      if (d.group && d.track) {
+        routingParts.push(i + ':' + d.track);
+      }
+    });
+    var routingStr = routingParts.join(',') || 'all:auto';
 
     var modeFlag = SETTINGS.mode !== 'group' ? ' --mode ' + SETTINGS.mode : '';
     var essenceFlag = SETTINGS.essence !== 'embedded' ? ' --essence ' + SETTINGS.essence : '';
+    var mxfDir = SETTINGS.outputMxfDir || '';
+    var mxfFlag = (SETTINGS.essence === 'mxf' && mxfDir && mxfDir !== './output/mxf')
+      ? ' --mxf-dir "' + mxfDir + '"' : '';
     var srFlag = SETTINGS.sampleRate !== 'auto' ? ' --samplerate ' + SETTINGS.sampleRate : '';
     var bdFlag = SETTINGS.bitDepth !== 'auto' ? ' --subtype PCM_' + SETTINGS.bitDepth : '';
 
     var aafDir = SETTINGS.outputAafDir || './output';
-        var inPath = _filePath || './source.wav';
-        var outName = (_clipName || 'export') + '.aaf';
-        var cmd = 'polywav embed-aaf -i ' + inPath + ' -o ' + aafDir + '/' + outName
+    var inPath = _filePath || './source.wav';
+    var outName = (_clipName || 'export') + '.aaf';
+    var cmd = 'polywav embed-aaf -i ' + inPath + ' -o ' + aafDir + '/' + outName
       + ' --routing "' + routingStr + '"'
-      + modeFlag + essenceFlag + srFlag + bdFlag;
+      + modeFlag + essenceFlag + mxfFlag + srFlag + bdFlag;
 
     var el = document.getElementById('exportCLI');
     if (el) el.textContent = cmd;
@@ -1901,6 +1933,9 @@
               sampleRate: SETTINGS.sampleRate !== 'auto' ? parseInt(SETTINGS.sampleRate, 10) : undefined,
               subtype: SETTINGS.bitDepth !== 'auto' ? 'PCM_' + SETTINGS.bitDepth : undefined,
               essence: SETTINGS.essence !== 'embedded' ? SETTINGS.essence : undefined,
+              // Journey-audit #8: export must honor the configured MXF folder.
+              mxfDir: (SETTINGS.essence === 'mxf' && SETTINGS.outputMxfDir && SETTINGS.outputMxfDir !== './output/mxf')
+                ? SETTINGS.outputMxfDir : undefined,
             };
 
       // Try to start export via IPC
