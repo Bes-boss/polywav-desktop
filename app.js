@@ -809,27 +809,21 @@
   }
 
   function loadPreset(val) {
-    var pattern, template;
-    if (val === 'mkr') {
-      pattern = '^(?<prefix>[^_]+)_(?<role>[A-Za-z]+)_?(?<num>\\d+)?$';
-      template = '{prefix}_{role}_{num}';
-    } else if (val === 'blk') {
-      pattern = '^(?<prefix>[^_]+)_(?<role>[A-Za-z]+)(?:_?(?<num>\\d+))?$';
-      template = 'BLK_{prefix}_{role}_{num}';
-    } else if (val === 'svr') {
-      pattern = '^(?<prefix>[^_]+)_(?<role>[A-Za-z]+)_?(?<num>\\d+)?$';
-      template = 'SVR_{prefix}_{role}_{num}';
-    } else {
-      pattern = document.getElementById('regex-pattern').value;
-      template = document.getElementById('output-template').value;
-    }
-    document.getElementById('regex-pattern').value = pattern;
-    document.getElementById('output-template').value = template;
-    _templateSlots = parseTemplateString(template);
-    renderTemplateChips();
-    updateParseTableBody();
-    testRename();
-    showToast('Preset loaded: ' + val.toUpperCase());
+    // Legacy shim: presets are standalone YAML files in the library now.
+    applyPresetStem(val);
+  }
+
+  function applyPresetStem(stem) {
+    if (!stem) return;
+    var api = window.electronAPI || {};
+    if (!api.presetsRead) { showToast('Preset library unavailable'); return; }
+    api.presetsRead(stem).then(function(res) {
+      var data = res.text.trim()[0] === '{' ? JSON.parse(res.text) : yamlParse(res.text);
+      applyPresetData(data);
+      showToast('Preset loaded: ' + ((data && data.name) || stem));
+    }).catch(function(e) {
+      showToast('Load failed: ' + e.message);
+    });
   }
 
   // ===== Editable column headers =====
@@ -2634,7 +2628,7 @@
       var sr = document.getElementById('srSelect');       if (sr) sr.value = SETTINGS.sampleRate;
       var bd = document.getElementById('bdSelect');       if (bd) bd.value = SETTINGS.bitDepth;
       var ns = document.getElementById('namingTemplateInput'); if (ns) ns.value = SETTINGS.namingTemplate;
-      var ps = document.getElementById('presetSelect');   if (ps) ps.value = SETTINGS.presetName;
+      var ps = document.getElementById('presetSelect');   if (ps) syncPresetSelect();
       var rb = document.getElementById('rawBextToggle');  if (rb) rb.checked = SETTINGS.showRawBext;
       var tt = document.getElementById('toastToggle');    if (tt) tt.checked = SETTINGS.showToasts;
       var oa = document.getElementById('outputAafDir');   if (oa) oa.value = SETTINGS.outputAafDir;
@@ -2652,10 +2646,9 @@
       });
     });
   }
-  function onPresetChange(name) {
-    SETTINGS.presetName = name;
-    saveSettings();
-    showToast('Preset: ' + name);
+  function onPresetChange(stem) {
+    if (!stem) return;
+    applyPresetStem(stem);
   }
 
   // Replace the mock setMode/setEssence with state-backed versions
@@ -2706,8 +2699,159 @@
         structure_mode: SETTINGS.mode,
         mix_gain_db: SETTINGS.mixGain,
         track_naming: { template: SETTINGS.namingTemplate, suffix: '' },
+        naming: { pattern: (document.getElementById('regex-pattern') || {}).value || '' },
       },
     };
+  }
+
+  // ===== Preset library (standalone YAML files) =====
+  var _presetLibrary = { bundled: [], user: [] };
+  var _presetSaveConfirmed = null;
+
+  function presetYamlText() {
+    return yamlDump(buildPresetData()).join('\n') + '\n';
+  }
+
+  function refreshPresetList() {
+    var api = window.electronAPI || {};
+    if (!api.presetsList) return Promise.resolve();
+    return api.presetsList().then(function(lib) {
+      _presetLibrary = lib || { bundled: [], user: [] };
+      renderPresetOptions();
+    }).catch(function(e) {
+      showToast('Preset list failed: ' + e.message);
+    });
+  }
+
+  function renderPresetOptions() {
+    var sel = document.getElementById('presetSelect');
+    if (!sel) return;
+    sel.innerHTML = '';
+    var tiers = [['Built-in', _presetLibrary.bundled], ['My presets', _presetLibrary.user]];
+    tiers.forEach(function(tier) {
+      var label = tier[0], entries = tier[1] || [];
+      if (!entries.length) return;
+      var og = document.createElement('optgroup');
+      og.label = label;
+      entries.forEach(function(entry) {
+        var name = entry.stem;
+        try {
+          var d = entry.text.trim()[0] === '{' ? JSON.parse(entry.text) : yamlParse(entry.text);
+          name = (d && d.name) || entry.stem;
+        } catch (e) { name = entry.stem + ' (unreadable)'; }
+        var o = document.createElement('option');
+        o.value = entry.stem;
+        o.textContent = name;
+        og.appendChild(o);
+      });
+      sel.appendChild(og);
+    });
+    syncPresetSelect();
+  }
+
+  function syncPresetSelect() {
+    var sel = document.getElementById('presetSelect');
+    if (!sel) return;
+    var match = '';
+    Array.prototype.forEach.call(sel.options, function(o) {
+      if (!match && o.textContent === SETTINGS.presetName) match = o.value;
+    });
+    sel.value = match;
+    if (sel.selectedIndex < 0 && sel.options.length) sel.selectedIndex = 0;
+  }
+
+  // ---- Manage buttons ----
+  function onPresetSave(force) {
+    var input = document.getElementById('presetNameInput');
+    var name = input ? input.value.trim() : '';
+    if (!name) { showToast('Type a preset name first'); return; }
+    var api = window.electronAPI || {};
+    if (!api.presetsSave) { showToast('Preset library unavailable'); return; }
+    // Saving "as <name>" renames the captured config too: the yaml content
+    // must carry the new name, not a stale SETTINGS.presetName.
+    var prevName = SETTINGS.presetName;
+    SETTINGS.presetName = name;
+    var yamlText = presetYamlText();
+    api.presetsSave({ name: name, yamlText: yamlText, force: !!force }).then(function(res) {
+      if (res && res.exists && !force) {
+        showToast('Preset exists - press Save again to overwrite');
+        _presetSaveConfirmed = true;
+        return;
+      }
+      SETTINGS.presetName = name;
+      saveSettings();
+      if (input) input.value = '';
+      refreshPresetList().then(function() {
+        showToast('Preset saved');
+      });
+    }).catch(function(e) {
+      SETTINGS.presetName = prevName;
+      showToast('Save failed: ' + e.message);
+    });
+  }
+
+  function onPresetExport() {
+    var api = window.electronAPI || {};
+    if (!api.presetsExport) { showToast('Preset library unavailable'); return; }
+    var nameInput = document.getElementById('presetNameInput');
+    var name = (nameInput && nameInput.value.trim()) || SETTINGS.presetName || 'preset';
+    api.presetsExport({
+      defaultName: name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') + '.yaml',
+      yamlText: presetYamlText(),
+    }).then(function(res) {
+      if (!res || res.canceled) return;
+      showToast('Exported: ' + res.path);
+    }).catch(function(e) {
+      showToast('Export failed: ' + e.message);
+    });
+  }
+
+  function onPresetImport() {
+    var api = window.electronAPI || {};
+    if (!api.presetsImportOpen) { showToast('Preset library unavailable'); return; }
+    api.presetsImportOpen().then(function(res) {
+      if (!res || res.canceled) return null;
+      var data;
+      try {
+        data = res.text.trim()[0] === '{' ? JSON.parse(res.text) : yamlParse(res.text);
+      } catch (e) {
+        showToast('Import failed: not valid YAML/JSON');
+        return null;
+      }
+      var required = ['name', 'source', 'tracks', 'output'];
+      for (var i = 0; i < required.length; i++) {
+        if (!data || !data[required[i]]) {
+          showToast('Import failed: missing "' + required[i] + '" section');
+          return null;
+        }
+      }
+      applyPresetData(data);
+      return api.presetsSave({ name: String(data.name), yamlText: res.text, force: true }).then(function() {
+        refreshPresetList();
+        showToast('Imported: ' + data.name);
+      });
+    }).catch(function(e) {
+      showToast('Import failed: ' + e.message);
+    });
+  }
+
+  function onPresetDelete() {
+    var sel = document.getElementById('presetSelect');
+    var stem = sel ? sel.value : '';
+    if (!stem) { showToast('Select a preset first'); return; }
+    var isUser = (_presetLibrary.user || []).some(function(u) { return u.stem === stem; });
+    if (!isUser) { showToast('Built-in presets cannot be deleted'); return; }
+    var api = window.electronAPI || {};
+    if (!api.presetsDelete) { showToast('Preset library unavailable'); return; }
+    api.presetsDelete(stem).then(function() {
+      SETTINGS.presetName = '';
+      saveSettings();
+      return refreshPresetList();
+    }).then(function() {
+      showToast('Deleted: ' + stem);
+    }).catch(function(e) {
+      showToast('Delete failed: ' + e.message);
+    });
   }
 
   function yamlScalar(v) {
@@ -2876,6 +3020,12 @@
         if (data.output.mix_gain_db !== undefined) SETTINGS.mixGain = Number(data.output.mix_gain_db);
         if (data.output.track_naming && data.output.track_naming.template) {
           SETTINGS.namingTemplate = data.output.track_naming.template;
+        }
+        if (data.output.naming && data.output.naming.pattern) {
+          var patInput = document.getElementById('regex-pattern');
+          if (patInput) patInput.value = data.output.naming.pattern;
+          updateParseTable();
+          testRename();
         }
       }
       saveSettings();
@@ -3242,6 +3392,7 @@
           // Load settings + sync UI on boot
           loadSettings();
           syncSettingsUI();
+          refreshPresetList();
           loadRecentFiles();
 
           // Auto-show setup wizard on first launch
@@ -3301,6 +3452,10 @@
   if (bdSel) bdSel.addEventListener('change', function() { onSettingChange('bitDepth', this.value); });
   var presetSel = document.getElementById('presetSelect');
   if (presetSel) presetSel.addEventListener('change', function() { onPresetChange(this.value); });
+  on('presetSaveBtn', 'click', function() { onPresetSave(_presetSaveConfirmed); _presetSaveConfirmed = null; });
+  on('presetExportBtn', 'click', onPresetExport);
+  on('presetImportBtn', 'click', onPresetImport);
+  on('presetDeleteBtn', 'click', onPresetDelete);
   var namingTpl = document.getElementById('namingTemplateInput');
   if (namingTpl) namingTpl.addEventListener('change', function() { onSettingChange('namingTemplate', this.value); });
   var rawBext = document.getElementById('rawBextToggle');
