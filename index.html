@@ -2718,11 +2718,11 @@
     </div>
     <div class="status" id="heroStatus" style="display:flex;align-items:center;gap:12px;">
           <strong id="heroStatusDot">&#x25CF;</strong> <span id="heroMeta"></span>
-      <button class="header-action-btn" onclick="switchTab('export')" title="Go to Export" aria-label="Export">
+      <button class="header-action-btn" data-nav="export" title="Go to Export" aria-label="Export">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export
       </button>
-      <button class="settings-btn" id="settingsToggle" onclick="toggleSettings()" title="Settings" aria-label="Settings">
+      <button class="settings-btn" id="settingsToggle" title="Settings" aria-label="Settings">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"/>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -2731,24 +2731,24 @@
     </div>
     <!-- ===== Window Controls (Electron) ===== -->
     <div class="window-controls">
-      <button class="win-btn" onclick="minimizeWindow()" title="Minimize">─</button>
-      <button class="win-btn" id="maxBtn" onclick="maximizeWindow()" title="Maximize">□</button>
-      <button class="win-btn win-close" onclick="closeWindow()" title="Close">✕</button>
+      <button class="win-btn" id="winMinBtn" title="Minimize">─</button>
+      <button class="win-btn" id="maxBtn" title="Maximize">□</button>
+      <button class="win-btn win-close" id="winCloseBtn" title="Close">✕</button>
     </div>
   </div>
 
   <!-- ===== Tab Bar ===== -->
-  <div class="tab-bar">
-    <button class="tab active" data-tab="home"><span class="tab-icon">&#x2302;</span> Home</button>
-    <button class="tab" data-tab="normalize"><span class="tab-icon">&#x270E;</span> Normalize</button>
-    <button class="tab" data-tab="route"><span class="tab-icon">&#x2192;</span> Route</button>
-    <button class="tab" data-tab="patch"><span class="tab-icon">&#x25A3;</span> Patch</button>
-    <button class="tab" data-tab="export"><span class="tab-icon">&#x21E9;</span> Export</button>
+  <div class="tab-bar" role="tablist" aria-label="Main sections">
+    <button class="tab active" data-tab="home" role="tab" aria-selected="true" aria-controls="tab-home"><span class="tab-icon">&#x2302;</span> Home</button>
+    <button class="tab" data-tab="normalize" role="tab" aria-selected="false" aria-controls="tab-normalize"><span class="tab-icon">&#x270E;</span> Normalize</button>
+    <button class="tab" data-tab="route" role="tab" aria-selected="false" aria-controls="tab-route"><span class="tab-icon">&#x2192;</span> Route</button>
+    <button class="tab" data-tab="patch" role="tab" aria-selected="false" aria-controls="tab-patch"><span class="tab-icon">&#x25A3;</span> Patch</button>
+    <button class="tab" data-tab="export" role="tab" aria-selected="false" aria-controls="tab-export"><span class="tab-icon">&#x21E9;</span> Export</button>
   </div>
   </div>
 </div>
 <!-- ============================================================ -->
-<div class="tab-content active" id="tab-home">
+<div class="tab-content active" id="tab-home" role="tabpanel" aria-label="Home">
   <div class="hero-wrap" id="heroWrap">
     <div class="hero-content">
       <div class="hero-eyebrow">Audio Ingest Pipeline</div>
@@ -2761,7 +2761,7 @@
       </p>
 
       <!-- Setup Wizard CTA (replaces feature badges) -->
-            <button class="wizard-cta" onclick="openWizard()">
+            <button class="wizard-cta" id="wizardCta">
               <span class="wiz-cta-icon">&#x2726;</span>
               <span class="wiz-cta-text">
                 <span class="wiz-cta-title">Setup Wizard</span>
@@ -2796,7 +2796,7 @@
     <div class="recent-section">
           <div class="recent-header">
             <h3>Recent files</h3>
-            <button class="recent-clear" onclick="clearRecent()">Clear</button>
+            <button class="recent-clear" id="recentClearBtn">Clear</button>
           </div>
           <div class="recent-list" id="recentList">
             <div class="recent-empty">No files loaded yet</div>
@@ -2811,13 +2811,13 @@
               <div class="fl-label">Loaded file</div>
               <div class="fl-filename" id="flFileName"></div>
             </div>
-            <button class="fl-new-btn" onclick="showDropZone()">&#x2715; Load new</button>
+            <button class="fl-new-btn" id="flNewBtn">&#x2715; Load new</button>
           </div>
           <div class="fl-details" id="flDetails"></div>
           <div class="fl-actions">
-            <button class="btn btn-primary" onclick="switchTab('route')">&#x2192; Route channels</button>
-            <button class="btn btn-secondary" onclick="switchTab('normalize')">&#x270E; Normalize</button>
-            <button class="btn btn-secondary" onclick="switchTab('export')">&#x21E9; Export</button>
+            <button class="btn btn-primary" data-nav="route">&#x2192; Route channels</button>
+            <button class="btn btn-secondary" data-nav="normalize">&#x270E; Normalize</button>
+            <button class="btn btn-secondary" data-nav="export">&#x21E9; Export</button>
           </div>
         </div>
       </div>
@@ -2826,7 +2826,7 @@
 <!-- ============================================================ -->
 <!-- TAB: NORMALIZE -->
 <!-- ============================================================ -->
-<div class="tab-content" id="tab-normalize">
+<div class="tab-content" id="tab-normalize" role="tabpanel" aria-label="Normalize">
 
 <div class="tab-empty-state" id="empty-normalize" style="display:none;">
   <div class="empty-icon">&#x1F4C1;</div>
@@ -2837,7 +2837,7 @@
 <div class="preset-panel">
   <div class="preset-field">
     <label>Naming pattern</label>
-          <input type="text" id="regex-pattern" value="^(?&lt;prefix&gt;[A-Z]+)_(?&lt;role&gt;[A-Za-z]+)_?(?&lt;num&gt;\\d+)?$" oninput="updateParseTable()">
+          <input type="text" id="regex-pattern" value="^(?&lt;prefix&gt;[A-Z]+)_(?&lt;role&gt;[A-Za-z]+)_?(?&lt;num&gt;\\d+)?$" data-wire="parse-pattern">
           <div class="hint">Use <code>(?&lt;name&gt;...)</code> to extract parts from the channel name</div>
   </div>
   <div class="preset-field">
@@ -2878,7 +2878,7 @@
 
   <div class="test-rename">
     <label>Test rename</label>
-    <input type="text" id="test-raw" placeholder="Type a channel name..." value="HST_Host_1" oninput="testRename()">
+    <input type="text" id="test-raw" placeholder="Type a channel name..." value="HST_Host_1" data-wire="test-rename">
     <span style="color:#bbb;font-size:12px;">&#x2192;</span>
     <span class="test-result" id="test-result">HST_Host_1</span>
   </div>
@@ -2887,7 +2887,7 @@
 <!-- ============================================================ -->
 <!-- TAB: ROUTE -->
 <!-- ============================================================ -->
-<div class="tab-content" id="tab-route">
+<div class="tab-content" id="tab-route" role="tabpanel" aria-label="Route">
 
   <div class="tab-empty-state" id="empty-route" style="display:none;">
     <div class="empty-icon">&#x1F504;</div>
@@ -2937,10 +2937,10 @@
         Media: <strong id="routeInfoEssence">Embedded in AAF</strong>
       </div>
       <div style="display: flex; gap: 6px; align-items: center;">
-        <button class="btn btn-undo" id="routeUndoBtn" onclick="undoAction()" title="Undo (Ctrl+Z)" disabled>&#8630; Undo</button>
-        <button class="btn btn-redo" id="routeRedoBtn" onclick="redoAction()" title="Redo (Ctrl+Shift+Z)" disabled>&#8631; Redo</button>
-        <button class="btn btn-secondary" onclick="showToast('Import another polywav')">+ Import</button>
-        <button class="btn btn-primary" onclick="switchTab('export')">&#x21E9; Export for Avid</button>
+        <button class="btn btn-undo" id="routeUndoBtn" title="Undo (Ctrl+Z)" disabled>&#8630; Undo</button>
+        <button class="btn btn-redo" id="routeRedoBtn" title="Redo (Ctrl+Shift+Z)" disabled>&#8631; Redo</button>
+        <button class="btn btn-secondary" data-toast="Import another polywav">+ Import</button>
+        <button class="btn btn-primary" data-nav="export">&#x21E9; Export for Avid</button>
       </div>
     </div>
 </div>
@@ -2948,7 +2948,7 @@
 <!-- ============================================================ -->
 <!-- TAB: PATCH -->
 <!-- ============================================================ -->
-<div class="tab-content" id="tab-patch">
+<div class="tab-content" id="tab-patch" role="tabpanel" aria-label="Patch">
 
   <div class="tab-empty-state" id="empty-patch" style="display:none;">
     <div class="empty-icon">&#x1F3A8;</div>
@@ -2971,8 +2971,8 @@
                     <span class="legend-item"><span class="legend-swatch" style="background:#ccc;border:1px dashed #bbb;"></span> Unassigned</span>
                   </div>
                   <div class="patch-undo-bar">
-          <button class="btn btn-undo" id="patchUndoBtn" onclick="undoAction()" title="Undo (Ctrl+Z)" disabled>&#8630; Undo</button>
-          <button class="btn btn-redo" id="patchRedoBtn" onclick="redoAction()" title="Redo (Ctrl+Shift+Z)" disabled>&#8631; Redo</button>
+          <button class="btn btn-undo" id="patchUndoBtn" title="Undo (Ctrl+Z)" disabled>&#8630; Undo</button>
+          <button class="btn btn-redo" id="patchRedoBtn" title="Redo (Ctrl+Shift+Z)" disabled>&#8631; Redo</button>
         </div>
       </div>
 
@@ -3006,7 +3006,7 @@
 <!-- ============================================================ -->
 <!-- TAB: EXPORT -->
 <!-- ============================================================ -->
-<div class="tab-content" id="tab-export">
+<div class="tab-content" id="tab-export" role="tabpanel" aria-label="Export">
 
   <div class="tab-empty-state" id="empty-export" style="display:none;">
     <div class="empty-icon">&#x1F4E6;</div>
@@ -3063,18 +3063,18 @@
           <div class="preset-field" style="margin-bottom:14px;">
             <label>Output folder</label>
             <div style="display:flex;gap:8px;align-items:center;">
-              <input type="text" id="outputAafDir" value="./output" onchange="onSettingChange('outputAafDir', this.value);buildCLICommand()"
+              <input type="text" id="outputAafDir" value="./output" 
                 style="flex:1;font-family:var(--font-mono);padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--ink);">
-              <button class="btn btn-secondary" onclick="browseDir('outputAafDir')" style="font-size:12px;padding:6px 12px;">&#x1F4C1; Browse</button>
+              <button class="btn btn-secondary" id="browseAafDirBtn" style="font-size:12px;padding:6px 12px;">&#x1F4C1; Browse</button>
             </div>
             <div class="hint" style="margin-top:4px;">Output file path: <strong id="outputAafPreview" style="font-family:var(--font-mono);font-weight:500;">Load a file to preview output path</strong></div>
           </div>
           <div class="preset-field">
             <label>MXF folder</label>
             <div style="display:flex;gap:8px;align-items:center;">
-              <input type="text" id="outputMxfDir" value="./output/mxf" onchange="onSettingChange('outputMxfDir', this.value);buildCLICommand()"
+              <input type="text" id="outputMxfDir" value="./output/mxf" 
                 style="flex:1;font-family:var(--font-mono);padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--ink);">
-              <button class="btn btn-secondary" onclick="browseDir('outputMxfDir')" style="font-size:12px;padding:6px 12px;">&#x1F4C1; Browse</button>
+              <button class="btn btn-secondary" id="browseMxfDirBtn" style="font-size:12px;padding:6px 12px;">&#x1F4C1; Browse</button>
             </div>
             <div class="hint" style="margin-top:4px;">One MXF per audio track, placed in this folder</div>
           </div>
@@ -3084,7 +3084,7 @@
       <div class="card" style="margin-top:16px;">
         <div class="card-header">
           <h2>CLI command</h2>
-          <button class="btn btn-secondary" onclick="copyCLI()" style="font-size:12px;padding:4px 10px;">&#x2398; Copy</button>
+          <button class="btn btn-secondary" id="copyCliBtn" style="font-size:12px;padding:4px 10px;">&#x2398; Copy</button>
         </div>
         <div style="padding:16px;">
           <code id="exportCLI" style="display:block;white-space:pre-wrap;word-break:break-all;font-size:13px;line-height:1.5;background:var(--bg-input);padding:14px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);"># CLI command will appear here</code>
@@ -3098,21 +3098,21 @@
         </div>
         <div style="padding:16px;">
                   <div class="export-option selected">
-                    <input type="radio" name="export-format" value="embedded" onclick="exportFormatClick(this)">
+                    <input type="radio" name="export-format" value="embedded" >
                     <div>
                       <div class="export-label">Embedded in AAF</div>
                       <div class="export-desc">Audio embedded directly in the AAF file &middot; self-contained</div>
                     </div>
                   </div>
                   <div class="export-option">
-                    <input type="radio" name="export-format" value="wav" onclick="exportFormatClick(this)">
+                    <input type="radio" name="export-format" value="wav" >
                     <div>
                       <div class="export-label">AAF + WAV</div>
                       <div class="export-desc">Broadcast WAV files &middot; AAF links externally</div>
                     </div>
                   </div>
                   <div class="export-option">
-                    <input type="radio" name="export-format" value="mxf" onclick="exportFormatClick(this)">
+                    <input type="radio" name="export-format" value="mxf" >
                     <div>
                       <div class="export-label">Avid MXF (OP-Atom)</div>
                       <div class="export-desc">Standard Avid Media Composer format &middot; 1 MXF per track</div>
@@ -3153,8 +3153,8 @@
       </div>
 
       <div class="export-footer">
-        <button class="btn btn-secondary" onclick="switchTab('route')">Back to Route</button>
-        <button class="btn btn-primary" id="exportBtn" onclick="doExport()">&#x21E9; Export for Avid</button>
+        <button class="btn btn-secondary" data-nav="route">Back to Route</button>
+        <button class="btn btn-primary" id="exportBtn">&#x21E9; Export for Avid</button>
       </div>
 </div>
 
@@ -3162,11 +3162,11 @@
 <div class="toast" id="toast"></div>
 
 <!-- ===== SETTINGS OVERLAY ===== -->
-<div class="settings-overlay" id="settingsOverlay" onclick="closeSettingsOutside(event)">
+<div class="settings-overlay" id="settingsOverlay" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
   <div class="settings-panel">
     <div class="settings-header">
-      <h2><span>&#x2699;</span>Settings</h2>
-      <button class="settings-close" onclick="toggleSettings()" aria-label="Close settings">&#x2715;</button>
+      <h2 id="settingsTitle"><span>&#x2699;</span>Settings</h2>
+      <button class="settings-close" id="settingsCloseBtn" aria-label="Close settings">&#x2715;</button>
     </div>
 
     <!-- Theme -->
@@ -3179,8 +3179,8 @@
         </div>
         <div class="setting-control">
           <div class="segmented">
-            <button class="seg-option" id="themeDarkOpt" onclick="setThemeFromSettings('dark')">Dark</button>
-            <button class="seg-option" id="themeLightOpt" onclick="setThemeFromSettings('light')">Light</button>
+            <button class="seg-option" id="themeDarkOpt" data-theme="dark">Dark</button>
+            <button class="seg-option" id="themeLightOpt" data-theme="light">Light</button>
           </div>
         </div>
       </div>
@@ -3196,9 +3196,9 @@
         </div>
         <div class="setting-control">
           <div class="segmented">
-            <button class="seg-option active" onclick="setMode(this, 'group')">Group Clip</button>
-            <button class="seg-option" onclick="setMode(this, 'sequence')">Sequence</button>
-            <button class="seg-option" onclick="setMode(this, 'mixed')">Mixed</button>
+            <button class="seg-option active" data-setmode="group">Group Clip</button>
+            <button class="seg-option" data-setmode="sequence">Sequence</button>
+            <button class="seg-option" data-setmode="mixed">Mixed</button>
           </div>
         </div>
       </div>
@@ -3209,9 +3209,9 @@
         </div>
         <div class="setting-control">
           <div class="segmented">
-            <button class="seg-option active" onclick="setEssence(this, 'embedded')">Embedded in AAF</button>
-            <button class="seg-option" onclick="setEssence(this, 'external')">Separate WAV files</button>
-            <button class="seg-option" onclick="setEssence(this, 'mxf')">Avid MXF (OP-Atom)</button>
+            <button class="seg-option active" data-setessence="embedded">Embedded in AAF</button>
+            <button class="seg-option" data-setessence="external">Separate WAV files</button>
+            <button class="seg-option" data-setessence="mxf">Avid MXF (OP-Atom)</button>
           </div>
         </div>
       </div>
@@ -3221,7 +3221,7 @@
           <div class="setting-desc">Output sample rate</div>
         </div>
         <div class="setting-control">
-          <select id="srSelect" onchange="onSettingChange('sampleRate', this.value)">
+          <select id="srSelect">
             <option value="auto">Auto (from source)</option>
             <option value="48000">48000 Hz</option>
             <option value="96000">96000 Hz</option>
@@ -3235,7 +3235,7 @@
           <div class="setting-desc">Output bit depth</div>
         </div>
         <div class="setting-control">
-          <select id="bdSelect" onchange="onSettingChange('bitDepth', this.value)">
+          <select id="bdSelect">
             <option value="auto">Auto (from source)</option>
             <option value="16">16-bit PCM</option>
             <option value="24" selected>24-bit PCM</option>
@@ -3254,7 +3254,7 @@
           <div class="setting-desc">Current naming and routing configuration</div>
         </div>
         <div class="setting-control">
-          <select id="presetSelect" onchange="onPresetChange(this.value)" style="min-width:200px;">
+          <select id="presetSelect" style="min-width:200px;">
             <option>Masterchef Kitchens (MKR)</option>
             <option>The Block (BLK)</option>
             <option>Married at First Sight (MAFS)</option>
@@ -3280,7 +3280,7 @@
                 <div class="setting-desc">Pattern used when no preset naming rules apply</div>
               </div>
               <div class="setting-control">
-                <input type="text" id="namingTemplateInput" value="{prefix}_{role}_{num}" onchange="onSettingChange('namingTemplate', this.value)" style="width:180px;text-align:left;font-family:var(--font-mono);">
+                <input type="text" id="namingTemplateInput" value="{prefix}_{role}_{num}" style="width:180px;text-align:left;font-family:var(--font-mono);">
               </div>
             </div>
           </div>
@@ -3295,7 +3295,7 @@
               </div>
               <div class="setting-control">
                 <label class="toggle-switch">
-                  <input type="checkbox" id="rawBextToggle" checked onchange="onSettingChange('showRawBext', this.checked)">
+                  <input type="checkbox" id="rawBextToggle" checked>
                   <span class="toggle-slider"></span>
                 </label>
               </div>
@@ -3307,7 +3307,7 @@
               </div>
               <div class="setting-control">
                 <label class="toggle-switch">
-                  <input type="checkbox" id="toastToggle" checked onchange="onSettingChange('showToasts', this.checked)">
+                  <input type="checkbox" id="toastToggle" checked>
             <span class="toggle-slider"></span>
           </label>
                   </div>
@@ -3316,18 +3316,18 @@
 
     <div class="settings-footer">
       <span class="version">Polywav Ingest v1.0.0 &middot; AAF OP-Atom Engine</span>
-      <button class="btn-setting" onclick="toggleSettings()">Cancel</button>
-      <button class="btn-setting btn-setting-primary" onclick="applySettings()">Apply</button>
+      <button class="btn-setting" id="settingsCancelBtn">Cancel</button>
+      <button class="btn-setting btn-setting-primary" id="settingsApplyBtn">Apply</button>
     </div>
   </div>
 </div>
 
 <!-- ===== Setup Wizard Overlay ===== -->
-<div class="wizard-overlay" id="wizardOverlay" onclick="if(event.target===event.currentTarget) closeWizard()">
+<div class="wizard-overlay" id="wizardOverlay" role="dialog" aria-modal="true" aria-labelledby="wizardTitle">
   <div class="wizard-modal">
     <div class="wizard-header">
-      <h2><span>&#x2726;</span> Setup Wizard</h2>
-      <button class="wizard-close" onclick="closeWizard()" aria-label="Close wizard">&#x2715;</button>
+      <h2 id="wizardTitle"><span>&#x2726;</span> Setup Wizard</h2>
+      <button class="wizard-close" id="wizardCloseBtn" aria-label="Close wizard">&#x2715;</button>
     </div>
 
     <!-- Step dots -->
@@ -3340,22 +3340,22 @@
         <h3><span>01</span> Project template</h3>
         <p>Choose a template that matches your show. This sets naming, routing, and export defaults.</p>
         <div class="wizard-templates">
-          <div class="wizard-tmpl-card" data-template="panel" onclick="selectTemplate('panel')">
+          <div class="wizard-tmpl-card" data-template="panel" role="button" tabindex="0" aria-label="Panel Show template">
             <div class="tmpl-icon">&#x1F4FA;</div>
             <div class="tmpl-name">Panel Show</div>
             <div class="tmpl-desc">Talk show, debate, interview — fixed panel mics</div>
           </div>
-          <div class="wizard-tmpl-card" data-template="cooking" onclick="selectTemplate('cooking')">
+          <div class="wizard-tmpl-card" data-template="cooking" role="button" tabindex="0" aria-label="Cooking Show template">
             <div class="tmpl-icon">&#x1F373;</div>
             <div class="tmpl-name">Cooking Show</div>
             <div class="tmpl-desc">Multi-kitchen, reality — dynamic mic count, iso tracks</div>
           </div>
-          <div class="wizard-tmpl-card" data-template="music" onclick="selectTemplate('music')">
+          <div class="wizard-tmpl-card" data-template="music" role="button" tabindex="0" aria-label="Music template">
             <div class="tmpl-icon">&#x266B;</div>
             <div class="tmpl-name">Music</div>
             <div class="tmpl-desc">Band, orchestra, live performance — track naming by instrument</div>
           </div>
-          <div class="wizard-tmpl-card" data-template="custom" onclick="selectTemplate('custom')">
+          <div class="wizard-tmpl-card" data-template="custom" role="button" tabindex="0" aria-label="Custom template">
             <div class="tmpl-icon">&#x2699;</div>
             <div class="tmpl-name">Custom</div>
             <div class="tmpl-desc">Start from scratch with your own settings</div>
@@ -3373,7 +3373,7 @@
             <div class="row-desc">Variables: {prefix} {role} {num} {side}</div>
           </div>
           <div class="row-control">
-            <input type="text" id="wizNamingTemplate" value="{prefix}_{role}_{num}" onchange="wizState.naming.template=this.value" style="width:200px;font-family:var(--font-mono);font-size:12px;">
+            <input type="text" id="wizNamingTemplate" value="{prefix}_{role}_{num}" style="width:200px;font-family:var(--font-mono);font-size:12px;">
           </div>
         </div>
         <div class="wizard-row">
@@ -3382,7 +3382,7 @@
             <div class="row-desc">Character between name components</div>
           </div>
           <div class="row-control">
-            <select id="wizSeparator" onchange="wizState.naming.separator=this.value">
+            <select id="wizSeparator">
               <option value="_">Underscore _</option>
               <option value="-">Hyphen -</option>
               <option value=".">Dot .</option>
@@ -3412,7 +3412,7 @@
           </div>
           <div class="row-control">
             <label class="toggle-switch">
-              <input type="checkbox" id="wizAutoAssign" checked onchange="wizState.routing.autoAssign=this.checked">
+              <input type="checkbox" id="wizAutoAssign" checked>
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -3423,7 +3423,7 @@
             <div class="row-desc">AO track range for auto-assignment</div>
           </div>
           <div class="row-control">
-            <select id="wizTrackGroup" onchange="wizState.routing.trackGroup=this.value">
+            <select id="wizTrackGroup">
               <option value="A1-A8">A1–A8 (standard)</option>
               <option value="A9-A16">A9–A16 (extended)</option>
               <option value="A17-A24">A17–A24 (large)</option>
@@ -3437,7 +3437,7 @@
             <div class="row-desc">Default gain applied to all routed channels</div>
           </div>
           <div class="row-control">
-            <input type="number" id="wizMixGain" value="-3" step="0.5" min="-24" max="6" onchange="wizState.routing.mixGain=parseFloat(this.value)" style="width:80px;">
+            <input type="number" id="wizMixGain" value="-3" step="0.5" min="-24" max="6" style="width:80px;">
           </div>
         </div>
       </div>
@@ -3452,7 +3452,7 @@
             <div class="row-desc">How tracks are organised in the AAF</div>
           </div>
           <div class="row-control">
-            <select id="wizMode" onchange="wizState.export.mode=this.value">
+            <select id="wizMode">
               <option value="group">Group Clip</option>
               <option value="sequence">Sequence</option>
               <option value="mixed">Mixed</option>
@@ -3465,7 +3465,7 @@
             <div class="row-desc">How audio essence is stored</div>
           </div>
           <div class="row-control">
-            <select id="wizEssence" onchange="wizState.export.essence=this.value">
+            <select id="wizEssence">
               <option value="embedded">Embedded in AAF</option>
               <option value="external">Separate WAV files</option>
               <option value="mxf">Avid MXF (OP-Atom)</option>
@@ -3478,7 +3478,7 @@
             <div class="row-desc">Output sample rate</div>
           </div>
           <div class="row-control">
-            <select id="wizSampleRate" onchange="wizState.export.sampleRate=this.value">
+            <select id="wizSampleRate">
               <option value="auto">Auto (from source)</option>
               <option value="48000">48000 Hz</option>
               <option value="96000">96000 Hz</option>
@@ -3492,7 +3492,7 @@
             <div class="row-desc">Output bit depth</div>
           </div>
           <div class="row-control">
-            <select id="wizBitDepth" onchange="wizState.export.bitDepth=this.value">
+            <select id="wizBitDepth">
               <option value="auto">Auto (from source)</option>
               <option value="16">16-bit PCM</option>
               <option value="24">24-bit PCM</option>
@@ -3506,7 +3506,7 @@
             <div class="row-desc">Where the AAF file gets written</div>
           </div>
           <div class="row-control">
-            <input type="text" id="wizAafDir" value="./output" onchange="wizState.export.aafDir=this.value" style="width:160px;">
+            <input type="text" id="wizAafDir" value="./output" style="width:160px;">
           </div>
         </div>
         <div class="wizard-row">
@@ -3515,7 +3515,7 @@
             <div class="row-desc">Where MXF / WAV files get written</div>
           </div>
           <div class="row-control">
-            <input type="text" id="wizMxfDir" value="./output/mxf" onchange="wizState.export.mxfDir=this.value" style="width:160px;">
+            <input type="text" id="wizMxfDir" value="./output/mxf" style="width:160px;">
           </div>
         </div>
       </div>
@@ -3532,8 +3532,8 @@
     <div class="wizard-footer">
       <div class="wizard-footer-left" id="wizFooterLeft">Step 1 of 5</div>
       <div class="wizard-footer-right">
-        <button class="wizard-btn" id="wizBackBtn" onclick="wizardBack()">Back</button>
-        <button class="wizard-btn primary" id="wizNextBtn" onclick="wizardNext()">Next</button>
+        <button class="wizard-btn" id="wizBackBtn">Back</button>
+        <button class="wizard-btn primary" id="wizNextBtn">Next</button>
       </div>
     </div>
   </div>

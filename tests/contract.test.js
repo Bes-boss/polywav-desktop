@@ -244,5 +244,178 @@ test('B4: duplicate orbFloat keyframes removed (only one definition)', () => {
 });
 
 // ======================================================================
+// BRANCH 5 — fix/csp-inline-handlers (onclick -> addEventListener)
+// ======================================================================
+// The strict CSP (`script-src 'self'`) silently kills EVERY inline event
+// handler attribute: onclick=, onchange=, oninput=, and the on*=
+// attributes app.js emits inside generated HTML strings. These tests pin
+// the migrated state: zero inline handler attributes anywhere, all
+// dynamic UI driven by delegated listeners.
+
+const INLINE_HANDLER_RE =
+  /\son(click|change|input|blur|focus|dblclick|dragstart|dragover|drop|dragend|mousedown|mouseup|keydown|keyup|submit)\s*=\s*["']/i;
+
+/** All source windows of `len` chars starting at each occurrence of `anchorRe` */
+function windowsAround(source, anchorPattern, len) {
+  const re = new RegExp(anchorPattern, 'g');
+  const wins = [];
+  let m;
+  while ((m = re.exec(source)) !== null) wins.push(source.slice(m.index, m.index + len));
+  return wins;
+}
+
+console.log('\n[Branch 5] fix/csp-inline-handlers');
+
+test('B5: index.html has ZERO inline on*= handler attributes', () => {
+  const hits = indexHtml.match(new RegExp(INLINE_HANDLER_RE.source, 'gi')) || [];
+  assert(hits.length === 0,
+    `${hits.length} dead inline handler(s) remain under strict CSP: ${hits.slice(0, 6).join(', ')}`);
+});
+
+test('B5: app.js emits no on*= attributes in generated HTML strings', () => {
+  const attrStyle = inlineJs.match(/\bon[a-z]+\s*=\s*["']/gi) || [];
+  assert(attrStyle.length === 0,
+    `${attrStyle.length} inline handler attribute(s) still emitted: ${attrStyle.slice(0, 6).join(', ')}`);
+});
+
+test('B5: template chips driven by delegated click listener on container', () => {
+  const wins = windowsAround(inlineJs, "getElementById\\('template-chips'\\)", 600);
+  assert(wins.some((w) => /addEventListener\('click'/.test(w)),
+    'no delegated click listener bound at #template-chips');
+});
+
+test('B5: chip remove (chip-x) handled inside the delegation', () => {
+  const wins = windowsAround(inlineJs, "getElementById\\('template-chips'\\)", 1600);
+  assert(wins.some((w) => /chip-x/.test(w) && /removeChipSlot/.test(w)),
+    'chip-x removal not found in chip delegation');
+});
+
+test('B5: parse table cells use delegated mousedown/focusout (no per-cell handlers)', () => {
+  const wins = windowsAround(inlineJs, "getElementById\\('parse-tbody'\\)", 700);
+  const w = wins.find((x) => /addEventListener\('mousedown'/.test(x));
+  assert(w, 'no delegated mousedown on parse-tbody');
+  assert(/addEventListener\('focusout'/.test(w), 'no delegated focusout near the delegation block');
+  assert(!/onblur=|onmousedown=/.test(w.split('addEventListener')[0]),
+    'cells still emit inline handlers in row HTML');
+});
+
+test('B5: column header drag/drop driven by thead-level delegation', () => {
+  const wins = windowsAround(inlineJs, "querySelector\\('#parse-table thead'\\)", 900);
+  const w = wins.find((x) => x.includes("addEventListener('dragstart'"));
+  assert(w, 'thead delegation block not found');
+  for (const ev of ["'dragover'", "'drop'", "'dragend'", "'dblclick'"]) {
+    assert(w.includes(`addEventListener(${ev}`), `missing delegated ${ev} on thead`);
+  }
+});
+
+test('B5: wizard step dots navigable via delegated click (no onclick= in dot HTML)', () => {
+  const dotsFn = inlineJs.match(/function renderStepDots\([\s\S]{0,900}/);
+  assert(dotsFn, 'renderStepDots not found');
+  assert(!/onclick=/.test(dotsFn[0]), 'step dots still emit onclick=');
+  const wins = windowsAround(inlineJs, "getElementById\\('wizardSteps'\\)", 600);
+  const wired = wins.some((w) => /addEventListener\('click'/.test(w));
+  assert(wired, 'no delegated click listener for wizard steps');
+});
+
+test('B5: settings controls wired via JS change/click listeners (ids kept)', () => {
+  for (const id of ['srSelect', 'bdSelect', 'presetSelect', 'namingTemplateInput',
+                    'rawBextToggle', 'toastToggle', 'regex-pattern', 'test-raw']) {
+    const wins = windowsAround(inlineJs, `getElementById\\('${id}'\\)`, 400);
+    assert(wins.length > 0, `'${id}' never referenced in app.js`);
+    const wired = wins.some((w) => /addEventListener\('(change|input)'/.test(w));
+    assert(wired, `'${id}' has no JS-bound change/input listener near any reference`);
+  }
+});
+
+test('B5: segmented mode/essence buttons wired via data attributes', () => {
+  assertHtml(/data-setmode=/, 'no data-setmode attributes in index.html');
+  assertHtml(/data-setessence=/, 'no data-setessence attributes in index.html');
+  assert(/\[data-setmode\]|\bdata-setmode\b.*addEventListener|querySelectorAll\('\[data-setmode\]'\)/.test(inlineJs),
+    'data-setmode buttons not wired in app.js');
+  assert(/querySelectorAll\('\[data-setessence\]'\)|\[data-setessence\]/.test(inlineJs),
+    'data-setessence buttons not wired in app.js');
+});
+
+// ======================================================================
+// BRANCH 6 — recents click-to-reload
+// ======================================================================
+console.log('\n[Branch 6] fix/recents-reload');
+
+test('B6: recent-file entries persist an absolute path', () => {
+  assert(/_recentFiles\.unshift\(\{[^}]*path/.test(inlineJs),
+    'addRecentFileItem does not store a path on entries');
+});
+
+test('B6: clicking a recent item re-probes its stored path', () => {
+  const block = inlineJs.match(/getElementById\('recentList'\)[\s\S]{0,800}?addEventListener\('click'[\s\S]{0,800}/);
+  assert(block, 'no delegated click listener on #recentList');
+  assert(/handleFilePath/.test(block[0]), 'recent click does not call handleFilePath');
+});
+
+test('B6: recent click guarded — entries without a stored path are inert', () => {
+  const block = inlineJs.match(/getElementById\('recentList'\)[\s\S]{0,1600}/);
+  assert(block && /\.path\b/.test(block[0]),
+    'no path-presence guard around recent-item activation');
+});
+
+test('B6: loaded-from-recents toast tells the user which file came back', () => {
+  const block = inlineJs.match(/getElementById\('recentList'\)[\s\S]{0,1600}/);
+  assert(block && /showToast/.test(block[0]), 'no user feedback on recents reload');
+});
+
+// ======================================================================
+// BRANCH 7 — deeper ARIA (tabs, dialogs, focus traps, keyboard)
+// ======================================================================
+console.log('\n[Branch 7] aria-deepening');
+
+test('B7: tab bar exposes role=tablist with role=tab children', () => {
+  assertHtml(/class="tab-bar"[^>]*role="tablist"|role="tablist"[^>]*class="tab-bar"/,
+    '.tab-bar lacks role="tablist"');
+  const tabBtns = (indexHtml.match(/class="tab[^"]*"[^>]*role="tab"/g) ||
+                   indexHtml.match(/role="tab"/g) || []).length;
+  assert(tabBtns >= 5, `expected >=5 role="tab" buttons, found ${tabBtns}`);
+});
+
+test('B7: tab panels expose role=tabpanel', () => {
+  const panels = (indexHtml.match(/role="tabpanel"/g) || []).length;
+  assert(panels >= 5, `expected >=5 role="tabpanel" panels, found ${panels}`);
+});
+
+test('B7: switchTab syncs aria-selected and aria-hidden', () => {
+  const fn = inlineJs.match(/function switchTab\([\s\S]{0,2200}/);
+  assert(fn, 'switchTab not found');
+  assert(/aria-selected/.test(fn[0]), 'switchTab does not update aria-selected');
+  assert(/aria-hidden/.test(fn[0]), 'switchTab does not update aria-hidden');
+});
+
+test('B7: arrow keys move focus between tabs', () => {
+  assert(/ArrowLeft|ArrowRight/.test(inlineJs), 'no arrow-key tab navigation');
+});
+
+test('B7: overlays are labelled dialogs (aria-modal)', () => {
+  const flat = indexHtml.split('\n').map(function(l) { return l.trim(); }).join(' ');
+  assert(/id="settingsOverlay"/.test(flat) && /role="dialog"/.test(flat),
+    'no role="dialog" on overlays');
+  const modals = (indexHtml.match(/aria-modal="true"/g) || []).length;
+  assert(modals >= 2, `expected aria-modal on settings + wizard, found ${modals}`);
+});
+
+test('B7: focus trap helper exists and is applied to both overlays', () => {
+  assert(/function trapFocus\(|const trapFocus|var trapFocus|window\.trapFocus\s*=/.test(inlineJs),
+    'no trapFocus helper');
+  const refs = (inlineJs.match(/trapFocus/g) || []).length;
+  assert(refs >= 3, `trapFocus defined but barely used (${refs} refs)`);
+});
+
+test('B7: wizard template cards are keyboard-operable buttons', () => {
+  const cards = (indexHtml.match(/wizard-tmpl-card[^>]*role="button"/g) ||
+                 indexHtml.match(/role="button"[^>]*class="wizard-tmpl-card"/g) || []).length;
+  assert(cards >= 4, `template cards lack role="button" (${cards}/4)`);
+  const wins = windowsAround(inlineJs, "wizard-tmpl-card", 700);
+  assert(wins.some((w) => /'Enter'/.test(w) && /selectTemplate/.test(w)),
+    'no Enter/Space activation for template cards');
+});
+
+// ======================================================================
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);
