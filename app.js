@@ -1782,9 +1782,20 @@
     fnEl('exportSampleRate', srLabel);
     fnEl('exportBitDepth', bdLabel);
 
-    // Rough size estimate (16 ch × 48 kHz × 24-bit × 60 min ≈ 1.2 GB)
-    var estGB = (total * (SETTINGS.bitDepth !== 'auto' ? parseInt(SETTINGS.bitDepth, 10) : 24) * 48000 * 60 * 5e-10).toFixed(1);
-    fnEl('exportSize', '~' + estGB + ' GB');
+    // Journey-audit E2: size estimate derives from the loaded file's real
+    // duration (frames / sampleRate). Only when the header gave no frames
+    // does the estimate fall back to a 60-minute take.
+    var durSec = 0;
+    if (_fileInfo && _fileInfo.frames && _fileInfo.sampleRate) {
+      durSec = _fileInfo.frames / _fileInfo.sampleRate;
+    }
+    if (durSec <= 0) durSec = 3600;
+    var depthBytes = (SETTINGS.bitDepth !== 'auto' ? parseInt(SETTINGS.bitDepth, 10) : ((_fileInfo && _fileInfo.bitDepth) || 24)) / 8;
+    var srHz = (SETTINGS.sampleRate !== 'auto' ? parseInt(SETTINGS.sampleRate, 10) : ((_fileInfo && _fileInfo.sampleRate) || 48000));
+    var mxfOverhead = (SETTINGS.essence === 'mxf' ? 1.05 : 1.0);
+    var estGB = total * depthBytes * srHz * durSec * mxfOverhead / 1e9;
+    var estStr = estGB > 0.01 ? estGB.toFixed(1) : (estGB > 0 ? estGB.toFixed(3) : '0.0');
+    fnEl('exportSize', '~' + estStr + ' GB');
 
     // Sync output destination fields from SETTINGS
     syncSettingsUI();

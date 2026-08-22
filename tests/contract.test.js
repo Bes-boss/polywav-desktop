@@ -457,5 +457,19 @@ test('B7: wizard template cards are keyboard-operable buttons', () => {
 });
 
 // ======================================================================
+// BRANCH 8 — journey-audit size estimate (real duration, not 60-min guess)
+// ======================================================================
+console.log('\n[Branch 8] journey-audit size estimate');
+
+test('B8: size estimate derives from real file facts (no 60-minute constant)', () => {
+  assert(!/\*\s*60\s*\*\s*5e-10/.test(inlineJs),
+    '60-minute constant still in the size estimate');
+  assert(/_fileInfo\.frames/.test(inlineJs),
+    'estimate does not derive duration from loaded file frames');
+  assert(/toFixed\(3\)/.test(inlineJs),
+    'no adaptive precision for small files (a 5s file must not show ~0.0 GB)');
+});
+
+// ======================================================================
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);
