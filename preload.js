@@ -19,7 +19,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openDirectoryWithDefault: (defaultPath) => ipcRenderer.invoke('dialog:openDirectoryWithDefault', defaultPath),
   openFile: () => ipcRenderer.invoke('dialog:openFile'),
 
-    // ---- File Metadata --------------------------------------------------------
+    // ---- Preset Library -------------------------------------------------------
+  presetsList: () => ipcRenderer.invoke('presets:list'),
+  presetsRead: (name) => ipcRenderer.invoke('presets:read', name),
+  presetsSave: (payload) => ipcRenderer.invoke('presets:save', payload),
+  presetsDelete: (name) => ipcRenderer.invoke('presets:delete', name),
+  presetsExport: (payload) => ipcRenderer.invoke('presets:export', payload),
+  presetsImportOpen: () => ipcRenderer.invoke('presets:importOpen'),
+
+  // ---- File Metadata --------------------------------------------------------
         probeFile: (filePath) => ipcRenderer.invoke('file:probe', filePath),
         readFileHeader: (filePath) => ipcRenderer.invoke('file:readFileHeader', filePath),
 

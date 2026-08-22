@@ -3255,11 +3255,7 @@
         </div>
         <div class="setting-control">
           <select id="presetSelect" style="min-width:200px;">
-            <option>Masterchef Kitchens (MKR)</option>
-            <option>The Block (BLK)</option>
-            <option>Married at First Sight (MAFS)</option>
-            <option>Survivor (SVR)</option>
-            <option>Custom...</option>
+            <option value="">Loading&#8230;</option>
           </select>
         </div>
       </div>
@@ -3270,7 +3266,11 @@
               </div>
               <div class="setting-control">
                 <div class="preset-actions-row">
-                  <span style="color:#888;font-size:12px;font-style:italic;">Coming soon</span>
+                  <input type="text" id="presetNameInput" placeholder="Preset name" style="width:150px;" aria-label="New preset name">
+                  <button type="button" class="btn btn-secondary" id="presetSaveBtn">Save</button>
+                  <button type="button" class="btn btn-secondary" id="presetExportBtn">Export</button>
+                  <button type="button" class="btn btn-secondary" id="presetImportBtn">Import</button>
+                  <button type="button" class="btn btn-danger" id="presetDeleteBtn">Delete</button>
                 </div>
               </div>
             </div>

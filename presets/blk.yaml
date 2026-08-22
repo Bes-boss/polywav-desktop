@@ -1,0 +1,56 @@
+name: 'The Block (BLK)'
+source:
+  format: polywav
+  channels: 8
+  recorder: sounddevices
+tracks:
+- source_channel: 1
+  target_track: 1
+  target_track_label: 'A1'
+  label: 'Host 1'
+  role: 'iso'
+- source_channel: 2
+  target_track: 2
+  target_track_label: 'A2'
+  label: 'Contestant 2'
+  role: 'iso'
+- source_channel: 3
+  target_track: 3
+  target_track_label: 'A3'
+  label: 'Crew 3'
+  role: 'iso'
+- source_channel: 4
+  target_track: 4
+  target_track_label: 'A4'
+  label: 'Narrator 4'
+  role: 'iso'
+- source_channel: 5
+  target_track: 5
+  target_track_label: 'A5'
+  label: 'Interview 5'
+  role: 'iso'
+- source_channel: 6
+  target_track: 6
+  target_track_label: 'A6'
+  label: 'Ambience 6'
+  role: 'iso'
+- source_channel: 7
+  target_track: 7
+  target_track_label: 'A7'
+  label: 'FX 7'
+  role: 'iso'
+- source_channel: 8
+  target_track: 8
+  target_track_label: 'A8'
+  label: 'Backup 8'
+  role: 'iso'
+output:
+  format: aaf
+  essence_mode: embedded
+  structure_mode: group
+  mix_gain_db: -3
+  track_naming:
+    template: 'BLK_{prefix}_{role}_{num}'
+    suffix: ''
+  naming:
+    pattern: '^(?<prefix>[^_]+)_(?<role>[A-Za-z]+)(?:_?(?<num>\d+))?$'

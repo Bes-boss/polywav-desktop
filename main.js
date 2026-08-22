@@ -248,6 +248,107 @@ ipcMain.handle('shell:openPath', async (event, filePath) => {
   return shell.openPath(filePath);
 });
 
+// ---- IPC: Preset Library ----------------------------------------------------
+// Two-tier store:
+//   bundled: <appPath>/presets/*.yaml   ships with the app, read-only in the UI
+//   user:    POLYWAV_PRESETS_DIR or <userData>/presets/   writable
+// Main stays a dumb file server; YAML parsing/validation lives in the renderer
+// and (authoritatively) in the Python engine's ShowPreset.
+const PRESET_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9 _-]{0,63}$/;
+
+function userPresetsDir() {
+  const dir = process.env.POLYWAV_PRESETS_DIR || path.join(app.getPath('userData'), 'presets');
+  try { fs.mkdirSync(dir, { recursive: true }); } catch (e) { /* read-only fs: surface on write */ }
+  return dir;
+}
+function bundledPresetsDir() {
+  return process.env.POLYWAV_PRESETS_BUNDLED_DIR || path.join(app.getAppPath(), 'presets');
+}
+function presetSlug(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'preset';
+}
+function listPresetFiles(dir) {
+  try {
+    return fs.readdirSync(dir)
+      .filter((f) => /\.ya?ml$/i.test(f))
+      .sort();
+  } catch (e) {
+    return [];
+  }
+}
+
+ipcMain.handle('presets:list', async () => {
+  function readTier(dir, tier) {
+    return listPresetFiles(dir).map((file) => {
+      try {
+        return { file, tier, stem: file.replace(/\.ya?ml$/i, ''), text: fs.readFileSync(path.join(dir, file), 'utf8') };
+      } catch (e) {
+        return { file, tier, stem: file.replace(/\.ya?ml$/i, ''), text: '', error: String(e.message || e) };
+      }
+    });
+  }
+  return { bundled: readTier(bundledPresetsDir(), 'bundled'), user: readTier(userPresetsDir(), 'user') };
+});
+
+ipcMain.handle('presets:read', async (event, stem) => {
+  if (!PRESET_NAME_RE.test(String(stem || ''))) throw new Error('Invalid preset name');
+  for (const dir of [userPresetsDir(), bundledPresetsDir()]) {
+    for (const file of listPresetFiles(dir)) {
+      if (file.replace(/\.ya?ml$/i, '') === stem) {
+        return { stem, tier: dir === userPresetsDir() ? 'user' : 'bundled', text: fs.readFileSync(path.join(dir, file), 'utf8') };
+      }
+    }
+  }
+  throw new Error('Preset not found: ' + stem);
+});
+
+ipcMain.handle('presets:save', async (event, payload) => {
+  const name = String((payload && payload.name) || '');
+  const yamlText = String((payload && payload.yamlText) || '');
+  const force = !!(payload && payload.force);
+  if (!PRESET_NAME_RE.test(name)) throw new Error('Preset name may contain letters, numbers, spaces, - and _ only');
+  if (!yamlText.trim()) throw new Error('Refusing to save empty preset');
+  const file = presetSlug(name) + '.yaml';
+  const full = path.join(userPresetsDir(), file);
+  if (fs.existsSync(full) && !force) return { exists: true, file };
+  fs.writeFileSync(full, yamlText.endsWith('\n') ? yamlText : yamlText + '\n', 'utf8');
+  return { ok: true, file, overwritten: !!force && fs.existsSync(full) };
+});
+
+ipcMain.handle('presets:delete', async (event, stem) => {
+  if (!PRESET_NAME_RE.test(String(stem || ''))) throw new Error('Invalid preset name');
+  const file = path.join(userPresetsDir(), stem + '.yaml');
+  if (!fs.existsSync(file)) throw new Error('Only user presets can be deleted');
+  fs.unlinkSync(file);
+  return { ok: true };
+});
+
+ipcMain.handle('presets:export', async (event, payload) => {
+  const defaultName = String((payload && payload.defaultName) || 'preset.yaml');
+  const yamlText = String((payload && payload.yamlText) || '');
+  if (!yamlText.trim()) throw new Error('Nothing to export');
+  const result = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: defaultName,
+    filters: [{ name: 'Polywav Preset', extensions: ['yaml', 'yml'] }],
+  });
+  if (result.canceled || !result.filePath) return { canceled: true };
+  fs.writeFileSync(result.filePath, yamlText.endsWith('\n') ? yamlText : yamlText + '\n', 'utf8');
+  return { ok: true, path: result.filePath };
+});
+
+ipcMain.handle('presets:importOpen', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'Polywav Preset', extensions: ['yaml', 'yml'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+  if (result.canceled || !result.filePaths.length) return { canceled: true };
+  const p = result.filePaths[0];
+  return { ok: true, path: p, base: path.basename(p).replace(/\.ya?ml$/i, ''), text: fs.readFileSync(p, 'utf8') };
+});
+
 // ---- IPC: File Probe --------------------------------------------------------
 ipcMain.handle('file:probe', async (event, filePath) => {
   return new Promise((resolve) => {

@@ -223,10 +223,13 @@ test('B3: maximize listener registered once (not per click)', () => {
 // rejects digit-bearing prefixes like EP1 in EP1_001_Presenter. Must be
 // digit-tolerant ([^_]+) in all three presets.
 test('B3.1: default presets use digit-tolerant [^_]+ prefix segment', () => {
-  const flat = inlineJs.replace(/\s+/g, ' ');
-    assert(!/\(\?<prefix>\[A-Z\]\+\)_/.test(flat), 'uppercase-only prefix still in a preset');
-    const hits = inlineJs.match(/\(\?<prefix>\[\^_\]\+\)/g) || [];
-    assert(hits.length >= 3, `digit-tolerant prefix in <3 presets (found ${hits.length})`);
+  // Preset defaults moved from hardcoded loadPreset branches to the starter
+  // YAML library (desktop/presets/*.yaml) - the property follows the files.
+  for (const f of ['mkr.yaml', 'blk.yaml', 'svr.yaml']) {
+    const txt = fs.readFileSync(path.join(ROOT, 'presets', f), 'utf8');
+    const hits = (txt.match(/\(\?<prefix>\[\^_\]\+\)/g) || []).length;
+    assert(hits >= 1, `${f}: digit-tolerant prefix pattern missing`);
+  }
 });
 
 // ======================================================================
@@ -468,6 +471,66 @@ test('B8: size estimate derives from real file facts (no 60-minute constant)', (
     'estimate does not derive duration from loaded file frames');
   assert(/toFixed\(3\)/.test(inlineJs),
     'no adaptive precision for small files (a 5s file must not show ~0.0 GB)');
+});
+
+// ======================================================================
+// BRANCH 9 - preset library (standalone yaml files, no hardcoded shows)
+// ======================================================================
+console.log('\n[Branch 9] preset library');
+
+test('B9a: no hardcoded show presets or Coming soon placeholder', () => {
+  assert(!/<option>Masterchef Kitchens/.test(indexHtml),
+    'hardcoded MKR option still in markup');
+  assert(!/Married at First Sight/.test(indexHtml),
+    'placeholder MAFS option still in markup');
+  assert(!/>Coming soon</.test(indexHtml),
+    '"Coming soon" stub still in manage-presets row');
+});
+
+test('B9b: manage row has real controls (name input + save/export/import/delete)', () => {
+  for (const id of ['presetNameInput', 'presetSaveBtn', 'presetExportBtn',
+                    'presetImportBtn', 'presetDeleteBtn']) {
+    assert(indexHtml.includes(`id="${id}"`), `missing #${id}`);
+  }
+});
+
+test('B9c: preload exposes preset fs API over IPC', () => {
+  for (const fn of ['presetsList', 'presetsRead', 'presetsSave', 'presetsDelete']) {
+    assert(preloadJs.includes(fn), `preload missing ${fn}`);
+  }
+});
+
+test('B9d: main handles preset channels with safe-name validation', () => {
+  for (const ch of ["'presets:list'", "'presets:read'", "'presets:save'", "'presets:delete'"]) {
+    assert(mainJs.includes(ch), `main missing handler ${ch}`);
+  }
+  assert(/POLYWAV_PRESETS_DIR/.test(mainJs),
+    'main ignores POLYWAV_PRESETS_DIR override (needed for isolated smoke)');
+});
+
+test('B9e: renderer populates dropdown from library and saves via IPC', () => {
+  assert(/refreshPresetList/.test(inlineJs), 'no refreshPresetList');
+  const fetchCtx = windowsAround(inlineJs, 'function refreshPresetList', 400).join('\n');
+  assert(/presetsList\(\)/.test(fetchCtx),
+    'library not fetched via electronAPI.presetsList()');
+  const selWins = windowsAround(inlineJs, 'presetSelect', 300);
+  assert(selWins.some((w) => /renderPresetOptions|syncPresetSelect|onPresetChange/.test(w)),
+    'dropdown select element not wired to library render/load');
+  const saveCtx = windowsAround(inlineJs, 'presetSaveBtn', 400).join('\n');
+  assert(/onPresetSave/.test(saveCtx), 'save button not wired');
+  assert(/presetsSave\(/.test(inlineJs), 'no presetsSave IPC usage anywhere');
+});
+
+test('B9f: starter preset files exist and are engine-loadable mappings', () => {
+  for (const f of ['mkr.yaml', 'blk.yaml', 'svr.yaml']) {
+    const p = path.join(ROOT, 'presets', f);
+    assert(fs.existsSync(p), `missing bundled preset ${f}`);
+    const txt = fs.readFileSync(p, 'utf8');
+    assert(/^name:\s*\S/.test(txt), `${f}: no name:`);
+    assert(/^tracks:/m.test(txt), `${f}: no tracks:`);
+    assert(/^output:/m.test(txt), `${f}: no output:`);
+    assert(/source_channel:/m.test(txt), `${f}: tracks lack source_channel`);
+  }
 });
 
 // ======================================================================
