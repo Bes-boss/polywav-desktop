@@ -16,7 +16,10 @@ so it can be built *beside* the current UI without breaking anything.
 3. **Same storage keys.** Both UIs read/write the identical persisted state so a
    user can switch between them without losing settings:
    - `localStorage['polywav-settings']` — see §3
-   - `localStorage['polywav-recents']` — recent-file list (JSON array)
+   - `localStorage['polywav-recent']` — recent-file list (JSON array).
+     NOTE: singular. Shipping app.js uses RECENT_KEY = 'polywav-recent'; earlier
+     drafts of this doc said 'polywav-recents' (plural) — that was wrong, the
+     shipping key wins so users keep recents when switching shells.
 4. **CSP holds.** The shipped CSP is `script-src 'self'`. The React app ships as
    pre-built static JS (Vite build), never an inline `<script>` or eval-based
    stack. Dev-server/HMR mode is allowed only when explicitly enabled by env

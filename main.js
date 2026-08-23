@@ -12,6 +12,36 @@ let mainWindow = null;
 let isMaximized = false;
 let winStatePath = null;
 
+// ---- Hardening: optional userData override ----------------------------------
+// Must run before the single-instance lock (lock scope = userData dir).
+// Lets tests/portable installs isolate their state; real users are unaffected.
+if (process.env.POLYWAV_USER_DATA) {
+  try { app.setPath('userData', process.env.POLYWAV_USER_DATA); } catch (_) { /* ignore */ }
+}
+
+// ---- Hardening: single instance ---------------------------------------------
+// Two instances would race on userData (win-state.json, presets) and could both
+// spawn engine processes against the same outputs. Focus the running window.
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
+// ---- Hardening: atomic writes ------------------------------------------------
+// A crash mid-write must never truncate win-state.json or a preset YAML.
+function atomicWriteFileSync(filePath, data) {
+  const tmp = filePath + '.tmp-' + process.pid + '-' + Date.now();
+  fs.writeFileSync(tmp, data);
+  fs.renameSync(tmp, filePath);
+}
+
 // ---- Main-process crash guard (audit hardening 2026-08-22) ------------------
 // An uncaught exception in the main process must not silently kill the app.
 // Log to stderr; keep the window alive for recoverable errors.
@@ -97,24 +127,24 @@ function saveWindowState() {
     if (mainWindow.isMaximized()) {
       var prev = loadWindowState();
       var state = {
-        width: prev.width || 1280,
-        height: prev.height || 820,
-        x: prev.x,
-        y: prev.y,
-        maximized: true,
+          width: prev.width || 1280,
+          height: prev.height || 820,
+          x: prev.x,
+          y: prev.y,
+          maximized: true,
+        };
+        atomicWriteFileSync(getWinStatePath(), JSON.stringify(state, null, 2));
+        return;
+      }
+      var bounds = mainWindow.getBounds();
+      var state2 = {
+        width: bounds.width,
+        height: bounds.height,
+        x: bounds.x,
+        y: bounds.y,
+        maximized: false,
       };
-      fs.writeFileSync(getWinStatePath(), JSON.stringify(state, null, 2));
-      return;
-    }
-    var bounds = mainWindow.getBounds();
-    var state2 = {
-      width: bounds.width,
-      height: bounds.height,
-      x: bounds.x,
-      y: bounds.y,
-      maximized: false,
-    };
-    fs.writeFileSync(getWinStatePath(), JSON.stringify(state2, null, 2));
+      atomicWriteFileSync(getWinStatePath(), JSON.stringify(state2, null, 2));
   } catch (e) {
     // Silently fail — not critical
   }
@@ -143,7 +173,22 @@ function createWindow() {
     },
   });
 
-  mainWindow.loadFile('index.html');
+  // ---- UI selection (REACT-MIGRATION.md §2/§6; env-gated, additive) ----
+    // Default: shipping index.html. POLYWAV_UI === 'react' -> React shell
+    // (react/dist, or react-dist when packaged). POLYWAV_DEV_SERVER -> dev URL.
+    const devServer = process.env.POLYWAV_DEV_SERVER;
+    const uiReact = process.env.POLYWAV_UI === 'react';
+    if (devServer) {
+      mainWindow.loadURL(devServer);
+    } else if (uiReact) {
+          // Packaged: extraResources copies react/dist -> <resources>/react-dist.
+          // Dev: react/dist sits inside the repo.
+          const packed = path.join(process.resourcesPath || '', 'react-dist', 'index.html');
+          const dev = path.join(__dirname, 'react', 'dist', 'index.html');
+          mainWindow.loadFile(fs.existsSync(packed) ? packed : dev);
+    } else {
+      mainWindow.loadFile('index.html');
+    }
 
   // Audit N-3: navigation & window hardening. The renderer processes
   // untrusted client files; any XSS must not be able to pivot to remote
@@ -152,9 +197,17 @@ function createWindow() {
     return { action: 'deny' };
   });
   mainWindow.webContents.on('will-navigate', function (e, url) {
-    if (!url.startsWith('file://')) {
-      e.preventDefault();
-    }
+    // Only our own packaged pages may load; anything else (remote or another
+    // local file) is blocked.
+    var ok = url.startsWith('file://') && (
+      url.endsWith('/index.html') || url.includes('/index.html?')
+    );
+    if (!ok) e.preventDefault();
+  });
+  // Hardening: deny every privileged web permission (mic, cam, geolocation,
+  // notifications...). This app needs none of them; an XSS must not get them.
+  mainWindow.webContents.session.setPermissionRequestHandler(function (_wc, permission, callback) {
+    callback(false);
   });
 
   // Restore maximized state
@@ -235,8 +288,13 @@ ipcMain.on('window:close', () => {
 });
 
 // ---- IPC: File Dialogs ------------------------------------------------------
+// Tolerate a destroyed window (dialog can outlive a crashed renderer).
+function dialogParent() {
+  return mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+}
+
 ipcMain.handle('dialog:openDirectory', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
+  const result = await dialog.showOpenDialog(dialogParent(), {
     properties: ['openDirectory'],
   });
   if (result.canceled) return null;
@@ -244,7 +302,7 @@ ipcMain.handle('dialog:openDirectory', async () => {
 });
 
 ipcMain.handle('dialog:openDirectoryWithDefault', async (event, defaultPath) => {
-  const result = await dialog.showOpenDialog(mainWindow, {
+  const result = await dialog.showOpenDialog(dialogParent(), {
     defaultPath: defaultPath || undefined,
     properties: ['openDirectory'],
   });
@@ -253,7 +311,7 @@ ipcMain.handle('dialog:openDirectoryWithDefault', async (event, defaultPath) => 
 });
 
 ipcMain.handle('dialog:openFile', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
+  const result = await dialog.showOpenDialog(dialogParent(), {
     properties: ['openFile'],
     filters: [
       { name: 'Polywav / WAV', extensions: ['wav'] },
@@ -264,9 +322,8 @@ ipcMain.handle('dialog:openFile', async () => {
   return result.filePaths[0];
 });
 
-ipcMain.handle('shell:openPath', async (event, filePath) => {
-  return shell.openPath(filePath);
-});
+// (dead shell-open channel removed 2026-08-23 — nothing in either UI calls it,
+// and the dead-channel contract forbids exporting unused IPC.)
 
 // ---- IPC: Preset Library ----------------------------------------------------
 // Two-tier store:
@@ -331,7 +388,7 @@ ipcMain.handle('presets:save', async (event, payload) => {
   const file = presetSlug(name) + '.yaml';
   const full = path.join(userPresetsDir(), file);
   if (fs.existsSync(full) && !force) return { exists: true, file };
-  fs.writeFileSync(full, yamlText.endsWith('\n') ? yamlText : yamlText + '\n', 'utf8');
+  atomicWriteFileSync(full, yamlText.endsWith('\n') ? yamlText : yamlText + '\n');
   return { ok: true, file, overwritten: !!force && fs.existsSync(full) };
 });
 
@@ -352,7 +409,7 @@ ipcMain.handle('presets:export', async (event, payload) => {
     filters: [{ name: 'Polywav Preset', extensions: ['yaml', 'yml'] }],
   });
   if (result.canceled || !result.filePath) return { canceled: true };
-  fs.writeFileSync(result.filePath, yamlText.endsWith('\n') ? yamlText : yamlText + '\n', 'utf8');
+  atomicWriteFileSync(result.filePath, yamlText.endsWith('\n') ? yamlText : yamlText + '\n');
   return { ok: true, path: result.filePath };
 });
 
@@ -370,8 +427,13 @@ ipcMain.handle('presets:importOpen', async () => {
 });
 
 // ---- IPC: File Probe --------------------------------------------------------
+// Hardening: a hung engine must not leave the UI loading forever.
+const PROBE_TIMEOUT_MS = 20000;
+
 ipcMain.handle('file:probe', async (event, filePath) => {
   return new Promise((resolve) => {
+    let settled = false;
+    const finish = (v) => { if (!settled) { settled = true; clearTimeout(timer); resolve(v); } };
     const child = spawn(VENV_PYTHON, buildEngineArgs(['probe', '-i', filePath]), {
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -380,12 +442,17 @@ ipcMain.handle('file:probe', async (event, filePath) => {
     let stdout = '';
     let stderr = '';
 
+    const timer = setTimeout(() => {
+      try { child.kill(); } catch (_) { /* already dead */ }
+      finish({ error: 'Probe timed out after ' + (PROBE_TIMEOUT_MS / 1000) + 's' });
+    }, PROBE_TIMEOUT_MS);
+
     child.stdout.on('data', (data) => { stdout += data.toString(); });
     child.stderr.on('data', (data) => { stderr += data.toString(); });
 
     child.on('close', (code) => {
       if (code !== 0) {
-        resolve({ error: 'Probe failed', stderr: stderr.trim(), stdout: stdout.trim() });
+        finish({ error: 'Probe failed', stderr: stderr.trim(), stdout: stdout.trim() });
         return;
       }
 
@@ -414,14 +481,14 @@ ipcMain.handle('file:probe', async (event, filePath) => {
 
       const bdMatch = result.format.match(/PCM_(\d+)/);
       result.bitDepth = bdMatch ? parseInt(bdMatch[1], 10) : 24;
-      resolve(result);
+      finish(result);
     });
 
     child.on('error', (err) => {
-          resolve({ error: err.message });
-        });
-      });
+      finish({ error: err.message });
     });
+  });
+});
 
     // ---- IPC: Read WAV File Header (first 4KB, parse fmt in main process) --------
     ipcMain.handle('file:readFileHeader', async (event, filePath) => {
@@ -472,11 +539,28 @@ ipcMain.handle('file:probe', async (event, filePath) => {
           format: 'WAV / PCM_' + fmt.bitsPerSample,
         };
       } catch (err) {
-        return { error: err.message };
-      }
-    });
+              return { error: err.message };
+            }
+          });
 
-// ---- IPC: Export Pipeline ---------------------------------------------------
+      // ---- IPC: Directory scan (React batch ingest) ------------------------------
+      // List .wav files in a shoot-day folder. The React shell probes each hit via
+      // file:probe to build the take list (batch decision 2026-08-22).
+      ipcMain.handle('fs:listWavs', async (event, dir) => {
+        try {
+          const st = fs.statSync(String(dir || ''));
+          if (!st.isDirectory()) return { error: 'Not a folder: ' + dir };
+          const entries = fs.readdirSync(String(dir || ''), { withFileTypes: true })
+            .filter((e) => e.isFile() && /\.wav$/i.test(e.name))
+            .map((e) => e.name)
+            .sort();
+          return { wavs: entries };
+        } catch (e) {
+          return { error: String((e && e.message) || e) };
+        }
+      });
+
+      // ---- IPC: Export Pipeline ---------------------------------------------------
 // Audit N-13: resolve the Python interpreter at runtime instead of hardcoding
 // a user-specific absolute path. Order: env var -> bundled sidecar -> PATH.
 function resolvePython() {
@@ -527,8 +611,25 @@ ipcMain.handle('export:start', async (event, config) => {
     return { error: 'An export is already running' };
   }
 
+  // Hardening: validate before spawning. The engine's errors are good but
+  // late; these fail fast with a clear message and no python spin-up.
+  const inputPath = String((config && config.inputPath) || '');
+  const outputPath = String((config && config.outputPath) || '');
+  if (!inputPath || !fs.existsSync(inputPath)) {
+    return { error: 'Input file not found: ' + (inputPath || '(none)') };
+  }
+  if (!outputPath) {
+    return { error: 'No output path given' };
+  }
+  const outDir = path.dirname(outputPath);
+  try {
+    fs.mkdirSync(outDir, { recursive: true });
+  } catch (e) {
+    return { error: 'Cannot create output folder ' + outDir + ': ' + String((e && e.message) || e) };
+  }
+
   // Build CLI arguments
-    const args = buildEngineArgs(['embed-aaf', '-i', config.inputPath, '-o', config.outputPath]);
+    const args = buildEngineArgs(['embed-aaf', '-i', inputPath, '-o', outputPath]);
     if (config.clipName) args.push('--name', config.clipName);
     if (config.routing) args.push('--routing', config.routing);
     if (config.mode && config.mode !== 'group') args.push('--mode', config.mode);
@@ -536,7 +637,6 @@ ipcMain.handle('export:start', async (event, config) => {
     if (config.subtype) args.push('--subtype', config.subtype);
     if (config.essence) args.push('--essence', config.essence);
     if (config.mxfDir) args.push('--mxf-dir', config.mxfDir);
-
   const child = spawn(VENV_PYTHON, args, {
     windowsHide: true,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -648,6 +748,13 @@ ipcMain.handle('export:cancel', async () => {
     try { child.kill('SIGTERM'); } catch { child.kill(); }
   }
 
+  // Hardening: the renderer's cancelExport sets idle optimistically, but the
+  // authoritative state comes from here — covers the case where the renderer
+  // missed its own update (overlay closed, tab switched mid-cancel).
+  exportCancelled = true;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    try { mainWindow.webContents.send('export:cancelled', { jobId: 'current' }); } catch {}
+  }
   currentExportJob = null;
   return { ok: true };
 });

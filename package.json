@@ -16,22 +16,30 @@
       "output": "release"
     },
     "files": [
-      "main.js",
-      "preload.js",
-      "app.js",
-      "index.html",
-      "fonts/**",
-      "presets/**"
-    ],
+          "main.js",
+          "preload.js",
+          "app.js",
+          "index.html",
+          "fonts/**",
+          "presets/**",
+          "START-REACT-SHELL.cmd"
+        ],
     "extraResources": [
-      {
-        "from": "../dist/polywav-engine",
-        "to": "engine",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
+          {
+            "from": "../dist/polywav-engine",
+            "to": "engine",
+            "filter": [
+              "**/*"
+            ]
+          },
+          {
+            "from": "react/dist",
+            "to": "react-dist",
+            "filter": [
+              "**/*"
+            ]
+          }
+        ],
     "win": {
       "target": "nsis",
       "icon": "buildres/icon.ico"

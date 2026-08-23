@@ -11,8 +11,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   maximizeWindow: () => ipcRenderer.send('window:maximize'),
   closeWindow: () => ipcRenderer.send('window:close'),
   onMaximizeChange: (callback) => {
-    ipcRenderer.on('window:maximize-change', (event, maximized) => callback(maximized));
-  },
+      const listener = (event, maximized) => callback(maximized);
+      ipcRenderer.on('window:maximize-change', listener);
+      return () => ipcRenderer.removeListener('window:maximize-change', listener);
+    },
 
   // ---- File Dialogs --------------------------------------------------------
   openDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
@@ -28,22 +30,38 @@ contextBridge.exposeInMainWorld('electronAPI', {
   presetsImportOpen: () => ipcRenderer.invoke('presets:importOpen'),
 
   // ---- File Metadata --------------------------------------------------------
-        probeFile: (filePath) => ipcRenderer.invoke('file:probe', filePath),
-        readFileHeader: (filePath) => ipcRenderer.invoke('file:readFileHeader', filePath),
+          probeFile: (filePath) => ipcRenderer.invoke('file:probe', filePath),
+          readFileHeader: (filePath) => ipcRenderer.invoke('file:readFileHeader', filePath),
+
+    // ---- Directory scan (React batch ingest) ----------------------------------
+            listWavs: (dir) => ipcRenderer.invoke('fs:listWavs', dir),
+
+    // ---- Shell helpers ----------------------------------------------------------
+            pathForFile: (file) => {
+              try { return require('electron').webUtils.getPathForFile(file); } catch (e) { return ''; }
+            },
 
   // ---- Export Pipeline -----------------------------------------------------
   exportStart: (config) => ipcRenderer.invoke('export:start', config),
   exportCancel: () => ipcRenderer.invoke('export:cancel'),
   onExportProgress: (callback) => {
-    ipcRenderer.on('export:progress', (event, data) => callback(data));
-  },
-  onExportComplete: (callback) => {
-    ipcRenderer.on('export:complete', (event, result) => callback(result));
-  },
-  onExportError: (callback) => {
-    ipcRenderer.on('export:error', (event, error) => callback(error));
-  },
-  onExportCancelled: (callback) => {
-    ipcRenderer.on('export:cancelled', (event, data) => callback(data));
-  },
-});
+      const listener = (event, data) => callback(data);
+      ipcRenderer.on('export:progress', listener);
+      return () => ipcRenderer.removeListener('export:progress', listener);
+    },
+    onExportComplete: (callback) => {
+      const listener = (event, result) => callback(result);
+      ipcRenderer.on('export:complete', listener);
+      return () => ipcRenderer.removeListener('export:complete', listener);
+    },
+    onExportError: (callback) => {
+      const listener = (event, error) => callback(error);
+      ipcRenderer.on('export:error', listener);
+      return () => ipcRenderer.removeListener('export:error', listener);
+    },
+    onExportCancelled: (callback) => {
+      const listener = (event, data) => callback(data);
+      ipcRenderer.on('export:cancelled', listener);
+      return () => ipcRenderer.removeListener('export:cancelled', listener);
+    },
+  });

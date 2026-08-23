@@ -4,3 +4,10 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+
+# ---- Test/temp artifacts (2026-08-23) -------------------------------------
+tests/.user-data/
+tests/.probe-files/
+tests/debug_react_recents.py
+sketches/002-routing-wireframe/shots/
+.desktop.ini
