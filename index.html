@@ -364,6 +364,10 @@
   }
 
   /* Template chips */
+  /* .preset-field sets display:flex, which beats the [hidden] attribute's
+     display:none. Without this the regex field stayed on screen despite
+     being marked hidden. */
+  [hidden] { display: none !important; }
   .naming-caption {
     font-family: var(--mono, monospace);
     font-size: 12px;

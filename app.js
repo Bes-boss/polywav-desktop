@@ -344,6 +344,10 @@
           + '<td class="ch-num">' + esc(ch.num) + '</td>'
           + '<td class="raw-name">' + esc(ch.raw) + ' <span class="bext-tag">' + esc(ch.bext) + '</span></td>';
         NORM_COLUMNS.forEach(function(c) {
+          // Only the columns that are in the name are rendered, matching
+          // renderNormHeaders(). Rendering all of them put role/num/suffix
+          // cells under the Take and + headings and shifted every row.
+          if (!c.template) return;
           var val;
           if (c.key === 'type') {
             val = (caps.type !== undefined && caps.type !== '') ? caps.type : typeLabel(caps.prefix);
@@ -355,7 +359,8 @@
           html += '<td class="capture-group" contenteditable="true" spellcheck="false" data-key="' + c.key + '"'
             + ' data-ch="' + i + '">' + esc(val) + '</td>';
         });
-        html += '<td class="normalized">' + esc(normalized) + '</td>'
+        html += '<td class="col-add-cell"></td>'   // spacer under the + heading
+          + '<td class="normalized">' + esc(normalized) + '</td>'
           + '</tr>';
       }
       tbody.innerHTML = html;
@@ -369,6 +374,8 @@
   //  when regex naming has been switched on in Settings.
   var REGEX_ONLY_COLUMNS = ['prefix', 'type', 'role', 'num', 'suffix'];
 
+  // Applied on boot as well as on change: the field defaults to hidden, and
+  // without this it stayed visible until someone opened Settings.
   function applyRegexVisibility() {
     var field = document.getElementById('regexField');
     if (field) field.hidden = !SETTINGS.allowRegex;
