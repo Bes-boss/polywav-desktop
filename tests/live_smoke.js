@@ -114,12 +114,25 @@ async function main() {
       await clickXY(p[0], p[1]);
     }
     async function waitVisible(sel, maxMs) {
-      for (let i = 0; i < maxMs / 100; i++) {
+      // Require a rect that stays put for SETTLE_MS. A late reflow shifts the
+      // empty-state CTA ~123px down roughly 500-600ms after first paint, so a
+      // 2-sample check still returns pre-reflow coords and the caller clicks
+      // empty space. Hold the rect steady across the whole reflow window.
+      const STEP = 150, SETTLE_MS = 750;
+      let prev = null, stableFor = 0, last = null;
+      for (let i = 0; i < maxMs / STEP; i++) {
         const p = await rect(sel);
-        if (p) return p;
-        await sleep(100);
+        if (p && prev && p[0] === prev[0] && p[1] === prev[1]) {
+          stableFor += STEP;
+          if (stableFor >= SETTLE_MS) return p;
+        } else {
+          stableFor = 0;
+        }
+        prev = p;
+        if (p) last = p;
+        await sleep(STEP);
       }
-      return null;
+      return last;
     }
     async function formatCardCenter(value) {
       return evalJs(`(function(){
