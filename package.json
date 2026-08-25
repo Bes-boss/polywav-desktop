@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "engine:build": "cd ../polywav && ./.venv-build/Scripts/python.exe packaging/build_engine.py",
+    "engine:build": "node scripts/build-engine.js",
     "build": "electron-builder"
   },
   "build": {
