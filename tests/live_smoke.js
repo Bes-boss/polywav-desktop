@@ -20,7 +20,12 @@ const APPDIR = process.cwd();
 const ELECTRON = process.env.ELECTRON_BIN ||
   path.join(APPDIR, 'node_modules', '.bin', 'electron.cmd'); // node_modules/.bin/electron.cmd
 const VENV_PY = process.env.POLYWAV_PYTHON ||
-  'C:/Users/Liam/AppData/Local/hermes/hermes-agent/venv/Scripts/python.exe';
+  // Repo-relative build venv: <engine root>/.venv-build, a sibling of this
+  // desktop checkout. Was one machine's hardcoded hermes venv, which meant a
+  // fresh clone could not generate the fixture without setting POLYWAV_PYTHON.
+  path.join(APPDIR, '..', '.venv-build',
+    process.platform === 'win32' ? 'Scripts' : 'bin',
+    process.platform === 'win32' ? 'python.exe' : 'python');
 // Preset-library checks run against an ISOLATED store so the smoke run
 // never touches Liam's real presets (POLYWAV_PRESETS_DIR override).
 const PRESET_DIR = path.join(os.tmpdir(), 'polywav_smoke_presets');

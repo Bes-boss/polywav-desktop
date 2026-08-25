@@ -585,9 +585,16 @@ function resolvePython() {
     const bundledPy = path.join(app.getPath('userData'), 'bin', 'python.exe');
     if (fs.existsSync(bundledPy)) return bundledPy;
   } catch (e) { /* app not ready — skip */ }
-  // Dev fallback: the known venv on this machine, if it exists
-  const devVenv = 'C:\\Users\\Liam\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe';
-  if (fs.existsSync(devVenv)) return devVenv;
+  // 4. Dev: the engine produced by `npm run engine:build`, which lands in
+  //    <engine root>/dist/polywav-engine — a sibling of this desktop checkout.
+  //    Resolved repo-relative so it works on any clone. The previous entry here
+  //    was one machine's hardcoded venv; on any other machine it resolved
+  //    nowhere and the chain fell through to a bare `python` without the engine.
+  try {
+    const devExe = process.platform === 'win32' ? 'polywav-engine.exe' : 'polywav-engine';
+    const devEngine = path.join(__dirname, '..', 'dist', 'polywav-engine', devExe);
+    if (fs.existsSync(devEngine)) return devEngine;
+  } catch (e) { /* path unavailable — skip */ }
   return 'python'; // last resort: whatever is on PATH
 }
 const VENV_PYTHON = resolvePython();
