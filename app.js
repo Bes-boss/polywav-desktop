@@ -264,6 +264,34 @@
     });
   }
 
+  // Turn a template string back into chips. A preset (or the wizard) sets
+  // SETTINGS.namingTemplate, but naming is driven by the chips, so without
+  // this the preset's template was silently ignored and the chips shown to
+  // the editor did not describe what would actually be exported.
+  function setTemplateSlotsFromString(template) {
+    var text = String(template || '');
+    if (!text) return false;
+    var slots = [];
+    var re = /\{([a-zA-Z_]+)(?::(0?[0-9]+)d)?\}|([^{}]+)/g;
+    var m;
+    while ((m = re.exec(text)) !== null) {
+      if (m[1]) {
+        var label = m[1];
+        for (var i = 0; i < NORM_COLUMNS.length; i++) {
+          if (NORM_COLUMNS[i].key === m[1]) { label = NORM_COLUMNS[i].label; break; }
+        }
+        slots.push(m[2] ? { key: m[1], label: label, format: m[2] }
+                        : { key: m[1], label: label });
+      } else if (m[3]) {
+        slots.push({ key: 'sep', text: m[3] });
+      }
+    }
+    if (!slots.length) return false;
+    _templateSlots = slots;
+    renderTemplateChips();
+    return true;
+  }
+
   function buildTemplateString() {
     var parts = [];
     _templateSlots.forEach(function(s) {
@@ -3278,6 +3306,9 @@
         if (data.output.mix_gain_db !== undefined) SETTINGS.mixGain = Number(data.output.mix_gain_db);
         if (data.output.track_naming && data.output.track_naming.template) {
           SETTINGS.namingTemplate = data.output.track_naming.template;
+          // Chips drive naming, so they must follow the preset.
+          setTemplateSlotsFromString(SETTINGS.namingTemplate);
+          updateParseTableBody();
         }
         if (data.output.naming && data.output.naming.pattern) {
           var patInput = document.getElementById('regex-pattern');
