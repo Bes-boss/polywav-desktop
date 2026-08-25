@@ -516,6 +516,65 @@
     }
 
   // HTML for column header row (draggable)
+  //: Columns that exist only to support regex splitting of a channel name.
+  //  They predate naming coming from file metadata, so they are offered only
+  //  when regex naming has been switched on in Settings.
+  var REGEX_ONLY_COLUMNS = ['prefix', 'type', 'role', 'num', 'suffix'];
+
+  function availableColumns() {
+    var allowRegex = !!(typeof SETTINGS === 'object' && SETTINGS && SETTINGS.allowRegex);
+    var out = [];
+    NORM_COLUMNS.forEach(function(c, idx) {
+      if (c.template) return;
+      if (!allowRegex && REGEX_ONLY_COLUMNS.indexOf(c.key) !== -1) return;
+      out.push({ idx: idx, key: c.key, label: c.label });
+    });
+    return out;
+  }
+
+  function renderColAddMenu() {
+    var menu = document.getElementById('colAddMenu');
+    if (!menu) return;
+    var items = availableColumns();
+    if (!items.length) {
+      menu.innerHTML = '<div class="col-add-empty">Every column is already in the name</div>';
+      return;
+    }
+    var html = '';
+    items.forEach(function(item) {
+      html += '<div class="col-add-item" data-col-add="' + item.idx + '" role="button"'
+        + ' tabindex="0">' + esc(item.label) + '</div>';
+    });
+    menu.innerHTML = html;
+  }
+
+  function toggleColAddMenu(show) {
+    var menu = document.getElementById('colAddMenu');
+    if (!menu) return;
+    if (show) renderColAddMenu();
+    menu.hidden = !show;
+  }
+
+  // Delegated at document scope: CSP forbids inline handlers, and the menu is
+  // rendered fresh each time it opens.
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('#colAddBtn')) {
+      e.stopPropagation();
+      var menu = document.getElementById('colAddMenu');
+      toggleColAddMenu(!menu || menu.hidden);
+      return;
+    }
+    var item = e.target.closest('.col-add-item');
+    if (item) {
+      e.stopPropagation();
+      var idx = parseInt(item.getAttribute('data-col-add'), 10);
+      if (!isNaN(idx)) toggleColTemplate(idx);
+      toggleColAddMenu(false);
+      return;
+    }
+    toggleColAddMenu(false);
+  });
+
   function renderNormHeaders() {
     var html = '<tr>';
     html += '<th style="width:44px;">#</th>';

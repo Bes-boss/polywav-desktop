@@ -80,6 +80,13 @@ test('B12a: only columns in the name are rendered, each with a remove control', 
     'the old dot toggle is still present - two controls for one job');
 });
 
+test('B12b: a single + offers the columns not in the name', () => {
+  assert(/function availableColumns/.test(inlineJs), 'no availableColumns()');
+  assert(/colAddMenu/.test(inlineJs), 'no add menu');
+  assert(/data-col-add/.test(inlineJs), 'add menu items are not delegated');
+  assert(/colAddMenu/.test(indexHtml), 'no add menu container in the markup');
+});
+
 // ======================================================================
 console.log('\n[Branch 1] fix/security-xss');
 
