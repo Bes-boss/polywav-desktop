@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const { parseWavHeader } = require('./lib/wav-header');
 
 // ============================================================
 // Polywav Desktop — Electron Core
@@ -497,51 +498,11 @@ ipcMain.handle('file:probe', async (event, filePath) => {
         const buf = Buffer.alloc(4096);
         const bytesRead = fs.readSync(fd, buf, 0, 4096, 0);
         fs.closeSync(fd);
-
-        if (bytesRead < 44) return { error: 'File too small for WAV header' };
-
-        // Check RIFF/WAVE magic
-        if (buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE') {
-          return { error: 'Not a WAV file' };
-        }
-
-        // Walk chunks to find fmt and data
-        let pos = 12;
-        let fmt = null;
-        let dataSize = 0;
-        while (pos + 8 <= bytesRead) {
-          const ckID = buf.toString('ascii', pos, pos + 4);
-          const ckSize = buf.readUInt32LE(pos + 4);
-          if (ckID === 'fmt ') {
-            fmt = {
-              channels: buf.readUInt16LE(pos + 10),
-              sampleRate: buf.readUInt32LE(pos + 12),
-              bitsPerSample: buf.readUInt16LE(pos + 22),
-            };
-          } else if (ckID === 'data') {
-            dataSize = ckSize;
-          }
-          pos += 8 + ckSize + (ckSize % 2);
-          if (pos >= bytesRead) break;
-        }
-
-        if (!fmt) return { error: 'No fmt chunk found' };
-
-        const frames = (dataSize > 0 && fmt.channels > 0 && fmt.bitsPerSample > 0)
-          ? Math.floor(dataSize / (fmt.channels * fmt.bitsPerSample / 8))
-          : 0;
-
-        return {
-          channels: fmt.channels,
-          sampleRate: fmt.sampleRate,
-          bitsPerSample: fmt.bitsPerSample,
-          frames: frames,
-          format: 'WAV / PCM_' + fmt.bitsPerSample,
-        };
+        return parseWavHeader(buf, bytesRead);
       } catch (err) {
-              return { error: err.message };
-            }
-          });
+        return { error: err.message };
+      }
+    });
 
       // ---- IPC: Directory scan (React batch ingest) ------------------------------
       // List .wav files in a shoot-day folder. The React shell probes each hit via

@@ -1233,6 +1233,28 @@
 
                 // Shared finalizer: merges WAV header + optional BEXT probe, builds routing
                 var _loadEpoch = 0;  // bumped per load; stale async callbacks bail out
+                // Header parsing can fail on containers the JS reader does not know
+                // (RF64 was one). The engine is authoritative, so ask it before falling
+                // back to a placeholder: inventing a mono file silently mis-read a
+                // 63-channel field recording as 1 channel, and the export that followed
+                // would have produced a single track.
+                function loadViaProbeFallback(path) {
+                  function placeholder() {
+                    finalizeFileLoad({ file: path, channels: 1, sampleRate: 48000, frames: 0,
+                      format: 'unknown', bitDepth: 24, channelNames: [] }, null);
+                  }
+                  if (!path || !window.electronAPI || !window.electronAPI.probeFile) { placeholder(); return; }
+                  window.electronAPI.probeFile(path).then(function(info) {
+                    if (info && !info.error && info.channels > 0) {
+                      finalizeFileLoad({
+                        file: path, channels: info.channels, sampleRate: info.sampleRate,
+                        frames: info.frames, format: info.format, bitDepth: info.bitDepth,
+                        channelNames: [],
+                      }, Promise.resolve(info));
+                    } else { placeholder(); }
+                  }).catch(placeholder);
+                }
+
                 function finalizeFileLoad(meta, bextProbePromise) {
                   var epoch = ++_loadEpoch;
                   function finish(names) {
@@ -1295,8 +1317,7 @@
                     finalizeFileLoad(meta, probePromise);
                   }).catch(function() {
                     // Can't read WAV header — last resort fallback
-                    var meta = { file: _filePath, channels: 1, sampleRate: 48000, frames: 0, format: 'WAV / PCM_24', bitDepth: 24 };
-                    finalizeFileLoad(meta, null);
+                    loadViaProbeFallback(_filePath);
                   });
 
                   // Add to recent files (non-blocking, always)
@@ -1335,17 +1356,14 @@
                           ? window.electronAPI.probeFile(filePath) : null;
                         finalizeFileLoad(meta, probePromise);
                       } else {
-                        var meta = { file: filePath, channels: 1, sampleRate: 48000, frames: 0, format: 'WAV / PCM_24', bitDepth: 24 };
-                        finalizeFileLoad(meta, null);
+                        loadViaProbeFallback(filePath);
                       }
                     }).catch(function() {
-                      var meta = { file: filePath, channels: 1, sampleRate: 48000, frames: 0, format: 'WAV / PCM_24', bitDepth: 24 };
-                      finalizeFileLoad(meta, null);
+                      loadViaProbeFallback(filePath);
                     });
                   } else {
                     // No IPC available (shouldn't happen in Electron, but fallback)
-                    var meta = { file: filePath, channels: 1, sampleRate: 48000, frames: 0, format: 'WAV / PCM_24', bitDepth: 24 };
-                    finalizeFileLoad(meta, null);
+                    loadViaProbeFallback(filePath);
                   }
 
                   // Add to recent files (path stored locally so the entry is

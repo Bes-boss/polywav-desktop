@@ -17,6 +17,7 @@
     },
     "files": [
           "main.js",
+          "lib/**",
           "preload.js",
           "app.js",
           "index.html",
