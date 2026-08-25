@@ -619,6 +619,20 @@ ipcMain.handle('export:start', async (event, config) => {
     if (config.subtype) args.push('--subtype', config.subtype);
     if (config.essence) args.push('--essence', config.essence);
     if (config.mxfDir) args.push('--mxf-dir', config.mxfDir);
+
+  // The track plan is the app's complete naming decision. It goes to disk
+  // because 63 tracks of names, order and channel assignment do not belong
+  // on a command line.
+  let trackPlanPath = null;
+  if (config.trackPlan && Array.isArray(config.trackPlan.tracks) && config.trackPlan.tracks.length) {
+    try {
+      trackPlanPath = path.join(app.getPath('temp'), `polywav-trackplan-${process.pid}.json`);
+      fs.writeFileSync(trackPlanPath, JSON.stringify(config.trackPlan), 'utf8');
+      args.push('--track-plan', trackPlanPath);
+    } catch (e) {
+      trackPlanPath = null;   // fall back to the engine's own name discovery
+    }
+  }
   const child = spawn(VENV_PYTHON, args, {
     windowsHide: true,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -650,6 +664,10 @@ ipcMain.handle('export:start', async (event, config) => {
   });
 
   child.on('close', (code) => {
+    if (trackPlanPath) {
+      try { fs.unlinkSync(trackPlanPath); } catch (e) { /* already gone */ }
+      trackPlanPath = null;
+    }
     // Flush any trailing partial line
     if (lineBuf && lineBuf.trim() && mainWindow && !mainWindow.isDestroyed()) {
       try { mainWindow.webContents.send('export:progress', { jobId: 'current', line: lineBuf }); } catch {}

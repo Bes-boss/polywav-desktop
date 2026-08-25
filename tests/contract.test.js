@@ -63,6 +63,17 @@ function countDynamicInnerHtmlAssignments() {
 
 // ======================================================================
 // BRANCH 1 — fix/security-xss
+test('B11a: export sends a track plan, never Avid slot ids as names', () => {
+  assert(/trackPlan/.test(inlineJs), 'export config has no trackPlan');
+  assert(!/routingParts\.push\(i \+ ':' \+ d\.track\)/.test(inlineJs),
+    'export still sends the Avid slot id (A1) in the track-name field');
+});
+
+test('B11b: main.js forwards the track plan to the engine', () => {
+  assert(/--track-plan/.test(mainJs), 'main.js never passes --track-plan');
+  assert(/trackPlan/.test(mainJs), 'main.js ignores config.trackPlan');
+});
+
 // ======================================================================
 console.log('\n[Branch 1] fix/security-xss');
 

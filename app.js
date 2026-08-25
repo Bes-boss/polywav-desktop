@@ -100,7 +100,20 @@
     var ROUTING_DATA = []; // Populated dynamically by handleFile
 
       // Parse a channel name using the user's regex, then smart fallback
+        // Every row's values = the channel-name parse, plus the clip-level
+        // chips (same on every row) and the name chip (the track name as the
+        // recorder wrote it). One place, so every caps consumer agrees.
         function parseName(raw) {
+          var caps = parseChannelName(raw);
+          caps.show = _clipTokens.show || '';
+          caps.day = _clipTokens.day || '';
+          caps.source = _clipTokens.source || '';
+          caps.take = _clipTokens.take || '';
+          caps.name = (raw || '').trim();
+          return caps;
+        }
+
+        function parseChannelName(raw) {
           if (!raw) return { prefix: '', role: '', num: '', suffix: '' };
           raw = raw.trim();
 
@@ -213,12 +226,26 @@
   // Order of this array determines column layout AND output template.
   // Columns where template:true contribute {key} to the auto-generated template.
   var NORM_COLUMNS = [
-    { key: 'prefix', label: 'Prefix', width: '80px', template: true },
+    // Clip-level chips, parsed from the source filename. Same value on every
+    // row; they identify the take, not the channel.
+    { key: 'show', label: 'Show', width: '80px', template: true },
+    { key: 'day', label: 'Day', width: '90px', template: true },
+    { key: 'source', label: 'Source', width: '80px', template: true },
+    // The one per-channel chip. This is the track name Avid shows.
+    { key: 'name', label: 'Name', width: '140px', template: true },
+    { key: 'take', label: 'Take', width: '60px', template: true },
+    // Channel-name parsing columns: still available to add, but no longer in
+    // the default template. Reordering any chip changes every output name.
+    { key: 'prefix', label: 'Prefix', width: '80px', template: false },
     { key: 'type', label: 'Type', width: '80px', template: false },
-    { key: 'role', label: 'Role', width: '80px', template: true },
-    { key: 'num', label: '#', width: '50px', template: true },
+    { key: 'role', label: 'Role', width: '80px', template: false },
+    { key: 'num', label: '#', width: '50px', template: false },
     { key: 'suffix', label: 'Suffix', width: '70px', template: false },
   ];
+
+  // Clip-level tokens for the loaded file, parsed from its filename and
+  // editable by the assistant when the pattern does not fit.
+  var _clipTokens = { show: '', day: '', source: '', take: '' };
 
   // Array of template slots (ordered list of {key, label, format?})
   // Auto-synced from NORM_COLUMNS on reorder; manually editable via chips
@@ -1268,6 +1295,18 @@
                                       meta.channelNames = names;
                                       _fileInfo = meta;
                                       _grpCollapsed = {};  // re-derive open/collapsed for the new file
+                                      // Clip-level chips come from the source
+                                      // filename; blank when it does not match,
+                                      // so the assistant can correct them.
+                                      try {
+                                        var _N = window.PolywavNaming;
+                                        var _stem = String(meta.file || '').replace(/\\/g, '/')
+                                          .split('/').pop().replace(/\.[^.]+$/, '');
+                                        _clipTokens = _N.parseClipTokens(
+                                          _stem, SETTINGS.clipPattern || _N.DEFAULT_CLIP_PATTERN);
+                                      } catch (e) {
+                                        _clipTokens = { show: '', day: '', source: '', take: '' };
+                                      }
                                       buildDataFromProbe(meta);
                     updateHeroMeta(meta);
                     updateEmptyStates();
@@ -1676,6 +1715,49 @@
     }
 
   // ===== Normalised name helper =====
+  // The complete naming and layout decision handed to the engine. One object
+  // rather than CLI strings, because 63 tracks of names, order and channel
+  // assignment do not belong in a command line.
+  function getTrackPlan() {
+    var N = window.PolywavNaming;
+    var chips = _templateSlots
+      .filter(function (slot) { return slot.key !== 'sep'; })
+      .map(function (slot) { return slot.key; });
+    var clipChips = chips.filter(function (key) { return key !== 'name'; });
+
+    var tracks = [];
+    for (var i = 0; i < ROUTING_DATA.length; i++) {
+      var route = ROUTING_DATA[i] || {};
+      var chIdx = parseInt(route.ch, 10) - 1;
+      if (isNaN(chIdx) || chIdx < 0) continue;
+      var source = rawChannels[chIdx];
+      var trackName = (source && source.raw) || ('Ch ' + (chIdx + 1));
+      var derived = N.deriveNames({
+        chips: chips, clipTokens: _clipTokens, trackName: trackName,
+      });
+      // The Avid track assignment is the channel this clip claims, which is
+      // what Avid groups on. It is NOT the track's timeline position.
+      var avidChannel = null;
+      if (route.track) {
+        var digits = String(route.track).match(/(\d+)/);
+        if (digits) avidChannel = parseInt(digits[1], 10);
+      }
+      tracks.push({
+        channel: chIdx,
+        name: derived.trackName || trackName,
+        fileName: derived.fileName || trackName,
+        avidChannel: avidChannel,
+        order: i,
+      });
+    }
+
+    return {
+      clipName: N.composeName(clipChips, _clipTokens) || (_clipName || 'export'),
+      mxfNaming: SETTINGS.mxfNaming || 'normalised',
+      tracks: tracks,
+    };
+  }
+
   function getNormNameForChannel(chIdx) {
     var ch = rawChannels[chIdx];
     if (!ch) return '';
@@ -1915,13 +1997,11 @@
       }
 
   function buildCLICommand() {
-    var routingParts = [];
-    ROUTING_DATA.forEach(function(d, i) {
-      if (d.group && d.track) {
-        routingParts.push(i + ':' + d.track);
-      }
-    });
-    var routingStr = routingParts.join(',') || 'all:auto';
+    // The preview must show what actually runs. Naming now travels as a
+    // track plan file, not a --routing string of Avid slot ids.
+    var planned = getTrackPlan();
+    var namedCount = planned.tracks.filter(function (t) { return t.avidChannel !== null; }).length;
+    var routingStr = namedCount + '/' + planned.tracks.length + ' assigned';
 
     var modeFlag = SETTINGS.mode !== 'group' ? ' --mode ' + SETTINGS.mode : '';
     var essenceFlag = SETTINGS.essence !== 'embedded' ? ' --essence ' + SETTINGS.essence : '';
@@ -1935,7 +2015,7 @@
     var inPath = _filePath || './source.wav';
     var outName = (_clipName || 'export') + '.aaf';
     var cmd = 'polywav embed-aaf -i ' + inPath + ' -o ' + aafDir + '/' + outName
-      + ' --routing "' + routingStr + '"'
+      + ' --track-plan <plan.json>  # ' + routingStr
       + modeFlag + essenceFlag + mxfFlag + srFlag + bdFlag;
 
     var el = document.getElementById('exportCLI');
@@ -2006,19 +2086,17 @@
         buildCLICommand();
 
       // Collect config from settings
-            var routingParts = [];
-            ROUTING_DATA.forEach(function(d, i) {
-              if (d.group && d.track) {
-                routingParts.push(i + ':' + d.track);
-              }
-            });
-            var routingStr = routingParts.join(',') || '';
+            // The plan carries names, filenames, channel assignments and
+            // timeline order. It replaces the old routing string, which put
+            // the Avid slot id ("A1") in the track-name field and so
+            // overwrote every name the Normalise panel had composed.
+            var trackPlan = getTrackPlan();
 
             var config = {
               inputPath: _filePath,
               outputPath: (SETTINGS.outputAafDir || './output') + '/' + (_clipName || 'export') + '.aaf',
               clipName: _clipName || 'export',
-              routing: routingStr || undefined,
+              trackPlan: trackPlan,
               mode: SETTINGS.mode !== 'group' ? SETTINGS.mode : undefined,
               sampleRate: SETTINGS.sampleRate !== 'auto' ? parseInt(SETTINGS.sampleRate, 10) : undefined,
               subtype: SETTINGS.bitDepth !== 'auto' ? 'PCM_' + SETTINGS.bitDepth : undefined,
@@ -2734,7 +2812,9 @@
     sampleRate: 'auto',       // 'auto' | '48000' | '96000' | '192000'
     bitDepth: '24',           // 'auto' | '16' | '24' | '32'
     presetName: 'Masterchef Kitchens (MKR)',
-    namingTemplate: '{prefix}_{role}_{num}',
+    namingTemplate: '{show}_{day}_{source}_{name}_{take}',
+    mxfNaming: 'normalised',   // 'normalised' | 'indexed'
+    clipPattern: '',           // '' = use naming.DEFAULT_CLIP_PATTERN
     mixGain: -3,
     outputAafDir: './output',
     outputMxfDir: './output/mxf',
@@ -3592,6 +3672,8 @@
   // Bound explicitly by id so the contract tests can trace each control.
   var srSel = document.getElementById('srSelect');
   if (srSel) srSel.addEventListener('change', function() { onSettingChange('sampleRate', this.value); });
+  var mxfNameSel = document.getElementById('mxfNamingSelect');
+  if (mxfNameSel) mxfNameSel.addEventListener('change', function() { onSettingChange('mxfNaming', this.value); });
   var bdSel = document.getElementById('bdSelect');
   if (bdSel) bdSel.addEventListener('change', function() { onSettingChange('bitDepth', this.value); });
   var presetSel = document.getElementById('presetSelect');

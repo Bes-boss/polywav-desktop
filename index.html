@@ -3316,6 +3316,19 @@
       </div>
       <div class="setting-row">
         <div class="setting-info">
+          <div class="setting-label">MXF file naming</div>
+          <div class="setting-desc">How the exported MXF files are named</div>
+        </div>
+        <div class="setting-control">
+          <select id="mxfNamingSelect">
+            <option value="normalised">Normalised name</option>
+            <option value="indexed">Clip name + channel number</option>
+          </select>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+
           <div class="setting-label">Sample rate</div>
           <div class="setting-desc">Output sample rate</div>
         </div>
@@ -3665,6 +3678,7 @@
   </div>
 </div>
 
+<script src="lib/naming.js"></script>
 <script src="app.js"></script>
 </div>
 </body>
