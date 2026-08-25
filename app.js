@@ -198,20 +198,20 @@
         }
 
   function applyTemplate(caps, template) {
-    var s = template;
-    s = s.replace(/{prefix}/g, caps.prefix || '');
-    s = s.replace(/{role}/g, caps.role || '');
-    s = s.replace(/{type}/g, caps.type || typeLabel(caps.prefix) || '');
-    s = s.replace(/{num(?::(0?\d+)d)?}/g, function(match, z) {
-      var v = caps.num || '';
-      if (z && v) { while (v.length < parseInt(z, 10)) v = '0' + v; }
-      return v;
+    var s = String(template || '');
+    // Resolve any {key} or {key:0Nd} from caps, so adding a chip to
+    // NORM_COLUMNS never requires editing this function. It used to name the
+    // five original keys explicitly, and the new show/day/source/name/take
+    // chips rendered as the literal template text.
+    s = s.replace(/{([a-zA-Z_]+)(?::(0?[0-9]+)d)?}/g, function (match, key, pad) {
+      var value = (caps && caps[key] != null) ? String(caps[key]) : '';
+      if (key === 'type' && !value) value = typeLabel(caps && caps.prefix) || '';
+      if (pad && value) {
+        while (value.length < parseInt(pad, 10)) value = '0' + value;
+      }
+      return value;
     });
-    s = s.replace(/{suffix}/g, caps.suffix || '');
-    // An empty field must not leave its separator behind. A channel simply
-    // named "AMANDA" matches no prefix and no number, and the template
-    // {prefix}_{role}_{num} rendered it as "_AMANDA_" -- which is what the
-    // assistant editor then saw in Route, Patch and the export.
+    // An empty field must not leave its separator behind.
     s = s.replace(/[_\-.]{2,}/g, function (run) { return run.charAt(0); });
     s = s.replace(/^[_\-.]+/, '').replace(/[_\-.]+$/, '');
     return s;
@@ -246,6 +246,9 @@
   // Clip-level tokens for the loaded file, parsed from its filename and
   // editable by the assistant when the pattern does not fit.
   var _clipTokens = { show: '', day: '', source: '', take: '' };
+
+  //: Chips that describe the take rather than a single channel.
+  var CLIP_LEVEL_CHIPS = ['show', 'day', 'source', 'take'];
 
   // Array of template slots (ordered list of {key, label, format?})
   // Auto-synced from NORM_COLUMNS on reorder; manually editable via chips
@@ -575,7 +578,23 @@
       if (isNaN(chIdx) || chIdx < 0 || chIdx >= rawChannels.length) return;
       var ch = rawChannels[chIdx];
       if (!ch.caps) ch.caps = parseName(ch.raw);
-      ch.caps[key] = td.textContent.trim();
+      var edited = td.textContent.trim();
+
+      // Clip-level chips identify the take, not the channel. Editing one
+      // applies to every row and to the exported names; editing it on a
+      // single row would make the panel disagree with the export.
+      if (CLIP_LEVEL_CHIPS.indexOf(key) !== -1) {
+        _clipTokens[key] = edited;
+        for (var ci = 0; ci < rawChannels.length; ci++) {
+          if (!rawChannels[ci].caps) rawChannels[ci].caps = parseName(rawChannels[ci].raw);
+          rawChannels[ci].caps[key] = edited;
+        }
+        updateParseTableBody();
+        testRename();
+        return;
+      }
+
+      ch.caps[key] = edited;
       var template = document.getElementById('output-template').value;
       var normalized = applyTemplate(ch.caps, template);
       var row = td.parentElement;
@@ -1725,15 +1744,30 @@
       .map(function (slot) { return slot.key; });
     var clipChips = chips.filter(function (key) { return key !== 'name'; });
 
+    // Clip-level values come from the first row's caps (kept identical
+    // across rows by commitNormCell), falling back to the parsed tokens.
+    var firstCaps = null;
+    for (var f = 0; f < rawChannels.length; f++) {
+      if (rawChannels[f] && rawChannels[f].caps) { firstCaps = rawChannels[f].caps; break; }
+    }
+    var clipValues = firstCaps || _clipTokens;
+
     var tracks = [];
     for (var i = 0; i < ROUTING_DATA.length; i++) {
       var route = ROUTING_DATA[i] || {};
       var chIdx = parseInt(route.ch, 10) - 1;
       if (isNaN(chIdx) || chIdx < 0) continue;
       var source = rawChannels[chIdx];
-      var trackName = (source && source.raw) || ('Ch ' + (chIdx + 1));
+      if (source && !source.caps) source.caps = parseName(source.raw);
+      // caps.name carries any rename the assistant typed in the panel; the
+      // raw iXML name is only the starting point.
+      var caps = (source && source.caps) || {};
+      var trackName = caps.name || (source && source.raw) || ('Ch ' + (chIdx + 1));
+      // Read clip-level values from caps, the same object the panel preview
+      // renders from, so the preview can never disagree with the export.
+      // _clipTokens only seeds caps when the file loads.
       var derived = N.deriveNames({
-        chips: chips, clipTokens: _clipTokens, trackName: trackName,
+        chips: chips, clipTokens: caps, trackName: trackName,
       });
       // The Avid track assignment is the channel this clip claims, which is
       // what Avid groups on. It is NOT the track's timeline position.
@@ -1752,7 +1786,7 @@
     }
 
     return {
-      clipName: N.composeName(clipChips, _clipTokens) || (_clipName || 'export'),
+      clipName: N.composeName(clipChips, clipValues) || (_clipName || 'export'),
       mxfNaming: SETTINGS.mxfNaming || 'normalised',
       tracks: tracks,
     };
