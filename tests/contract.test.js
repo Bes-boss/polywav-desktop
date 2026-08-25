@@ -74,6 +74,12 @@ test('B11b: main.js forwards the track plan to the engine', () => {
   assert(/trackPlan/.test(mainJs), 'main.js ignores config.trackPlan');
 });
 
+test('B12a: only columns in the name are rendered, each with a remove control', () => {
+  assert(/data-col-remove/.test(inlineJs), 'no per-column remove control');
+  assert(!/col-toggle/.test(inlineJs),
+    'the old dot toggle is still present - two controls for one job');
+});
+
 // ======================================================================
 console.log('\n[Branch 1] fix/security-xss');
 

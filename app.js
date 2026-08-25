@@ -520,25 +520,32 @@
     var html = '<tr>';
     html += '<th style="width:44px;">#</th>';
     html += '<th>Raw channel</th>';
+    // Only columns that are part of the name are shown, so the table IS the
+    // naming rule. data-col-idx stays the TRUE NORM_COLUMNS index: drag and
+    // remove both act on the array, and a positional index would move or
+    // delete the wrong column once some are hidden.
     NORM_COLUMNS.forEach(function(c, idx) {
+      if (!c.template) return;
       html += '<th style="min-width:' + c.width + ';cursor:grab;" draggable="true"'
         + ' data-col-idx="' + idx + '" data-col-key="' + c.key + '"'
-        + ' title="' + esc(c.template ? 'In template (click the dot to remove)' : 'Not in template (click the dot to add)') + '"'
+        + ' title="' + esc('Drag to reorder ' + c.label + ', or use minus to remove it') + '"'
         + ' aria-label="' + esc(c.label) + ' column">'
-        + '<span class="col-toggle" data-col-toggle="' + idx + '" role="button" tabindex="0"'
-        + ' aria-pressed="' + (c.template ? 'true' : 'false') + '"'
-        + ' title="' + (c.template ? 'In template (click to remove)' : 'Not in template (click to add)') + '"'
-        + ' style="cursor:pointer;margin-right:4px;font-size:10px;">' + (c.template ? '&#x25CF;' : '&#x25CB;') + '</span>'
-        + esc(c.label) + '</th>';
+        + esc(c.label)
+        + '<span class="col-remove" data-col-remove="' + idx + '" role="button" tabindex="0"'
+        + ' aria-label="' + esc('Remove ' + c.label + ' from the name') + '"'
+        + ' title="Remove from the name">&minus;</span>'
+        + '</th>';
     });
-    html += '<th>Normalized name</th>';
+    html += '<th class="col-add-cell"><span class="col-add" id="colAddBtn" role="button"'
+      + ' tabindex="0" aria-label="Add a column to the name" title="Add a column">+</span></th>';
+    html += '<th>Result</th>';
     html += '</tr>';
     return html;
   }
 
   // CSP migration: parse-table interactions are delegated at table scope.
   // (Generated drag/dblclick/blur attributes were dead under script-src
-  // 'self'.) Keyboard: col-toggle dots respond to Enter/Space.
+  // 'self'.) Keyboard: column remove controls respond to Enter/Space.
   (function wireParseTable() {
     var tbody = document.getElementById('parse-tbody');
     var table = document.getElementById('parse-table');
@@ -566,18 +573,18 @@
       var th = e.target.closest('th');
       if (th && th.hasAttribute('data-col-key')) onColLabelEdit(th);
     });
-    function onToggleActivate(span) {
-      var idx = parseInt(span.getAttribute('data-col-toggle'), 10);
+    function onRemoveActivate(span) {
+      var idx = parseInt(span.getAttribute('data-col-remove'), 10);
       if (!isNaN(idx)) toggleColTemplate(idx);
     }
     thead.addEventListener('click', function(e) {
-      var span = e.target.closest('.col-toggle');
-      if (span) { e.stopPropagation(); onToggleActivate(span); }
+      var span = e.target.closest('.col-remove');
+      if (span) { e.stopPropagation(); onRemoveActivate(span); }
     });
     thead.addEventListener('keydown', function(e) {
       if (e.key !== 'Enter' && e.key !== ' ') return;
-      var span = e.target.closest('.col-toggle');
-      if (span) { e.preventDefault(); e.stopPropagation(); onToggleActivate(span); }
+      var span = e.target.closest('.col-remove');
+      if (span) { e.preventDefault(); e.stopPropagation(); onRemoveActivate(span); }
     });
   })();
 
