@@ -95,6 +95,15 @@ test('B12c: regex naming is off by default and gated behind a setting', () => {
   assert(/allowRegexToggle/.test(indexHtml), 'no settings toggle in the markup');
 });
 
+test('B12d: the duplicate chips row is gone, replaced by a read-only caption', () => {
+  assert(!/template-chips/.test(indexHtml), 'chips row markup still present');
+  assert(!/function renderTemplateChips/.test(inlineJs), 'renderTemplateChips() still defined');
+  assert(/namingCaption/.test(indexHtml), 'no naming caption element');
+  assert(/function renderNamingCaption/.test(inlineJs), 'no renderNamingCaption()');
+  assert(/id="output-template"/.test(indexHtml) && /type="hidden"/.test(indexHtml),
+    'output-template must remain hidden plumbing, not UI');
+});
+
 // ======================================================================
 console.log('\n[Branch 1] fix/security-xss');
 
@@ -334,16 +343,14 @@ test('B5: app.js emits no on*= attributes in generated HTML strings', () => {
     `${attrStyle.length} inline handler attribute(s) still emitted: ${attrStyle.slice(0, 6).join(', ')}`);
 });
 
-test('B5: template chips driven by delegated click listener on container', () => {
-  const wins = windowsAround(inlineJs, "getElementById\\('template-chips'\\)", 600);
-  assert(wins.some((w) => /addEventListener\('click'/.test(w)),
-    'no delegated click listener bound at #template-chips');
-});
-
-test('B5: chip remove (chip-x) handled inside the delegation', () => {
-  const wins = windowsAround(inlineJs, "getElementById\\('template-chips'\\)", 1600);
-  assert(wins.some((w) => /chip-x/.test(w) && /removeChipSlot/.test(w)),
-    'chip-x removal not found in chip delegation');
+// The chips row these two used to guard was deleted: the column headers are
+// now the only naming control. Its concern - CSP-safe delegated handling -
+// carries over to the + menu that replaced it.
+test('B5: column add menu is driven by delegated listeners, not inline handlers', () => {
+  const wins = windowsAround(inlineJs, 'col-add-item', 900);
+  assert(wins.some((w) => /addEventListener/.test(w)),
+    'no delegated listener covering .col-add-item');
+  assert(!/onclick=/.test(inlineJs), 'inline onclick= reintroduced');
 });
 
 test('B5: parse table cells use delegated mousedown/focusout (no per-cell handlers)', () => {

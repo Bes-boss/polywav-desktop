@@ -288,7 +288,7 @@
     }
     if (!slots.length) return false;
     _templateSlots = slots;
-    renderTemplateChips();
+    renderNamingCaption();
     return true;
   }
 
@@ -307,181 +307,29 @@
     return parts.join('');
   }
 
-  // Render chips into the #template-chips container
-  function renderTemplateChips() {
-    var container = document.getElementById('template-chips');
-    if (!container) return;
-    var html = '';
-    _templateSlots.forEach(function(s, idx) {
-      if (s.key === 'sep') {
-        html += '<span class="template-chip-sep">' + esc(s.text || '_') + '</span>';
-      } else {
-        var label = s.label;
-        if (s.format) label += ':' + s.format + 'd';
-        html += '<span class="template-chip" data-slot="' + idx + '" role="button" tabindex="0">'
-          + label + '<span class="chip-x" data-remove-slot="' + idx + '" role="button" tabindex="-1">&#x2715;</span></span>';
+  // The naming rule in words plus a live example, so an assistant can see
+  // both what the rule is and what they will actually get - without braces.
+  // The Result column already previews every row; this is the headline.
+  function renderNamingCaption() {
+    var tpl = document.getElementById('output-template');
+    if (tpl) tpl.value = buildTemplateString();
+
+    var el = document.getElementById('namingCaption');
+    if (!el) return;
+    var labels = [];
+    NORM_COLUMNS.forEach(function(c) { if (c.template) labels.push(c.label); });
+    var rule = labels.join(' _ ') || '(no columns in the name)';
+    // Take the example from the plan itself, not a parallel derivation: the
+    // caption promises what the export will produce, and getNormNameForChannel
+    // keeps spaces where the filename gets underscores.
+    var example = '';
+    try {
+      if (rawChannels.length) {
+        var planned = getTrackPlan();
+        if (planned.tracks.length) example = planned.tracks[0].fileName;
       }
-    });
-    html += '<span class="template-chip-add" id="chipAddBtn" title="Add template slot" role="button" tabindex="0">+</span>';
-    container.innerHTML = html;
-
-    // Sync the hidden template input
-    document.getElementById('output-template').value = buildTemplateString();
-  }
-
-  // CSP migration: chip interactions are delegated from the #template-chips
-  // container (the old generated onclick= attributes were dead under
-  // script-src 'self'). Keyboard: Enter/Space activates.
-  (function wireTemplateChips() {
-    var container = document.getElementById('template-chips');
-    if (!container) return;
-
-    function activateChip(chip) {
-      if (chip.classList.contains('template-chip-add')) { addChipSlot(); return; }
-      var idx = parseInt(chip.getAttribute('data-slot'), 10);
-      if (!isNaN(idx)) onChipClick({ stopPropagation: function() {}, currentTarget: chip }, idx);
-    }
-
-    container.addEventListener('click', function(e) {
-      var rm = e.target.closest('.chip-x');
-      if (rm) {
-        e.stopPropagation();
-        var rIdx = parseInt(rm.getAttribute('data-remove-slot'), 10);
-        if (!isNaN(rIdx)) removeChipSlot(rIdx);
-        return;
-      }
-      var chip = e.target.closest('.template-chip, .template-chip-add');
-      if (chip) { e.stopPropagation(); activateChip(chip); }
-    });
-
-    container.addEventListener('keydown', function(e) {
-      if (e.key !== 'Enter' && e.key !== ' ') return;
-      var chip = e.target.closest('.template-chip, .template-chip-add');
-      if (chip && !e.target.closest('.chip-x')) {
-        e.preventDefault();
-        activateChip(chip);
-      }
-    });
-  })();
-
-  // Close any open chip dropdowns
-  function closeChipDropdowns() {
-    document.querySelectorAll('.chip-dd.open').forEach(function(el) { el.classList.remove('open'); });
-  }
-
-  // Open dropdown for a chip
-  var _activeChipIdx = -1;
-
-  function onChipClick(e, idx) {
-    e.stopPropagation();
-    closeChipDropdowns();
-    var chip = e.currentTarget;
-    var existing = chip.querySelector('.chip-dd.open');
-    if (existing) { existing.classList.remove('open'); return; }
-
-    _activeChipIdx = idx;
-    var dd = chip.querySelector('.chip-dd');
-    if (dd) { dd.classList.add('open'); return; }
-
-    // Build dropdown
-    dd = document.createElement('div');
-    dd.className = 'chip-dd open';
-    var currentKey = _templateSlots[idx] ? _templateSlots[idx].key : '';
-
-    // Available column keys
-    var available = [];
-    NORM_COLUMNS.forEach(function(c) {
-      available.push({ key: c.key, label: c.label });
-    });
-
-    available.forEach(function(a) {
-      var item = document.createElement('button');
-      item.className = 'chip-dd-item' + (a.key === currentKey ? ' dd-active' : '');
-      item.innerHTML = '<span class="dd-label">' + a.label + '</span><span class="dd-hint">' + a.key + '</span>';
-      item.onclick = function(e2) { e2.stopPropagation(); selectChipOption(idx, a.key, null); };
-      dd.appendChild(item);
-    });
-
-    // Format option for num column
-    if (currentKey === 'num' || currentKey === '_add') {
-      var div = document.createElement('div');
-      div.className = 'chip-dd-divider';
-      dd.appendChild(div);
-      var fmtItem = document.createElement('button');
-      var curFmt = _templateSlots[idx] && _templateSlots[idx].format;
-      fmtItem.className = 'chip-dd-item' + (curFmt ? ' dd-active' : '');
-      fmtItem.innerHTML = '<span class="dd-label">Zero-pad</span><span class="dd-hint">:02d</span>';
-      fmtItem.onclick = function(e2) { e2.stopPropagation(); selectChipOption(idx, 'num', curFmt ? null : '02'); };
-      dd.appendChild(fmtItem);
-    }
-
-    // Remove option
-    var div2 = document.createElement('div');
-    div2.className = 'chip-dd-divider';
-    dd.appendChild(div2);
-    var remItem = document.createElement('button');
-    remItem.className = 'chip-dd-item';
-    remItem.innerHTML = '<span class="dd-label" style="color:var(--tomato);">Remove from template</span>';
-    remItem.onclick = function(e2) { e2.stopPropagation(); removeChipSlot(idx); };
-    dd.appendChild(remItem);
-
-    chip.appendChild(dd);
-  }
-
-  function selectChipOption(idx, key, format) {
-    if (!_templateSlots[idx]) return;
-    _templateSlots[idx].key = key;
-    _templateSlots[idx].format = format || null;
-    closeChipDropdowns();
-    renderTemplateChips();
-    updateParseTableBody(); // update the preview without re-rendering headers
-    testRename();
-  }
-
-  function addChipSlot() {
-    // Show a minimal dropdown at the "+" button with column options
-    var btn = document.querySelector('.template-chip-add');
-    if (!btn) return;
-    closeChipDropdowns();
-
-    var dd = document.createElement('div');
-    dd.className = 'chip-dd open';
-    dd.style.left = '0';
-    dd.style.right = 'auto';
-
-    NORM_COLUMNS.forEach(function(c) {
-      var item = document.createElement('button');
-      item.className = 'chip-dd-item';
-      item.innerHTML = '<span class="dd-label">' + c.label + '</span><span class="dd-hint">' + c.key + '</span>';
-      item.onclick = function(e2) {
-        e2.stopPropagation();
-        if (_templateSlots.length > 0) _templateSlots.push({ key: 'sep', text: '_' });
-        _templateSlots.push({ key: c.key, label: c.label });
-        closeChipDropdowns();
-        renderTemplateChips();
-        updateParseTableBody();
-        testRename();
-      };
-      dd.appendChild(item);
-    });
-
-    btn.parentNode.appendChild(dd);
-  }
-
-  function removeChipSlot(idx) {
-    if (idx < 0 || idx >= _templateSlots.length) return;
-    // Remove adjacent separator too
-    if (idx > 0 && _templateSlots[idx-1].key === 'sep') {
-      _templateSlots.splice(idx-1, 2);
-    } else if (idx + 1 < _templateSlots.length && _templateSlots[idx+1].key === 'sep') {
-      _templateSlots.splice(idx, 2);
-    } else {
-      _templateSlots.splice(idx, 1);
-    }
-    closeChipDropdowns();
-    renderTemplateChips();
-    updateParseTableBody();
-    testRename();
+    } catch (e) { example = ''; }
+    el.textContent = example ? rule + '   →   ' + example : rule;
   }
 
   function updateParseTableBody() {
@@ -664,7 +512,7 @@
 
     // Re-sync template slots from column order (unless manually edited)
     syncTemplateSlots();
-    renderTemplateChips();
+    renderNamingCaption();
 
     updateParseTableBody();
     testRename();
@@ -996,13 +844,6 @@
     sel.removeAllRanges();
     sel.addRange(range);
   }
-
-  // Close template chip dropdowns when clicking elsewhere
-  document.addEventListener('click', function(e) {
-    if (!e.target.closest('.template-chip') && !e.target.closest('.template-chip-add')) {
-      closeChipDropdowns();
-    }
-  });
 
   // Save column header label on blur, re-render
   document.addEventListener('focusout', function(e) {

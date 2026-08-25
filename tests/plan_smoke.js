@@ -139,17 +139,18 @@ async function main() {
       plan.tracks[0].name === 'TRACK 1', plan.tracks[0].name);
 
     // ---- reordering chips changes every output name ----
+    // Move 'take' before 'name' by reordering NORM_COLUMNS, which is what
+    // dragging a column heading does.
     await ev(`(function(){
-      var slots = _templateSlots.filter(function(s){ return s.key !== 'sep'; });
-      var take = slots.filter(function(s){ return s.key === 'take'; })[0];
-      var name = slots.filter(function(s){ return s.key === 'name'; })[0];
-      var rest = slots.filter(function(s){ return s.key !== 'take' && s.key !== 'name'; });
-      _templateSlots = [];
-      rest.concat([take, name]).forEach(function(s, i){
-        if (i) _templateSlots.push({ key: 'sep', text: '_' });
-        _templateSlots.push(s);
-      });
-      renderTemplateChips();
+      function idxOf(key) {
+        for (var i = 0; i < NORM_COLUMNS.length; i++) {
+          if (NORM_COLUMNS[i].key === key) return i;
+        }
+        return -1;
+      }
+      var takeCol = NORM_COLUMNS.splice(idxOf('take'), 1)[0];
+      NORM_COLUMNS.splice(idxOf('name'), 0, takeCol);
+      updateParseTable();
       return true;
     })()`);
     plan = await ev('getTrackPlan()');
@@ -204,6 +205,64 @@ async function main() {
     plan = await ev('getTrackPlan()');
     check('indexed scheme reaches the plan', plan.mxfNaming === 'indexed', plan.mxfNaming);
     await ev(`(function(){ SETTINGS.mxfNaming = 'normalised'; return true; })()`);
+
+    // ---- removing a column drops it from every exported name ----
+    const dayIdx = await ev(`(function(){
+      for (var i = 0; i < NORM_COLUMNS.length; i++) {
+        if (NORM_COLUMNS[i].key === 'day') return i;
+      }
+      return -1;
+    })()`);
+    await ev(`toggleColTemplate(${dayIdx})`);
+    plan = await ev('getTrackPlan()');
+    check('removing a column drops it from every name',
+      plan.tracks.every((t) => t.fileName.indexOf('08042026') === -1),
+      plan.tracks[0].fileName);
+
+    // ---- the + list offers exactly what is not in the name ----
+    const offered = await ev(`availableColumns().map(function(c){ return c.key; })`);
+    check('the + list offers the removed column',
+      offered.indexOf('day') !== -1, JSON.stringify(offered));
+    check('the + list hides regex-only columns while the setting is off',
+      offered.indexOf('prefix') === -1, JSON.stringify(offered));
+
+    // ---- and adding it back restores it ----
+    await ev(`toggleColTemplate(${dayIdx})`);
+    plan = await ev('getTrackPlan()');
+    check('adding a column back restores it',
+      plan.tracks.every((t) => t.fileName.indexOf('08042026') !== -1),
+      plan.tracks[0].fileName);
+
+    // ---- an edit survives removing and re-adding the column ----
+    const srcIdx = await ev(`(function(){
+      for (var i = 0; i < NORM_COLUMNS.length; i++) {
+        if (NORM_COLUMNS[i].key === 'source') return i;
+      }
+      return -1;
+    })()`);
+    await ev(`(function(){
+      var td = { textContent: 'EDITED', getAttribute: function(k){
+        return k === 'data-key' ? 'source' : '0'; } };
+      commitNormCell(td);
+      return true;
+    })()`);
+    await ev(`toggleColTemplate(${srcIdx})`);
+    await ev(`toggleColTemplate(${srcIdx})`);
+    plan = await ev('getTrackPlan()');
+    check('an edited value survives removing and re-adding its column',
+      plan.tracks[0].fileName.indexOf('EDITED') !== -1, plan.tracks[0].fileName);
+
+    // ---- the caption states the rule and a live example ----
+    const caption = await ev(`(function(){
+      renderNamingCaption();
+      var el = document.getElementById('namingCaption');
+      return el ? el.textContent : '';
+    })()`);
+    check('the caption reads as words, not braces',
+      caption.indexOf('{') === -1 && caption.indexOf('Show') !== -1, caption);
+    plan = await ev('getTrackPlan()');
+    check('the caption example matches what will actually be exported',
+      caption.indexOf(plan.tracks[0].fileName) !== -1, caption);
 
     // ---- a preset's template drives the chips ----
     await ev(`(function(){ setTemplateSlotsFromString('BLK_{prefix}_{role}_{num}'); return true; })()`);

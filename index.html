@@ -364,72 +364,35 @@
   }
 
   /* Template chips */
-  .template-chips {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    background: var(--bg-input);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    min-height: 34px;
-    cursor: default;
-  }
-  .template-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    padding: 2px 10px;
+  .naming-caption {
+    font-family: var(--mono, monospace);
     font-size: 12px;
-    font-weight: 600;
-    border-radius: 14px;
-    background: var(--bg-highlight);
-    border: 1.5px solid var(--border);
+    color: var(--text, #ddd);
+    padding: 6px 0;
+    letter-spacing: 0.02em;
+  }
+  .col-remove, .col-add {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 0 4px;
     cursor: pointer;
-    transition: all 0.15s;
-    user-select: none;
-    position: relative;
+    opacity: 0.55;
+    font-weight: 700;
   }
-  .template-chip:hover {
-    border-color: var(--tomato);
+  .col-remove:hover, .col-add:hover { opacity: 1; }
+  .col-add { margin-left: 0; font-size: 14px; }
+  .col-add-menu {
+    position: absolute;
+    z-index: 40;
+    background: var(--panel, #23262b);
+    border: 1px solid var(--line, #3a3f46);
+    border-radius: 6px;
+    padding: 4px;
+    min-width: 140px;
   }
-  .template-chip .chip-x {
-    font-size: 14px;
-    line-height: 1;
-    opacity: 0.4;
-    margin-left: 2px;
-  }
-  .template-chip .chip-x:hover {
-    opacity: 1;
-    color: var(--tomato);
-  }
-  .template-chip-sep {
-    color: var(--ink);
-    opacity: 0.25;
-    font-size: 14px;
-    font-weight: 300;
-  }
-  .template-chip-add {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: var(--bg-highlight);
-    border: 1.5px dashed var(--border);
-    color: var(--ink);
-    opacity: 0.45;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .template-chip-add:hover {
-    border-color: var(--sage);
-    opacity: 1;
-    color: var(--sage);
-  }
+  .col-add-item { padding: 5px 10px; cursor: pointer; border-radius: 4px; }
+  .col-add-item:hover { background: var(--hover, #2d3238); }
+  .col-add-empty { padding: 5px 10px; opacity: 0.6; }
   .chip-dd {
     display: none;
     position: absolute;
@@ -2932,12 +2895,10 @@
           <div class="hint">Use <code>(?&lt;name&gt;...)</code> to extract parts from the channel name</div>
   </div>
   <div class="preset-field">
-    <label>Output template</label>
-    <div class="template-chips" id="template-chips">
-      <!-- populated by renderTemplateChips() -->
-    </div>
-    <input type="hidden" id="output-template" value="{prefix}_{role}_{num}">
-    <div class="hint">Drag columns above to reorder &middot; Click a chip to change it &middot; <code>{num:02d}</code> for zero-pad</div>
+    <label>Naming</label>
+    <div class="naming-caption" id="namingCaption"></div>
+    <input type="hidden" id="output-template" value="{show}_{day}_{source}_{name}_{take}">
+    <div class="hint">Drag a column heading to reorder &middot; &minus; removes it &middot; + adds one</div>
   </div>
 </div>
 
