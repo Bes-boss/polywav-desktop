@@ -195,6 +195,12 @@
       return v;
     });
     s = s.replace(/{suffix}/g, caps.suffix || '');
+    // An empty field must not leave its separator behind. A channel simply
+    // named "AMANDA" matches no prefix and no number, and the template
+    // {prefix}_{role}_{num} rendered it as "_AMANDA_" -- which is what the
+    // assistant editor then saw in Route, Patch and the export.
+    s = s.replace(/[_\-.]{2,}/g, function (run) { return run.charAt(0); });
+    s = s.replace(/^[_\-.]+/, '').replace(/[_\-.]+$/, '');
     return s;
   }
 

@@ -458,6 +458,7 @@ ipcMain.handle('file:probe', async (event, filePath) => {
       }
 
       const result = { file: filePath, channels: 0, sampleRate: 0, frames: 0, format: '', channelNames: [], bitDepth: 24 };
+      const trackNames = [];  // filled from the engine's 'Track NN:' lines
       const lines = stdout.split('\n');
 
       lines.forEach((line) => {
@@ -472,6 +473,11 @@ ipcMain.handle('file:probe', async (event, filePath) => {
           result.frames = match ? parseInt(match[1], 10) : 0;
         } else if (trimmed.startsWith('Format:')) {
           result.format = trimmed.split(':')[1].trim();
+        } else if (/^Track \d+:/.test(trimmed)) {
+          // Authoritative per-channel names from the engine (iXML TRACK_LIST,
+          // else bext). One line per channel, so order is explicit.
+          const tm = trimmed.match(/^Track (\d+):\s*(.*)$/);
+          if (tm) trackNames[parseInt(tm[1], 10) - 1] = tm[2].trim();
         } else if (trimmed.startsWith('Description:')) {
           const desc = trimmed.split(':').slice(1).join(':').trim();
           if (desc) {
@@ -479,6 +485,14 @@ ipcMain.handle('file:probe', async (event, filePath) => {
           }
         }
       });
+
+      // Prefer the explicit per-channel list. The Description fallback is a
+      // comma-split guess and is simply wrong when the recorder writes take
+      // metadata (bPROJECT=/bTAKE=) there instead of names.
+      if (trackNames.some((n) => n && n.length)) {
+        const n = result.channels || trackNames.length;
+        result.channelNames = Array.from({ length: n }, (_, k) => trackNames[k] || ('Ch ' + (k + 1)));
+      }
 
       const bdMatch = result.format.match(/PCM_(\d+)/);
       result.bitDepth = bdMatch ? parseInt(bdMatch[1], 10) : 24;
