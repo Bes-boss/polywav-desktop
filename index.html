@@ -2926,7 +2926,7 @@
 <div class="tab-working" style="display:none;">
 
 <div class="preset-panel">
-  <div class="preset-field">
+  <div class="preset-field" id="regexField" hidden>
     <label>Naming pattern</label>
           <input type="text" id="regex-pattern" value="^(?&lt;prefix&gt;[A-Z]+)_(?&lt;role&gt;[A-Za-z]+)_?(?&lt;num&gt;\\d+)?$" data-wire="parse-pattern">
           <div class="hint">Use <code>(?&lt;name&gt;...)</code> to extract parts from the channel name</div>
@@ -3313,6 +3313,15 @@
             <button class="seg-option" data-setessence="external">Separate WAV files</button>
             <button class="seg-option" data-setessence="mxf">Avid MXF (OP-Atom)</button>
           </div>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Allow regular expressions in naming</div>
+          <div class="setting-desc">Adds a pattern field and the Prefix / Role / # columns, for shows that name tracks unusually</div>
+        </div>
+        <div class="setting-control">
+          <input type="checkbox" id="allowRegexToggle">
         </div>
       </div>
       <div class="setting-row">

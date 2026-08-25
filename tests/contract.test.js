@@ -87,6 +87,14 @@ test('B12b: a single + offers the columns not in the name', () => {
   assert(/colAddMenu/.test(indexHtml), 'no add menu container in the markup');
 });
 
+test('B12c: regex naming is off by default and gated behind a setting', () => {
+  assert(/allowRegex:\s*false/.test(inlineJs), 'allowRegex is not defaulted off');
+  assert(/allowRegexToggle/.test(inlineJs), 'no settings control for allowRegex');
+  assert(/REGEX_ONLY_COLUMNS/.test(inlineJs), 'legacy columns are not gated');
+  assert(/id="regexField"/.test(indexHtml), 'regex field is not in a toggleable wrapper');
+  assert(/allowRegexToggle/.test(indexHtml), 'no settings toggle in the markup');
+});
+
 // ======================================================================
 console.log('\n[Branch 1] fix/security-xss');
 

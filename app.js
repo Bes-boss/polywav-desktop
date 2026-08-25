@@ -521,6 +521,16 @@
   //  when regex naming has been switched on in Settings.
   var REGEX_ONLY_COLUMNS = ['prefix', 'type', 'role', 'num', 'suffix'];
 
+  function applyRegexVisibility() {
+    var field = document.getElementById('regexField');
+    if (field) field.hidden = !SETTINGS.allowRegex;
+    var toggle = document.getElementById('allowRegexToggle');
+    if (toggle) toggle.checked = !!SETTINGS.allowRegex;
+    // Columns already in the name are deliberately left alone: turning the
+    // toggle off must never silently change a rule someone is relying on.
+    renderColAddMenu();
+  }
+
   function availableColumns() {
     var allowRegex = !!(typeof SETTINGS === 'object' && SETTINGS && SETTINGS.allowRegex);
     var out = [];
@@ -2942,6 +2952,7 @@
     presetName: 'Masterchef Kitchens (MKR)',
     namingTemplate: '{show}_{day}_{source}_{name}_{take}',
     mxfNaming: 'normalised',   // 'normalised' | 'indexed'
+    allowRegex: false,         // regex naming is a supervisor tool, not an assistant one
     clipPattern: '',           // '' = use naming.DEFAULT_CLIP_PATTERN
     mixGain: -3,
     outputAafDir: './output',
@@ -2978,6 +2989,8 @@
   // Refresh all settings controls from SETTINGS (used on open + after import)
   function syncSettingsUI() {
       var sr = document.getElementById('srSelect');       if (sr) sr.value = SETTINGS.sampleRate;
+      var mn = document.getElementById('mxfNamingSelect'); if (mn) mn.value = SETTINGS.mxfNaming;
+      applyRegexVisibility();
       var bd = document.getElementById('bdSelect');       if (bd) bd.value = SETTINGS.bitDepth;
       var ns = document.getElementById('namingTemplateInput'); if (ns) ns.value = SETTINGS.namingTemplate;
       var ps = document.getElementById('presetSelect');   if (ps) syncPresetSelect();
@@ -3803,6 +3816,11 @@
   // Bound explicitly by id so the contract tests can trace each control.
   var srSel = document.getElementById('srSelect');
   if (srSel) srSel.addEventListener('change', function() { onSettingChange('sampleRate', this.value); });
+  var regexTgl = document.getElementById('allowRegexToggle');
+  if (regexTgl) regexTgl.addEventListener('change', function() {
+    onSettingChange('allowRegex', this.checked);
+    applyRegexVisibility();
+  });
   var mxfNameSel = document.getElementById('mxfNamingSelect');
   if (mxfNameSel) mxfNameSel.addEventListener('change', function() { onSettingChange('mxfNaming', this.value); });
   var bdSel = document.getElementById('bdSelect');
